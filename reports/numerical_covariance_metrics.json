@@ -1,0 +1,15 @@
+{
+  "scope": "synthetic nonzero-SE3 tiny numerical oracles only; not scene calibration",
+  "F_max_absolute_error": 5.2301234957502496e-11,
+  "G_max_absolute_error": 2.557654088519712e-11,
+  "Van_Loan_CV_max_absolute_error": 1.3877787807814457e-17,
+  "operator_action_relative_error": 1.4148550937975294e-16,
+  "PCG_relative_residual": 7.601294683828589e-14,
+  "PCG_solution_max_absolute_error": 5.9396931817445875e-15,
+  "Schur_solution_max_absolute_error": 5.828670879282072e-15,
+  "selected_covariance_max_absolute_error": 5.620504062164855e-15,
+  "marginal_minus_conditional_min_eigenvalue": 0.015115824605666494,
+  "Joseph_information_covariance_max_absolute_error": 2.275957200481571e-15,
+  "relative_solve_tolerance": 1e-12,
+  "finite_difference_step": 1e-06
+}

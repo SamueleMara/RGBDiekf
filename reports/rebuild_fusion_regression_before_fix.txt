@@ -1,0 +1,13 @@
+F
+======================================================================
+FAIL: test_fusion_preserves_footprints_for_translated_cameras (test_direct_rebuild.DirectTests.test_fusion_preserves_footprints_for_translated_cameras)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/samuelemara/Joint3DGS/RGBDekf/tests/test_direct_rebuild.py", line 383, in test_fusion_preserves_footprints_for_translated_cameras
+    self.assertTrue(np.all(rendered.owner>=0),'Fusion must preserve coverage of measured source pixel centers')
+AssertionError: False is not true : Fusion must preserve coverage of measured source pixel centers
+
+----------------------------------------------------------------------
+Ran 1 test in 0.014s
+
+FAILED (failures=1)

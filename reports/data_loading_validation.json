@@ -1,0 +1,83 @@
+{
+  "real": {
+    "results_directory": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/rgbd_sparse.NIIhkDnw/results",
+    "frames": 328,
+    "cameras": 3,
+    "rays": 302284800,
+    "valid_depth_candidates": 197919833,
+    "no_return_rays": 104364967,
+    "source_reprojection_max_pixel_error": 7.731540852509763e-13,
+    "COLMAP_export_max_absolute_error": 2.7755575615628914e-16,
+    "calibration_metadata": {
+      "calibration_source": "metadata/cameras.json",
+      "coordinate_frame": "base_link",
+      "calibration_status": "CANDIDATE_NOT_VALIDATED",
+      "camera_pose_conventions": {
+        "cam_000": "opencv_optical_camera_to_world",
+        "cam_001": "opencv_optical_camera_to_world",
+        "cam_002": "opencv_optical_camera_to_world"
+      },
+      "clipping_semantics": "declared renderer planes where present; otherwise Z>0 with no finite far cutoff",
+      "depth_storage": "floating-point metric optical Z in depth_npy; zero means no return",
+      "conversion_source": "metadata/real_conversion.json",
+      "conversion": {
+        "depth_output_unit": "float32 meters, rectified color-camera Z; zero means missing",
+        "coordinate_frame": "base_link",
+        "calibration_status": "CANDIDATE_NOT_VALIDATED",
+        "calibration_warning": "RGB hand-eye extrinsics are an offline candidate. They were not installed operationally and must not be treated as validated ground truth. RGB/depth intrinsics and T_color_depth were captured live from the Orbbec driver on 2026-10-16.",
+        "frame_matching": "recorded frame indices; hardware synchronization not independently validated",
+        "timestamps": "source_frame_index / recording FPS; not hardware timestamps"
+      },
+      "sensor_independence_qualification": "The conditional per-ray likelihood is an assumption. Rectification/resampling can correlate errors; neither physical independence nor extrinsic/synchronization accuracy is established by loading this scene."
+    },
+    "fps": 25.0,
+    "time_source": "metadata/frame_timestamps.csv:timestamp_s",
+    "timing_qualifications": {
+      "timestamps": "source_frame_index / recording FPS; not hardware timestamps",
+      "frame_matching": "recorded frame indices; hardware synchronization not independently validated"
+    },
+    "timestamp_endpoints_seconds": [
+      0.0,
+      13.08
+    ],
+    "status": "INPUTS_VALIDATED",
+    "runtime_seconds": 37.603308635007124,
+    "process_peak_rss_bytes": 106504192,
+    "inference_performed": false
+  },
+  "synthetic": {
+    "results_directory": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/rgbd_sparse.0Svu18r2/results",
+    "frames": 60,
+    "cameras": 8,
+    "rays": 147456000,
+    "valid_depth_candidates": 2166457,
+    "no_return_rays": 145289543,
+    "source_reprojection_max_pixel_error": 1.1368683772161603e-13,
+    "COLMAP_export_max_absolute_error": 4.0245584642661925e-16,
+    "calibration_metadata": {
+      "calibration_source": "metadata/cameras.json",
+      "coordinate_frame": null,
+      "calibration_status": "not-declared",
+      "camera_pose_conventions": {
+        "cam_000": "sapien_camera_to_world (legacy SAPIEN schema)",
+        "cam_001": "sapien_camera_to_world (legacy SAPIEN schema)",
+        "cam_002": "sapien_camera_to_world (legacy SAPIEN schema)",
+        "cam_003": "sapien_camera_to_world (legacy SAPIEN schema)",
+        "cam_004": "sapien_camera_to_world (legacy SAPIEN schema)",
+        "cam_005": "sapien_camera_to_world (legacy SAPIEN schema)",
+        "cam_006": "sapien_camera_to_world (legacy SAPIEN schema)",
+        "cam_007": "sapien_camera_to_world (legacy SAPIEN schema)"
+      },
+      "clipping_semantics": "declared renderer planes where present; otherwise Z>0 with no finite far cutoff",
+      "depth_storage": "floating-point metric optical Z in depth_npy; zero means no return"
+    },
+    "fps": null,
+    "time_source": null,
+    "timing_qualifications": {},
+    "timestamp_endpoints_seconds": null,
+    "status": "MISSING_ACQUISITION_TIMING",
+    "runtime_seconds": 10.589792045997456,
+    "process_peak_rss_bytes": 102436864,
+    "inference_performed": false
+  }
+}

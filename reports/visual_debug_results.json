@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-18",
+  "unit_and_numerical_tests": {
+    "count": 61,
+    "passed": true,
+    "log": "numerical_tests.txt"
+  },
+  "browser": {
+    "version": "Google Chrome 152.0.7977.82",
+    "headless": true,
+    "software_WebGL": true,
+    "known_transform_fixture_only": true,
+    "DOM_assertions": {
+      "data-viewer-ready": "true",
+      "data-browser-test": "passed",
+      "data-playback-test": "passed"
+    },
+    "checks": [
+      "offline standalone HTML renders support meshes",
+      "saved rigid transform changes centers at frame 1",
+      "optimization-stage slider lazy-loads earlier geometry",
+      "RGB-D panel visible",
+      "convergence plots render",
+      "Play visits both acquisition frames",
+      "RGB colors and fit controls work"
+    ]
+  },
+  "actual_pipeline_smoke": {
+    "scope": "NAMED TWO-FRAME 2x2-PIXEL PRODUCTION-PIPELINE TEST ONLY; NOT FULL DATASET VALIDATION",
+    "directory": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/visual_debug_smoke_20261018",
+    "solver_status": "STALLED_LINE_SEARCH",
+    "stages": 11,
+    "cycles": 2,
+    "RGBD_panels": 2,
+    "prediction_export": "COMPLETE",
+    "final_ELBO": 10.924155231629136,
+    "gradient_inf": 37.347007587168015,
+    "original_ray_factors": 8
+  },
+  "full_dataset_reconstruction_performed": false,
+  "full_scene_acceptance_satisfied": false
+}

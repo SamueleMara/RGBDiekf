@@ -1,0 +1,6 @@
+{
+  "association_tail_probability": 0.01,
+  "neighbors": 8,
+  "assumption_class": "declared-implementation-association-policy",
+  "qualification": "The 22 October Section 6 requires a declared gate but supplies no numeric tail. These local-search decision controls are implementation assumptions, not paper-supplied values or sensor calibration. All raw observations remain seed-eligible; there is no seed quota. Override the tail with --association-tail-probability."
+}

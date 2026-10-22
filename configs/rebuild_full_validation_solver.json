@@ -1,0 +1,10 @@
+{
+  "inner_iterations": 3,
+  "outer_iterations": 2,
+  "line_search_steps": 8,
+  "lm_damping": 0.000001,
+  "armijo": 0.0001,
+  "gradient_tolerance": 0.00001,
+  "objective_tolerance": 0.000001,
+  "memory_budget_gb": 12.0
+}

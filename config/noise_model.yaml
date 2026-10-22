@@ -1,0 +1,419 @@
+# Documented initial guesses, explicitly authorized by user clarification 0A.2.
+# Assumptions, not independent calibration. Each field records its original source.
+schema_version: 1
+purpose: documented-initial-guesses
+bodies: 1
+camera_calibration:
+  conditioning:
+    value: fixed-calibration-conditional
+    units: convention
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/EXACT_IEKF_STATE_SPACE_FORMULATION.md:EXACT_IEKF_STATE_SPACE_FORMULATION.md:1
+      fixed calibrated G_c; authorized as initial guesses by the user's 0A.2 correction
+conditional_sensor_independence:
+  rays:
+    value: conditionally-independent-unfiltered-rays
+    units: assumption
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/EXACT_IEKF_STATE_SPACE_FORMULATION.md:EXACT_IEKF_STATE_SPACE_FORMULATION.md:O5
+      conditional ray independence; authorized as initial guesses by the user's 0A.2
+      correction
+sensor:
+  covariance_base:
+    value:
+    - - 0.0025
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0025
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0025
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0001
+    units: RGB01,m covariance
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:sensor.covariance;
+      authorized as initial guesses by the user's 0A.2 correction
+  covariance_depth_squared:
+    value:
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    units: RGB01,m covariance/m^2
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:sensor.covariance
+      (constant covariance law); authorized as initial guesses by the user's 0A.2
+      correction
+  no_return:
+    value: 0.02
+    units: probability
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:sensor.no_return;
+      authorized as initial guesses by the user's 0A.2 correction
+  background_mean:
+    value:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 4.0
+    units: RGB01,m
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:sensor.background_mean;
+      authorized as initial guesses by the user's 0A.2 correction
+  background_covariance:
+    value:
+    - - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 25.0
+    units: RGB01,m covariance
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:sensor.background_covariance;
+      authorized as initial guesses by the user's 0A.2 correction
+  background_no_return:
+    value: 0.95
+    units: probability
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:sensor.background_no_return;
+      authorized as initial guesses by the user's 0A.2 correction
+pixel_sampling:
+  covariance_uvd:
+    value:
+    - - 0.08333333333333333
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.08333333333333333
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0001
+    units: pixel,pixel,m covariance
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:pixel_response
+      + sensor.covariance[3,3]; authorized as initial guesses by the user's 0A.2 correction
+  response:
+    value: uniform-unit-pixel-box
+    units: pixel response
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:pixel_response;
+      authorized as initial guesses by the user's 0A.2 correction
+process:
+  model:
+    value:
+      kind: local-discrete-covariance-rate
+      chart: right-body-pose-world-twist
+      covariance_rate:
+      - - 0.0001
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0001
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0001
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 0.0001
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0001
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0001
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.01
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.01
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.01
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.01
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.01
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.01
+      rate_units: local_covariance_per_second
+    units: specified in model
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:process_covariance_rate
+      * actual dt; process_noise_units; authorized as initial guesses by the user's
+      0A.2 correction
+initial:
+  twists:
+    value:
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    units: m/s,rad/s
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:initial_twists;
+      authorized as initial guesses by the user's 0A.2 correction
+  twist_covariance:
+    value:
+    - - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+    units: m/s,rad/s covariance
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:initial_twist_covariance;
+      authorized as initial guesses by the user's 0A.2 correction
+geometry:
+  mean:
+    value:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.5
+    - 0.5
+    - 0.5
+    units: m,RGB01
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:map_prior_mean;
+      authorized as initial guesses by the user's 0A.2 correction
+  covariance:
+    value:
+    - - 100.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 100.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 100.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+    units: m,RGB01 covariance
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:map_prior_covariance;
+      authorized as initial guesses by the user's 0A.2 correction
+  existence_prior:
+    value: 0.5
+    units: probability
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:existence_prior;
+      authorized as initial guesses by the user's 0A.2 correction
+  ownership_prior:
+    value:
+    - 0.5
+    - 0.5
+    units: probability
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:ownership_prior;
+      authorized as initial guesses by the user's 0A.2 correction
+  prior_factorization:
+    value: independent-canonical-hypothesis-priors
+    units: assumption
+    status: documented-initial-guess
+    provenance: /home/samuelemara/Joint3DGS/RGBDekf/configs/example_uncalibrated.json:map_prior_covariance
+      (independent canonical prior specification); authorized as initial guesses by
+      the user's 0A.2 correction

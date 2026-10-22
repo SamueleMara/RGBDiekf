@@ -1,0 +1,84 @@
+test_F_SE3_left_pose_right_noise_finite_difference (test_contract.ContractTests.test_F_SE3_left_pose_right_noise_finite_difference) ... ok
+test_G_right_process_noise_adjoint (test_contract.ContractTests.test_G_right_process_noise_adjoint) ... ok
+test_backward_revealed_surface_with_occlusion (test_contract.ContractTests.test_backward_revealed_surface_with_occlusion) ... ok
+test_conditional_ekf_gaussian_special_case (test_contract.ContractTests.test_conditional_ekf_gaussian_special_case) ... ok
+test_end_to_end_small_scene_exports_and_common_elbo (test_contract.ContractTests.test_end_to_end_small_scene_exports_and_common_elbo) ... ok
+test_exact_limit_and_explicit_configuration (test_contract.ContractTests.test_exact_limit_and_explicit_configuration) ... ok
+test_first_hit_normalization_and_occlusion (test_contract.ContractTests.test_first_hit_normalization_and_occlusion) ... ok
+test_fixed_ray_O4_jacobian (test_contract.ContractTests.test_fixed_ray_O4_jacobian) ... ok
+test_full_60x8_manifest (test_contract.ContractTests.test_full_60x8_manifest) ... ok
+test_full_ray_score_S1_against_finite_difference (test_contract.ContractTests.test_full_ray_score_S1_against_finite_difference) ... ok
+test_ieks_RTS_against_batch_linear (test_contract.ContractTests.test_ieks_RTS_against_batch_linear) ... ok
+test_joint_schur_matches_dense_augmentation (test_contract.ContractTests.test_joint_schur_matches_dense_augmentation) ... ok
+test_multibody_ray_cross_information (test_contract.ContractTests.test_multibody_ray_cross_information) ... ok
+test_no_double_count_on_relinearization (test_contract.ContractTests.test_no_double_count_on_relinearization) ... ok
+test_nonlinear_rts_covariance_chart_transport (test_contract.ContractTests.test_nonlinear_rts_covariance_chart_transport) ... ok
+test_process_prior_gradient (test_contract.ContractTests.test_process_prior_gradient) ... ok
+test_rgbd_projection_and_O3_jacobian (test_contract.ContractTests.test_rgbd_projection_and_O3_jacobian) ... ok
+test_source_pose_map_cross_covariance (test_contract.ContractTests.test_source_pose_map_cross_covariance) ... ok
+test_async_camera_time_columns_are_rejected (test_data_loading.DatasetLoadingTests.test_async_camera_time_columns_are_rejected) ... ok
+test_auto_fps_30_for_all_60_frames_and_alternate_metadata (test_data_loading.DatasetLoadingTests.test_auto_fps_30_for_all_60_frames_and_alternate_metadata) ... ok
+test_duplicate_missing_or_conflicting_timestamp_frames_are_rejected (test_data_loading.DatasetLoadingTests.test_duplicate_missing_or_conflicting_timestamp_frames_are_rejected) ... ok
+test_integer_depth_cannot_silently_be_interpreted_as_meters (test_data_loading.DatasetLoadingTests.test_integer_depth_cannot_silently_be_interpreted_as_meters) ... ok
+test_joint_value_export_is_never_opened_for_timing (test_data_loading.DatasetLoadingTests.test_joint_value_export_is_never_opened_for_timing) ... ok
+test_metadata_directory_pointer_and_zip_preserve_real_model (test_data_loading.DatasetLoadingTests.test_metadata_directory_pointer_and_zip_preserve_real_model) ... ok
+test_metadata_pointer_keeps_output_outside_original_scene (test_data_loading.DatasetLoadingTests.test_metadata_pointer_keeps_output_outside_original_scene) ... ok
+test_nonuniform_output_times_and_explicit_override (test_data_loading.DatasetLoadingTests.test_nonuniform_output_times_and_explicit_override) ... ok
+test_optical_world_to_camera_K_and_unknown_conventions (test_data_loading.DatasetLoadingTests.test_optical_world_to_camera_K_and_unknown_conventions) ... ok
+test_per_camera_times_require_complete_identified_camera_coverage (test_data_loading.DatasetLoadingTests.test_per_camera_times_require_complete_identified_camera_coverage) ... ok
+test_positive_Z_domain_clips_horizon_without_inventing_sensor_range (test_data_loading.DatasetLoadingTests.test_positive_Z_domain_clips_horizon_without_inventing_sensor_range) ... ok
+test_raw_capture_fps_requires_conversion_mapping_and_is_not_output_fps (test_data_loading.DatasetLoadingTests.test_raw_capture_fps_requires_conversion_mapping_and_is_not_output_fps) ... ok
+test_real_rectified_optical_poses_and_recording_timestamp_provenance (test_data_loading.DatasetLoadingTests.test_real_rectified_optical_poses_and_recording_timestamp_provenance) ... ok
+test_synthetic_look_at_fov_metadata_and_no_stale_backup_clock (test_data_loading.DatasetLoadingTests.test_synthetic_look_at_fov_metadata_and_no_stale_backup_clock) ... ok
+test_zip_glob_does_not_collect_nested_stale_images (test_data_loading.DatasetLoadingTests.test_zip_glob_does_not_collect_nested_stale_images) ... ok
+test_actual_frame_score_matches_nonlinear_objective (test_direct_rebuild.DirectTests.test_actual_frame_score_matches_nonlinear_objective) ... ok
+test_actual_joint_selected_source_pose_and_two_points_correlate (test_direct_rebuild.DirectTests.test_actual_joint_selected_source_pose_and_two_points_correlate) ... ok
+test_adding_an_unobserved_surfel_does_not_reduce_pose_covariance (test_direct_rebuild.DirectTests.test_adding_an_unobserved_surfel_does_not_reduce_pose_covariance) ... ok
+test_backward_reuses_source_once (test_direct_rebuild.DirectTests.test_backward_reuses_source_once) ... ok
+test_common_posterior_gradient_includes_map_and_temporal_priors (test_direct_rebuild.DirectTests.test_common_posterior_gradient_includes_map_and_temporal_priors) ... FAIL
+test_conditional_probability_refresh_preserves_committed_scene (test_direct_rebuild.DirectTests.test_conditional_probability_refresh_preserves_committed_scene) ... ok
+test_continuous_Q_fixed_weight_score_is_not_stationarity_certificate (test_direct_rebuild.DirectTests.test_continuous_Q_fixed_weight_score_is_not_stationarity_certificate) ... ok
+test_cross_body_surfaces_are_not_fused (test_direct_rebuild.DirectTests.test_cross_body_surfaces_are_not_fused) ... ok
+test_direct_analytic_jacobian (test_direct_rebuild.DirectTests.test_direct_analytic_jacobian) ... ok
+test_first_hit_and_no_return_normalization (test_direct_rebuild.DirectTests.test_first_hit_and_no_return_normalization) ... ok
+test_fixed_prior_matches_joseph_and_does_not_shrink_again (test_direct_rebuild.DirectTests.test_fixed_prior_matches_joseph_and_does_not_shrink_again) ... ok
+test_forward_trace_resume_preserves_original_filtering_posterior (test_direct_rebuild.DirectTests.test_forward_trace_resume_preserves_original_filtering_posterior) ... ok
+test_free_space_contradiction_reduces_existence_probability (test_direct_rebuild.DirectTests.test_free_space_contradiction_reduces_existence_probability) ... ok
+test_fusion_preserves_footprints_for_translated_cameras (test_direct_rebuild.DirectTests.test_fusion_preserves_footprints_for_translated_cameras) ... ok
+test_hidden_geometry_has_no_photometric_motion_score (test_direct_rebuild.DirectTests.test_hidden_geometry_has_no_photometric_motion_score) ... ok
+test_inconsistent_static_occluder_does_not_force_rear_existence (test_direct_rebuild.DirectTests.test_inconsistent_static_occluder_does_not_force_rear_existence) ... ok
+test_inverse_transport_endpoint_finite_difference (test_direct_rebuild.DirectTests.test_inverse_transport_endpoint_finite_difference) ... ok
+test_jvp_vjp_and_selected_inverse (test_direct_rebuild.DirectTests.test_jvp_vjp_and_selected_inverse) ... ok
+test_known_motion_reprojection_residual_vanishes (test_direct_rebuild.DirectTests.test_known_motion_reprojection_residual_vanishes) ... ok
+test_local_conditional_evidence_matches_full_leave_one_out (test_direct_rebuild.DirectTests.test_local_conditional_evidence_matches_full_leave_one_out) ... ok
+test_motion_initializer_uses_probabilistic_outlier_component (test_direct_rebuild.DirectTests.test_motion_initializer_uses_probabilistic_outlier_component) ... ok
+test_moving_drawer_reveals_occluded_rear_surface (test_direct_rebuild.DirectTests.test_moving_drawer_reveals_occluded_rear_surface) ... ok
+test_native_raw_metric_matches_python_local_operator (test_direct_rebuild.DirectTests.test_native_raw_metric_matches_python_local_operator) ... ok
+test_nonlinear_RTS_covariance_against_batch_chart_map (test_direct_rebuild.DirectTests.test_nonlinear_RTS_covariance_against_batch_chart_map) ... ok
+test_occluded_middle_frame_has_no_back_surface_information (test_direct_rebuild.DirectTests.test_occluded_middle_frame_has_no_back_surface_information) ... ok
+test_oriented_zbuffer_depth (test_direct_rebuild.DirectTests.test_oriented_zbuffer_depth) ... ok
+test_point_center_behind_camera_has_no_sensor_branch (test_direct_rebuild.DirectTests.test_point_center_behind_camera_has_no_sensor_branch) ... ok
+test_production_F_G_nonuniform_intervals (test_direct_rebuild.DirectTests.test_production_F_G_nonuniform_intervals) ... ok
+test_production_RTS_matches_independent_batch (test_direct_rebuild.DirectTests.test_production_RTS_matches_independent_batch) ... ok
+test_schur_shared_pose_cross_covariance (test_direct_rebuild.DirectTests.test_schur_shared_pose_cross_covariance) ... ok
+test_sensor_depth_covariance_law_derivative (test_direct_rebuild.DirectTests.test_sensor_depth_covariance_law_derivative) ... ok
+test_shared_source_covariance_retains_measurement_pose_cross_terms (test_direct_rebuild.DirectTests.test_shared_source_covariance_retains_measurement_pose_cross_terms) ... ok
+test_static_geometry_cache_is_exact_across_nonzero_body_poses (test_direct_rebuild.DirectTests.test_static_geometry_cache_is_exact_across_nonzero_body_poses) ... ok
+test_streamed_joint_operator_actual_ray_sparsity (test_direct_rebuild.DirectTests.test_streamed_joint_operator_actual_ray_sparsity) ... ok
+test_two_camera_fusion_and_repeated_surface (test_direct_rebuild.DirectTests.test_two_camera_fusion_and_repeated_surface) ... ok
+test_van_loan_covariance_matches_nonuniform_interval_quadrature (test_direct_rebuild.DirectTests.test_van_loan_covariance_matches_nonuniform_interval_quadrature) ... ok
+test_visual_depth_order_uses_transported_conditional_covariance (test_direct_rebuild.DirectTests.test_visual_depth_order_uses_transported_conditional_covariance) ... ok
+test_weighted_motion_and_ownership_not_index (test_direct_rebuild.DirectTests.test_weighted_motion_and_ownership_not_index) ... ok
+
+======================================================================
+FAIL: test_common_posterior_gradient_includes_map_and_temporal_priors (test_direct_rebuild.DirectTests.test_common_posterior_gradient_includes_map_and_temporal_priors)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/samuelemara/Joint3DGS/RGBDekf/tests/test_direct_rebuild.py", line 463, in test_common_posterior_gradient_includes_map_and_temporal_priors
+    self.assertAlmostEqual(certificate['map_gradient'][0,j],fd,delta=2e-3)
+AssertionError: 53.13867978152512 != 54.13867967263286 within 0.002 delta (0.9999998911077412 difference)
+
+----------------------------------------------------------------------
+Ran 71 tests in 4.682s
+
+FAILED (failures=1)
