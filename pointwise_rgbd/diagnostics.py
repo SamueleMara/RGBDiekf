@@ -58,6 +58,10 @@ class Diagnostics:
         m=distribution(stats['matched_d2']);u=distribution(stats['unmatched_d2'])
         gap=None if not m['quantiles'] or not u['quantiles'] else u['quantiles']['min']-m['quantiles']['p99']
         append_csv(self.root/'discovery/nearest_residuals.csv',{'model_version':version,'frame':stats['frame'],'camera':stats['camera'],'nearest_metric_quantiles_m':json.dumps(stats['nearest_metric_quantiles_m']),'sample_spacing_quantiles_m':json.dumps(stats['sample_spacing_quantiles_m']),'matched_distribution':json.dumps(m),'unmatched_distribution':json.dumps(u),'unmatched_min_minus_matched_p99':gap,'margin_claim':'not established' if gap is None or gap<=0 else 'empirical selected-sample separation only'})
+    def coverage_row(self,version,k,ci,result,measurement_owners):
+        stats=result.stats;owners=measurement_owners[result.pixel]
+        append_csv(self.root/'discovery/matching_by_frame.csv',{'model_version':version,'frame':k,'camera':ci,'raw_pixels':stats['raw_pixels'],'valid_foreground':len(result.pixel),'invalid_foreground_pixels':stats['invalid_foreground'],'geometry_explained':int(result.geometry_explained.sum()),'geometry_and_appearance_explained':int(result.explained.sum()),'unmatched':int((~result.explained).sum()),'actual_measurement_owners':int((owners>=0).sum()),'owned_but_unexplained':int(((owners>=0)&~result.explained).sum()),'many_to_one_extra_samples':stats.get('appearance_many_to_one_extra_samples',0),'coverage_changes_measurement_ownership':False})
+        append_csv(self.root/'discovery/nearest_residuals.csv',{'model_version':version,'frame':k,'camera':ci,'nearest_world_distance_m':json.dumps(distribution(result.nearest_distance_m)),'accepted_world_distance_m':json.dumps(distribution(result.selected_distance_m)),'accepted_rgb_cosine':json.dumps(distribution(result.rgb_cosine)),'accepted_color_d2':json.dumps(distribution(result.color_d2)),'tail_probability':self.config.association_tail_probability,'score':'sum of normalized marginal Gaussian NLLs; no arbitrary metric/color weight'})
     def event_start(self,point,source,version):
         self.event({'event':'START','point_id':point,'source':source.record(self.dataset),'model_version':version,'anchor_assimilations':1,'branch_definition':'independent copies of the same anchor posterior; no smoother'})
     def event_failure(self,point,source,version,reason):
@@ -85,29 +89,44 @@ class Diagnostics:
         trajectory_viewer(self.root/'discovery/geometry_growth.html',store,self.dataset,self.root)
         self.event({'event':'COMMIT','point_id':point,'source':source.record(self.dataset),'model_version':version,'SOLVED':store.count,'real_observed_frames':int(track['observed'].sum()),'prediction_only_frames':int((~track['observed']).sum()),'anchor_uses':1,'optimizer_count_for_seed':1,'old_states_and_covariances_frozen':True,'restart_next_scan_at_frame':len(self.dataset.times)-1})
     def final(self,store,ownership,status,completed,failures,elapsed):
-        unmatched=0;owned=0;used=0;rows=[]
+        unmatched=0;owned=0;used=0;rows=[];covered_total=0;owned_unexplained=0
         from rgbd_common.array_store import ArrayStore
         unexplained=ArrayStore(self.root/'final/unexplained_observations.sqlite')
         for k in range(len(self.dataset.times)):
             for ci in range(len(self.dataset.cameras)):
-                frame=self.dataset.observation(k,ci);owner,kind=ownership.arrays(k,ci);valid=np.flatnonzero(frame.valid.ravel());free=valid[owner[valid]<0]
-                unmatched+=len(free);owned+=int((owner>=0).sum());used+=int(((kind==1)|(kind==3)).sum())
+                frame=self.dataset.observation(k,ci);owner=ownership.tracking_owners(k,ci)
+                coverage=ownership.coverage.read(k,ci,ownership.meta('model_version',0))
+                valid=np.flatnonzero(frame.valid.ravel())
+                if not np.array_equal(coverage['pixel'],valid):raise ValueError('Coverage raw IDs differ from current valid foreground observations')
+                free=coverage['pixel'][~coverage['explained']]
+                covered_total+=int(coverage['explained'].sum());owned_unexplained+=int((owner[free]>=0).sum())
+                unmatched+=len(free);owned+=int((owner>=0).sum());used+=int((owner>=0).sum())
                 unexplained.write(f'{k}:{ci}',pixel=free,original_frame=np.array(self.dataset.frame_ids[k]),camera=np.array(self.dataset.cameras[ci].name))
                 rows.append({'frame':k,'original_frame':self.dataset.frame_ids[k],'camera':ci,'unexplained':len(free)})
         with (self.root/'final/unexplained_observations.csv').open('w') as stream:
             writer=csv.DictWriter(stream,fieldnames=['frame','original_frame','camera','unexplained']);writer.writeheader();writer.writerows(rows)
         unexplained.close()
-        if status=='COMPLETE_FINITE_DISCOVERY' and unmatched:status='NO_ELIGIBLE_SEEDS_NUMERICAL_FAILURES'
+        if status=='COMPLETE_FINITE_DISCOVERY' and unmatched:
+            status='FROZEN_MEASUREMENT_COVERAGE_CONFLICTS' if owned_unexplained else 'NO_ELIGIBLE_SEEDS_NUMERICAL_FAILURES'
         limits=getattr(self.dataset,'test_limits',{})
         selected_complete=status=='COMPLETE_FINITE_DISCOVERY'
         if selected_complete and any(v is not None for v in limits.values()):status='EXPLICIT_TEST_SELECTION_COMPLETE'
         summary={'status':status,'complete_discovery':status=='COMPLETE_FINITE_DISCOVERY','initial_points':store.n0,'new_points':len(store.added),'new_points_this_invocation':completed,'SOLVED':store.count,'first_original_frame':self.dataset.frame_ids[0],'last_original_frame':self.dataset.frame_ids[-1],'frames':len(self.dataset.times),'cameras':len(self.dataset.cameras),'owned_raw_observations':owned,'assimilated_raw_observations':used,'unmatched_raw_observations':unmatched,'failures_this_invocation':failures,'initial_forward_invocations':ownership.meta('initial_invocations'),'model_version':ownership.meta('model_version',0),'runtime_seconds_this_invocation':elapsed,'rss_peak_bytes':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024,'gpu':self.backend.memory(),'track_store':str(store.directory),'new_tracks':[r['path'] for r in store.added],'covariance_semantics':'Conditional per-point Gaussian, no discrete-association or shared-calibration marginalization; reverse is reoriented process factor, not RTS','limitations':['Finite 8-neighbor local candidate family; association is not an exact global posterior','Prediction-only states are estimates, not sensor observations','No guarantee of physical motion identifiability on textureless/symmetric/occluded geometry'],'test_selection':getattr(self.dataset,'test_limits',{})}
         summary['selected_sequence_discovery_complete']=selected_complete
+        summary['point_optimizer_calls_this_invocation']=completed+failures
+        if hasattr(self,'cached_history_source'):
+            summary['frozen_cache_source']=self.cached_history_source
+            summary['initial_optimizer_calls_this_invocation']=0
+        summary['geometrically_and_appearance_explained_raw_observations']=covered_total
+        summary['unexplained_with_frozen_measurement_owner']=owned_unexplained
         summary['stage_seconds']={key:sum(r.get(key,0.) for r in self.frame_records) for key in ('frame_seconds','filter_seconds','knn_seconds','projection_seconds','index_build_seconds','association_seconds')}
+        if hasattr(self,'cached_initial_stage_seconds'):
+            summary['cached_initial_stage_seconds_not_this_invocation']=self.cached_initial_stage_seconds
+            summary['stage_seconds']={key:0. for key in summary['stage_seconds']}
         summary['stage_seconds']['image_io_this_invocation']=getattr(self.dataset,'image_io_seconds',None)
         summary['initial_ambiguity_count']=sum(r.get('ambiguity_count',0) for r in self.frame_records)
         summary['initial_ownership_conflicts']=sum(r.get('ownership_conflicts',0) for r in self.frame_records)
-        summary['provenance_note']='Raw measurement references in initial_forward/trajectory_store/measurement_refs.sqlite and each appended NPZ are immutable; ownership kind=2 is geometric matching only, never an old filter update.'
+        summary['provenance_note']='Frozen raw factors remain immutable. Surface coverage is a separate many-to-one relation in surface_coverage.sqlite. Measurement ownership contains only assimilations/anchors; legacy kind=2 coverage does not constrain tracking or define novelty.'
         if hasattr(self.dataset,'base'):json_write(self.root/'raw_observations/input_fingerprints.json',self.dataset.base.observation_fingerprints)
         json_write(self.root/'final/summary.json',summary);json_write(self.root/'final/point_tracks.json',{'initial':str(store.directory),'appended':store.added})
         if not (self.root/'discovery/geometry_growth.html').exists():trajectory_viewer(self.root/'discovery/geometry_growth.html',store,self.dataset,self.root)

@@ -1,3 +1,5 @@
+> **Correspondence correction:** the coverage/ownership conflation in this earlier version is superseded by [AUDIT_CORRESPONDENCE_2026-10-22.md](AUDIT_CORRESPONDENCE_2026-10-22.md) and [the measured real-data results](reports/correspondence_2026-10-22_results.md).
+
 # Implementation audit: pointwise bidirectional discovery
 
 Audit date: 22 October 2026. Parent repository HEAD:

@@ -9,6 +9,8 @@ from .process6 import predict
 from .association import associate
 from .filter_iekf import correct
 from .discovery import track_one_point
+from .coverage import SurfaceIndex
+from .coverage_store import FrozenMeasurementConflict
 
 
 def initial_forward(dataset,config,backend,root,ownership,debug,resume=False):
@@ -40,7 +42,7 @@ def initial_forward(dataset,config,backend,root,ownership,debug,resume=False):
             pred[lo:hi]=s.cpu().numpy();pp[lo:hi]=cov.cpu().numpy()
         matches=[];statistics=[]
         for ci in range(len(dataset.cameras)):
-            match,stats=associate(pred,pp,store.colors,np.arange(n),dataset.observation(k,ci),config,backend,ownership.get(k,ci))
+            match,stats=associate(pred,pp,store.colors,np.arange(n),dataset.observation(k,ci),config,backend,ownership.tracking_owners(k,ci))
             matches.append(match);statistics.append(stats)
         nis=np.full(n,np.nan);counts=np.zeros(n,np.uint8);filter_summary={'min_eigenvalue':float('inf'),'max_condition':0.,'line_search_stops':0,'iteration_limit_reached':0,'iterations_max':0,'accepted_energy_decreases':0,'psd_repairs':0}
         filter_start=time.monotonic()
@@ -74,32 +76,45 @@ def initial_forward(dataset,config,backend,root,ownership,debug,resume=False):
 
 
 def match_all_frozen(dataset,store,ownership,config,backend,debug=None):
-    """Full reference rescan: geometry bookkeeping, NEVER a filter update."""
-    version=ownership.meta('model_version',0);last=ownership.meta('matched_model_version',-1)
-    if last==version:return
-    for k in tqdm(range(len(dataset.times)-1,-1,-1),desc='Match frozen trajectories (reverse)',unit='frame',leave=False):
+    """Observed -> SOLVED coverage; no owner claims and NEVER a filter update."""
+    version=ownership.meta('model_version',0)
+    if ownership.coverage.completed(version):return
+    horizon=ownership.coverage.horizon()
+    if horizon is not None and int(horizon['version'])>=0:
+        from .incremental_coverage import update_insertions
+        return update_insertions(dataset,ownership,config,backend,debug)
+    from .incremental_coverage import cache_observations
+    for k in tqdm(range(len(dataset.times)-1,-1,-1),desc='Surface coverage of frozen trajectories',unit='frame',leave=False):
         state,p,color,point_ids,_=store.frame(k)
+        surface=SurfaceIndex(state,p,color,point_ids)
         for ci in range(len(dataset.cameras)):
             frame=dataset.observation(k,ci)
-            while True:
-                match,stats=associate(state,p,color,point_ids,frame,config,backend,ownership.get(k,ci))
-                if len(match['pixel']):
-                    ownership.claim([(k,ci,match['pixel'],point_ids[match['point'].cpu().numpy()])],kind=2)
-                if debug:debug.matching_row(version,stats,ownership.get(k,ci))
-                # Existing claims can resolve discrete ties. Reach a finite
-                # ownership closure before caching this model-version scan.
-                if not len(match['pixel']):break
-    with ownership.db:ownership.set_meta('matched_model_version',version)
+            result=surface.match(frame,config,backend)
+            ownership.coverage.write(k,ci,version,result)
+            cache_observations(ownership.coverage,k,ci,frame,config,ownership.coverage.read(k,ci,version))
+            if debug:debug.coverage_row(version,k,ci,result,ownership.tracking_owners(k,ci))
+    last=ownership.db.execute('SELECT MAX(id) FROM points').fetchone()[0]
+    ownership.coverage.complete(version,-1 if last is None else last)
 
 
-def run_exact_pointwise_discovery(dataset,config,backend,directory,max_events=None,resume=False):
+def run_exact_pointwise_discovery(dataset,config,backend,directory,max_events=None,resume=False,cached_store=None,coverage_audit=None):
     from .diagnostics import Diagnostics
     config.gate();root=Path(directory);root.mkdir(parents=True,exist_ok=True)
     debug=Diagnostics(root,dataset,config,backend);ownership=Ownership(dataset,root/'raw_observations/ownership_index.sqlite')
     if resume:ownership.release_reservations()
-    start=time.monotonic();store=initial_forward(dataset,config,backend,root,ownership,debug,resume)
+    start=time.monotonic()
+    if cached_store is not None:
+        from .cached_discovery import prepare_frozen_history,import_coverage_audit
+        store=prepare_frozen_history(cached_store,ownership,dataset,debug)
+        if coverage_audit is not None:import_coverage_audit(store,ownership,dataset,coverage_audit,debug)
+    else:store=initial_forward(dataset,config,backend,root,ownership,debug,resume)
+    seen={r['point_id'] for r in store.added}
     for point,path,data in ownership.db.execute('SELECT id,path,data FROM points ORDER BY id'):
-        record=json.loads(data);store.append(path,record)
+        if point in seen:continue
+        import hashlib
+        record=json.loads(data)
+        if hashlib.sha256(Path(path).read_bytes()).hexdigest()!=record['sha256']:raise ValueError('Registered frozen track SHA256 mismatch')
+        store.append(path,record)
         event=root/f'discovery/events/{point:012d}'
         if not (event/'local_3d.html').exists():
             with np.load(path) as saved:
@@ -111,7 +126,11 @@ def run_exact_pointwise_discovery(dataset,config,backend,directory,max_events=No
     while True:
         match_all_frozen(dataset,store,ownership,config,backend,debug)
         version=ownership.meta('model_version',0)
-        source=ownership.first_unclaimed(version)
+        try:source=ownership.first_unexplained(version)
+        except FrozenMeasurementConflict as error:
+            status='UNEXPLAINED_OBSERVATION_HAS_FROZEN_MEASUREMENT_OWNER'
+            json_write(root/'discovery/frozen_measurement_conflict.json',{'source':error.reference.record(dataset),'owner':error.owner,'reason':str(error),'old_trajectories_changed':False})
+            break
         if source is None:break
         if max_events is not None and completed>=max_events:
             status='EXPLICIT_TEST_EVENT_LIMIT';break

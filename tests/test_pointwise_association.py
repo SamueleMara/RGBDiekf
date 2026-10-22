@@ -68,10 +68,10 @@ class PointwiseAssociationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             store,owner=run_exact_pointwise_discovery(scene,c,b,root,max_events=1)
             before=[owner.get(k,ci).copy() for k in range(5) for ci in range(2)]
-            fast=owner.first_unclaimed(owner.meta('model_version',0))
-            with owner.db:owner.set_meta('matched_model_version',-1)
+            fast=owner.first_unexplained(owner.meta('model_version',0))
+            owner.coverage.complete(-1)
             match_all_frozen(scene,store,owner,c,b)
-            brute=owner.first_unclaimed(owner.meta('model_version',0))
+            brute=owner.first_unexplained(owner.meta('model_version',0))
             self.assertEqual(fast,brute)
             after=[owner.get(k,ci).copy() for k in range(5) for ci in range(2)]
             for x,y in zip(before,after):assert_array_equal(x,y)

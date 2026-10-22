@@ -96,3 +96,25 @@ See `AUDIT_POINTWISE_2026-10-22.md` and
 `reports/pointwise_2026-10-22_validation.md` for the measured acceptance evidence
 and remaining limits. Historical rigid-pipeline reports are not pointwise
 validation.
+
+
+## Correspondence correction and cached discovery
+
+Surface coverage now uses observed-world-XYZ -> transported SOLVED spatial kNN
+with uncertainty, visible foreground depth, and noise-normalized RGB distance.
+RGB angle and brightness are recorded as the exact decomposition of that color
+distance. It is separate from exclusive temporal IEKF measurement ownership.
+Coverage never claims a measurement or updates a Kalman state.
+
+Discovery selects unexplained, unassimilated observations in deterministic
+reverse order. Previously assimilated but incompatible observations remain
+unexplained consistency conflicts. Initial means/P and all previously appended
+tracks remain frozen. New coverage is the union of retained old witnesses and
+compatible newly inserted point trajectories; updates load no old trajectories.
+
+Use `--cached-solved <existing pointwise_rgbd>` together with
+`--coverage-audit <completed full audit>` to skip the initial optimization.
+Select a fresh `--output`; the cache and dataset are read-only. Add
+`--max-events 1` for bounded validation; removing the limit starts potentially
+very expensive finite discovery and is not needed for the correspondence audit.
+See [measured results and exact commands](reports/correspondence_2026-10-22_results.md).

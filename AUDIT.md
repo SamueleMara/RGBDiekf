@@ -1,3 +1,5 @@
+> **Correspondence correction:** the coverage/ownership conflation in this earlier version is superseded by [AUDIT_CORRESPONDENCE_2026-10-22.md](AUDIT_CORRESPONDENCE_2026-10-22.md) and [the measured real-data results](reports/correspondence_2026-10-22_results.md).
+
 > **22 October 2026 pointwise replacement:** [current audit](AUDIT_POINTWISE_2026-10-22.md), [execution commands](POINTWISE_RGBD.md), and [measured validation](reports/pointwise_2026-10-22_validation.md). The audit below concerns the superseded rigid/group architecture. Its model-count-prior blocker does not apply to the new 6D pointwise algorithm.
 
 > Historical request results: [LATEST_REQUEST_VALIDATION.md](LATEST_REQUEST_VALIDATION.md). Earlier rigid reconstruction was **not accepted**; its UKF progressive-motion test still failed.

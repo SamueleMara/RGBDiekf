@@ -30,6 +30,8 @@ def main(argv=None):
     parser.add_argument('--max-events',type=int,help='Explicit TEST limit, never a full reconstruction success')
     parser.add_argument('--frame-limit',type=int,help='Explicit TEST prefix, default all frames');parser.add_argument('--camera-limit',type=int,help='Explicit TEST camera prefix, default all cameras')
     parser.add_argument('--seed',type=int,default=0);parser.add_argument('--resume',action='store_true')
+    parser.add_argument('--cached-solved',type=Path,help='Reuse this frozen pointwise_rgbd cache; NEVER run initial_forward')
+    parser.add_argument('--coverage-audit',type=Path,help='Import the completed correspondence-only audit for this cache')
     parser.add_argument('--fps',type=float);parser.add_argument('--dt-seconds',type=float);parser.add_argument('--timestamps-file',type=Path)
     args=parser.parse_args(argv)
     for key in ('frame_limit','camera_limit'):
@@ -39,6 +41,9 @@ def main(argv=None):
     try:source=SceneFiles(args.scene).path.resolve()
     except (ValueError,OSError) as error:parser.error(str(error))
     if root==source or source in root.parents:parser.error('Output must be outside the read-only source dataset')
+    if args.cached_solved is not None and (root==args.cached_solved.resolve() or args.cached_solved.resolve() in root.parents):parser.error('Cached histories are read only; select a separate output')
+    if args.coverage_audit is not None and args.cached_solved is None:parser.error('--coverage-audit requires --cached-solved')
+    if args.cached_solved is not None and args.coverage_audit is None:parser.error('--cached-solved requires a completed --coverage-audit before discovery')
     if root.exists() and any(root.iterdir()) and not args.resume:parser.error('Preserving nonempty output; use a fresh output path or --resume')
     root.mkdir(parents=True,exist_ok=True)
     lock=(root/'run.lock').open('a')
@@ -50,19 +55,30 @@ def main(argv=None):
     try:
         import torch,numpy as np
         torch.set_num_threads(1);np.random.seed(args.seed);torch.manual_seed(args.seed)
-        backend=Backend(args.device);config=load_config(args.noise_config,args.association_tail_probability)
+        backend=Backend(args.device);cached=None
+        if args.cached_solved is not None:
+            from pointwise_rgbd.frozen import FrozenCache
+            cached=FrozenCache(args.cached_solved,root/'discovery/tracks');config=cached.config()
+            if args.noise_config is not None:raise ValueError('Cached correspondence validation must retain its recorded physical noise model')
+            if args.association_tail_probability is not None and args.association_tail_probability!=config.association_tail_probability:raise ValueError('Association tail differs from authorized cached 1%; no automatic retuning')
+        else:config=load_config(args.noise_config,args.association_tail_probability)
         data=Dataset(args.scene,args.frame_limit,args.camera_limit,fps=args.fps,dt_seconds=args.dt_seconds,timestamps_file=args.timestamps_file)
         commit=subprocess.run(['git','-C',str(REPO),'rev-parse','HEAD'],capture_output=True,text=True).stdout.strip()
         camera_hash=hashlib.sha256(json.dumps(data.manifest()['cameras'],sort_keys=True).encode()).hexdigest()
+        if cached is not None:
+            if camera_hash!=cached.manifest['calibration_sha256'] or data.frame_ids!=cached.manifest['dataset']['original_frame_ids'] or not np.array_equal(data.times,cached.manifest['dataset']['timestamps_seconds']):raise ValueError('Selected data do not match cached calibration/frames/timestamps')
         manifest={'specification':'CODEX_EXACT_POINTWISE_BIDIRECTIONAL_DISCOVERY_2026-10-22.md','git_commit':commit,'source_tree':str(REPO),'calibration_sha256':camera_hash,'dataset':data.manifest(),'config':config.manifest(),'estimator':'6D Euclidean iterated EKF','seed':args.seed,'torch':torch.__version__,'cuda':torch.version.cuda,'numpy':np.__version__,'compiler':subprocess.run(['c++','--version'],capture_output=True,text=True).stdout.splitlines()[0],'gpu':backend.memory(),'max_events_test_limit':args.max_events,'state_units':'world XYZ metres; physical velocity m/s; covariance outer([m,m,m,m/s,m/s,m/s])','covariance_semantics':'Conditional per-point Gaussian; calibrated cameras conditioned fixed; association/calibration cross-correlations not marginalized','ground_truth_used_for_estimation':False,'initial_history_bytes_estimate':sum(int(data.observation(0,c).valid.sum()) for c in range(len(data.cameras)))*len(data.times)*(42*8+1+8+1)}
         manifest['source_hashes']={str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted([*(REPO/'pointwise_rgbd').glob('*.py'),Path(__file__),(REPO/'configs/pointwise_association.json')])}
+        manifest['frozen_cache']=None if cached is None else str(cached.root)
+        manifest['coverage_audit']=None if args.coverage_audit is None else str(args.coverage_audit.resolve())
+        manifest['initial_history_bytes_allocated_this_run']=0 if cached is not None else manifest['initial_history_bytes_estimate']
         if args.resume:
             previous=json.loads((root/'run_manifest.json').read_text())
-            for key in ('calibration_sha256','dataset','config','estimator','seed','source_hashes'):
+            for key in ('calibration_sha256','dataset','config','estimator','seed','source_hashes','frozen_cache'):
                 if previous[key]!=manifest[key]:raise ValueError(f'RESUME_INPUT_MODEL_CHANGED: {key}; prior results preserved')
         else:json_write(root/'run_manifest.json',manifest)
-        print(json.dumps({'output':str(root),'frames':len(data.times),'cameras':len(data.cameras),'state_dimension':6,'time_source':data.manifest()['timing']['time_source'],'history_bytes_estimate':manifest['initial_history_bytes_estimate'],'association_tail_probability':config.association_tail_probability}),flush=True)
-        store,ownership=run_exact_pointwise_discovery(data,config,backend,root,args.max_events,args.resume)
+        print(json.dumps({'output':str(root),'frames':len(data.times),'cameras':len(data.cameras),'state_dimension':6,'time_source':data.manifest()['timing']['time_source'],'initial_forward':'SKIPPED_FROZEN_CACHE' if cached is not None else 'one initial forward pass','initial_history_bytes_allocated_this_run':manifest['initial_history_bytes_allocated_this_run'],'association_tail_probability':config.association_tail_probability}),flush=True)
+        store,ownership=run_exact_pointwise_discovery(data,config,backend,root,args.max_events,args.resume,cached,args.coverage_audit)
         summary=json.loads((root/'final/summary.json').read_text());print(json.dumps(summary,indent=2),flush=True)
         return 0 if summary['complete_discovery'] else 3
     except BaseException as error:

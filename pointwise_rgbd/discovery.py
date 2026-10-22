@@ -24,7 +24,7 @@ def track_one_point(point_id,source,dataset,config,backend,ownership):
             matches=[]
             for ci in range(len(dataset.cameras)):
                 frame=dataset.observation(k,ci)
-                match,stats=associate(prior.cpu().numpy(),pminus.cpu().numpy(),color[None],np.array([point_id]),frame,config,backend,ownership.get(k,ci))
+                match,stats=associate(prior.cpu().numpy(),pminus.cpu().numpy(),color[None],np.array([point_id]),frame,config,backend,ownership.tracking_owners(k,ci))
                 matches.append(match);track['matching_stats'].append(stats)
                 track['associations'].extend(stats['candidates'])
                 if len(match['pixel']):

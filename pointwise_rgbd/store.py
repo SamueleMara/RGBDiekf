@@ -5,6 +5,7 @@ from io import BytesIO
 import hashlib,json,sqlite3,mmap
 import numpy as np
 from .state6 import ObservationRef
+from .coverage_store import CoverageIndex,FrozenMeasurementConflict
 
 
 def json_write(path,value):
@@ -19,8 +20,9 @@ class Ownership:
         self.db=sqlite3.connect(self.path);self.cache=OrderedDict()
         self.db.executescript('CREATE TABLE IF NOT EXISTS owners (frame INT,camera INT,data BLOB,PRIMARY KEY(frame,camera)); CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY,value TEXT); CREATE TABLE IF NOT EXISTS failures (frame INT,camera INT,pixel INT,version INT,reason TEXT,PRIMARY KEY(frame,camera,pixel,version)); CREATE TABLE IF NOT EXISTS points (id INT PRIMARY KEY,path TEXT,data TEXT);')
         self.db.execute('CREATE TABLE IF NOT EXISTS reservations (frame INT,camera INT,pixel INT,point INT,PRIMARY KEY(frame,camera,pixel))')
+        self.coverage=CoverageIndex(self.path.with_name('surface_coverage.sqlite'))
     def reserve(self,ref,point):
-        if self.get(ref.frame,ref.camera)[ref.pixel]>=0:raise ValueError('Cannot reserve an owned observation')
+        if self.tracking_owners(ref.frame,ref.camera)[ref.pixel]>=0:raise ValueError('Cannot reserve an owned observation')
         with self.db:self.db.execute('INSERT INTO reservations VALUES (?,?,?,?)',(ref.frame,ref.camera,ref.pixel,int(point)))
     def release_reservations(self,point=None):
         with self.db:
@@ -47,12 +49,16 @@ class Ownership:
         while len(self.cache)>2*len(self.dataset.cameras):self.cache.popitem(last=False)
         return value
     def get(self,k,c):return self.arrays(k,c)[0]
+    def tracking_owners(self,k,c):
+        owner,kind=self.arrays(k,c)
+        return np.where(np.isin(kind,[1,3]),owner,-1)
     def _write(self,k,c,owner,kind):
         stream=BytesIO();np.savez_compressed(stream,owner=owner,kind=kind)
         self.db.execute('INSERT OR REPLACE INTO owners VALUES (?,?,?)',(k,c,stream.getvalue()))
         self.cache[(k,c)]=(owner,kind)
     def claim(self,claims,kind=1,point_record=None,checkpoint=None):
         """All raw claims and point registration are one SQLite transaction."""
+        if kind not in (1,3):raise ValueError('Surface coverage must not create exclusive measurement owners')
         updates={}
         for k,c,pixels,points in claims:
             pixels=np.asarray(pixels,np.int64);points=np.asarray(points,np.int64)
@@ -61,7 +67,8 @@ class Ownership:
             key=(int(k),int(c))
             if key not in updates:updates[key]=tuple(x.copy() for x in self.arrays(k,c))
             owner,kinds=updates[key]
-            if np.any((owner[pixels]>=0)&(owner[pixels]!=points)):raise ValueError('Observation already owned by a frozen point')
+            actual=np.isin(kinds[pixels],[1,3])
+            if np.any(actual&(owner[pixels]>=0)&(owner[pixels]!=points)):raise ValueError('Observation already owned by a frozen point')
             owner[pixels]=points;kinds[pixels]=kind
         try:
             with self.db:
@@ -84,12 +91,27 @@ class Ownership:
     def fail(self,ref,version,reason):
         with self.db:self.db.execute('INSERT OR REPLACE INTO failures VALUES (?,?,?,?,?)',(ref.frame,ref.camera,ref.pixel,version,str(reason)))
     def first_unclaimed(self,version):
+        """Legacy raw-owner query for diagnostics; discovery uses first_unexplained."""
         for k in range(len(self.dataset.times)-1,-1,-1):
             for c in range(len(self.dataset.cameras)):
                 frame=self.dataset.observation(k,c);pixels=np.flatnonzero(frame.valid.ravel()&(self.get(k,c)<0))
                 for pixel in pixels:
                     ref=ObservationRef(k,c,int(pixel))
                     if not self.attempted(ref,version):return ref
+        return None
+
+    def first_unexplained(self,version):
+        for k in range(len(self.dataset.times)-1,-1,-1):
+            for c in range(len(self.dataset.cameras)):
+                record=self.coverage.read(k,c,version)
+                owners=self.tracking_owners(k,c)
+                for pixel in record['pixel'][~record['explained']]:
+                    ref=ObservationRef(k,c,int(pixel))
+                    if self.attempted(ref,version):continue
+                    # An inconsistent frozen factor remains UNEXPLAINED, but
+                    # cannot seed a second independent assimilation.
+                    if owners[pixel]>=0:continue
+                    return ref
         return None
 
 

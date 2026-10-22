@@ -1,3 +1,5 @@
+> **Correspondence correction (22 October):** geometric surface coverage is independent of exclusive IEKF ownership. See [the audit and matching equations](AUDIT_CORRESPONDENCE_2026-10-22.md) and [real-data comparison, incremental validation and commands](reports/correspondence_2026-10-22_results.md). Unlimited discovery has not been validated or launched by this correction.
+
 > **22 October 2026:** the current request is the isolated **6D pointwise** algorithm. Use [POINTWISE_RGBD.md](POINTWISE_RGBD.md), [its audit](AUDIT_POINTWISE_2026-10-22.md), and [current validation](reports/pointwise_2026-10-22_validation.md). The commands and rigid/group/UKF model-selection blockers below concern superseded pipelines; they are historical, not blockers for the new pointwise estimator.
 
 > Historical status: the earlier rigid reconstruction was **NOT complete/accepted**. See [LATEST_REQUEST_VALIDATION.md](LATEST_REQUEST_VALIDATION.md) and [RUNNING.md](RUNNING.md).
