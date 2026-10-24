@@ -38,13 +38,28 @@ class PointwiseDiscoveryTests(unittest.TestCase):
         import ast
         package=Path(__file__).resolve().parents[1]/'pointwise_rgbd'
         forbidden=('rgbd_iekf','rgbd_ukf','rgbd_common.lie','rgbd_common.group','estimator','gaussian','rasterizer')
-        for file in package.glob('*.py'):
+        # Inspect the baseline's reachable imports. The package now also
+        # intentionally contains an isolated grouped entrypoint, which must
+        # not be confused with a dependency of the independent point tracker.
+        pending=[package/'controller.py',package/'dataset.py',package.parent/'tools/run_pointwise_rgbd_discovery.py'];visited=set()
+        while pending:
+            file=pending.pop()
+            if file in visited:continue
+            visited.add(file)
+            self.assertFalse(file.name.startswith(('group_','surface_supernodes','phase1_grouped')),str(file))
             tree=ast.parse(file.read_text())
             for node in ast.walk(tree):
                 if isinstance(node,ast.Import):names=[a.name for a in node.names]
                 elif isinstance(node,ast.ImportFrom):names=[node.module or '']
                 else:continue
                 self.assertFalse(any(name.startswith(forbidden) for name in names),str(file))
+                for name in names:
+                    if isinstance(node,ast.ImportFrom) and node.level==1 and file.parent==package:
+                        candidate=package/(name.split('.')[0]+'.py')
+                    elif name.startswith('pointwise_rgbd.'):
+                        candidate=package/(name.split('.')[1]+'.py')
+                    else:continue
+                    if candidate.exists():pending.append(candidate)
     def test_multiple_additions_run_initial_once_and_one_optimizer_per_new_point(self):
         from pointwise_rgbd.controller import initial_forward
         scene=PointScene()

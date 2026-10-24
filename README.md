@@ -1,3 +1,9 @@
+> **24 October correction:** production uses ALL available cameras jointly at every frame and stage. Coherence cross-validation splits supernodes, not cameras. See [current execution contract](FREE_GROUPED_RGBD.md) and [all-camera results](reports/free_grouped_all_cameras_2026-10-24_validation.md). Historical camera-partitioned results below are superseded.
+
+> **23 October correction:** the physical-supernode and boundary-splitting architecture below is superseded. The current runner implements free individual 6D point states with grouped increments, reference coherence, shared rigid RGB-D fitting, joint inference and endpoint support completion. See [current architecture and commands](FREE_GROUPED_RGBD.md). Real-data acceptance is determined by the new measured validation report, not the historical gates below.
+
+> **Grouped contract (22 October 2026):** isolated grouped Phase 1 is implemented, but the required joint-boundary gate fails. Recovery/full reconstruction remain paused. See [the exact audit and measured status](reports/grouped_2026-10-22_validation.md). This is not a completed grouped/coherence/rigid/joint pipeline.
+
 > **Correspondence correction (22 October):** geometric surface coverage is independent of exclusive IEKF ownership. See [the audit and matching equations](AUDIT_CORRESPONDENCE_2026-10-22.md) and [real-data comparison, incremental validation and commands](reports/correspondence_2026-10-22_results.md). Unlimited discovery has not been validated or launched by this correction.
 
 > **22 October 2026:** the current request is the isolated **6D pointwise** algorithm. Use [POINTWISE_RGBD.md](POINTWISE_RGBD.md), [its audit](AUDIT_POINTWISE_2026-10-22.md), and [current validation](reports/pointwise_2026-10-22_validation.md). The commands and rigid/group/UKF model-selection blockers below concern superseded pipelines; they are historical, not blockers for the new pointwise estimator.

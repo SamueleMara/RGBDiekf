@@ -1,0 +1,12 @@
+{
+  "reference_revision": "481b2cf2d5602932286948cf14114f9caee4de3c",
+  "coherence_source_sha256": "5931ee32ca681fb8f6828863e0579951310ac8778856dbd815985a9edbc5f34d",
+  "motion_source_sha256": "65e7cec9faa9217ddb5216b446b445283e2af159a98523bb7052164c9f0cb8cb",
+  "adaptations": [
+    "coherence progress wrapper uses installed tqdm",
+    "only supernode_trajectories and edge_strain copied from motion module",
+    "canonical kNN uses cKDTree with sparse edges, no dense distance matrix",
+    "reference candidate limit remains explicit and logged; all-camera raw RGB-D evaluates fitted models; no independent camera assessment is claimed",
+    "Copy read-only trajectory buffers before Torch reduction; numerical formula unchanged"
+  ]
+}
