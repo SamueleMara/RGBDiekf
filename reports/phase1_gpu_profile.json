@@ -1,0 +1,693 @@
+{
+ "environment": {
+  "memory_fraction": 0.45,
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "cudnn": 91900,
+  "tf32_matmul": false,
+  "threads": 16,
+  "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU, 580.178.04, 3818 MiB, 8188 MiB, 93 %",
+  "other_processes": "1599382, 3804 MiB"
+ },
+ "cases": [
+  {
+   "case": "blade_frame1",
+   "points": 34369,
+   "groups": 537,
+   "cameras": 8,
+   "resolution": [
+    640,
+    480
+   ],
+   "iterations": 10,
+   "accepted": 8,
+   "rejected": 2,
+   "pcg_iterations": [
+    9,
+    11,
+    30,
+    30,
+    30,
+    30,
+    8,
+    10,
+    2,
+    2
+   ],
+   "peak_allocated_MB": 2052.36328125,
+   "peak_reserved_MB": 2214.0,
+   "contributions": 961032,
+   "per_camera": [
+    137565,
+    136559,
+    76176,
+    134969,
+    134787,
+    135239,
+    69087,
+    136650
+   ],
+   "candidates": 1873188,
+   "occluded": 912156,
+   "covered_pixels": 38718,
+   "projected_points": [
+    21872,
+    21690,
+    13998,
+    21321,
+    21252,
+    21218,
+    12768,
+    21866
+   ],
+   "max_contributors_per_pixel": 94,
+   "mean_contributors_per_covered_pixel": 25.644462485748825
+  },
+  {
+   "case": "blade_frame10",
+   "points": 34369,
+   "groups": 537,
+   "cameras": 8,
+   "resolution": [
+    640,
+    480
+   ],
+   "iterations": 10,
+   "accepted": 8,
+   "rejected": 2,
+   "pcg_iterations": [
+    9,
+    12,
+    14,
+    12,
+    12,
+    9,
+    2,
+    4,
+    1,
+    1
+   ],
+   "peak_allocated_MB": 1919.73681640625,
+   "peak_reserved_MB": 2440.0,
+   "contributions": 885985,
+   "per_camera": [
+    126095,
+    123412,
+    70085,
+    126840,
+    125775,
+    128135,
+    59656,
+    125987
+   ],
+   "candidates": 1845905,
+   "occluded": 959920,
+   "covered_pixels": 40067,
+   "projected_points": [
+    21469,
+    20869,
+    13421,
+    20815,
+    20876,
+    20719,
+    11335,
+    21150
+   ],
+   "max_contributors_per_pixel": 113,
+   "mean_contributors_per_covered_pixel": 22.436879953831316
+  },
+  {
+   "case": "blade_frame30",
+   "points": 34369,
+   "groups": 537,
+   "cameras": 8,
+   "resolution": [
+    640,
+    480
+   ],
+   "iterations": 10,
+   "accepted": 9,
+   "rejected": 1,
+   "pcg_iterations": [
+    9,
+    8,
+    11,
+    11,
+    11,
+    22,
+    11,
+    2,
+    1,
+    1
+   ],
+   "peak_allocated_MB": 1869.91064453125,
+   "peak_reserved_MB": 2440.0,
+   "contributions": 825036,
+   "per_camera": [
+    121571,
+    112971,
+    58732,
+    119183,
+    122761,
+    121169,
+    50069,
+    118580
+   ],
+   "candidates": 1846644,
+   "occluded": 1021608,
+   "covered_pixels": 48261,
+   "projected_points": [
+    21103,
+    19935,
+    11181,
+    19899,
+    20699,
+    19991,
+    9840,
+    20168
+   ],
+   "max_contributors_per_pixel": 130,
+   "mean_contributors_per_covered_pixel": 16.66131086889766
+  },
+  {
+   "case": "laptop_10211_frame1_from_anchor",
+   "points": 145973,
+   "groups": 2280,
+   "out_of_memory": "CUDA out of memory",
+   "memory_fraction": 0.45
+  }
+ ],
+ "rows": [
+  {
+   "case": "blade_frame1",
+   "stage": "render: projection + footprint candidates",
+   "calls": 88,
+   "total_ms": 440.55593490600586,
+   "median_ms": 3.5716320276260376,
+   "p95_ms": 16.478551673889143,
+   "percent_of_frame": 4.87603849414173,
+   "wall_total_ms": 445.55668911198154
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "render: one camera total (candidates, front, splat, Jacobian)",
+   "calls": 88,
+   "total_ms": 1869.560284614563,
+   "median_ms": 13.427631855010986,
+   "p95_ms": 67.75297698974609,
+   "percent_of_frame": 20.69214642822623,
+   "wall_total_ms": 1875.0129269901663
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "render: all cameras",
+   "calls": 11,
+   "total_ms": 1872.3916320800781,
+   "median_ms": 107.5551986694336,
+   "p95_ms": 391.3880310058594,
+   "percent_of_frame": 20.723483559651072,
+   "wall_total_ms": 1876.2426819303073
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "observation: robust terms + IRLS weights",
+   "calls": 11,
+   "total_ms": 404.33296394348145,
+   "median_ms": 26.255008697509766,
+   "p95_ms": 84.61873817443848,
+   "percent_of_frame": 4.475125495833965,
+   "wall_total_ms": 404.6015379135497
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "H: apply_HT",
+   "calls": 193,
+   "total_ms": 1486.7374410629272,
+   "median_ms": 7.222271919250488,
+   "p95_ms": 7.3657537460327145,
+   "percent_of_frame": 16.455093255868377,
+   "wall_total_ms": 1522.2508398001082
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "G: reduce",
+   "calls": 192,
+   "total_ms": 155.22003191709518,
+   "median_ms": 0.7096319794654846,
+   "p95_ms": 0.8089600205421448,
+   "percent_of_frame": 1.7179631250482246,
+   "wall_total_ms": 201.8933246145025
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "H: block_fisher",
+   "calls": 11,
+   "total_ms": 2084.948287963867,
+   "median_ms": 174.4916534423828,
+   "p95_ms": 256.6348571777344,
+   "percent_of_frame": 23.07604393656784,
+   "wall_total_ms": 2088.3026359952055
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "G: blocks",
+   "calls": 10,
+   "total_ms": 142.8541440963745,
+   "median_ms": 13.038592338562012,
+   "p95_ms": 20.055961608886705,
+   "percent_of_frame": 1.581098449644551,
+   "wall_total_ms": 146.08917495934293
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "solver: group preconditioner (G^T M G + block Cholesky)",
+   "calls": 10,
+   "total_ms": 159.12985706329346,
+   "median_ms": 14.4519681930542,
+   "p95_ms": 22.75976157188414,
+   "percent_of_frame": 1.7612367627584817,
+   "wall_total_ms": 162.51859604381025
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "solver: linear system assembly (b, Fisher, preconditioner)",
+   "calls": 10,
+   "total_ms": 2190.0157470703125,
+   "median_ms": 197.73436737060547,
+   "p95_ms": 313.13814086914044,
+   "percent_of_frame": 24.238922323835492,
+   "wall_total_ms": 2190.224461024627
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "G: expand",
+   "calls": 192,
+   "total_ms": 62.900032103061676,
+   "median_ms": 0.3102720081806183,
+   "p95_ms": 0.439414395391941,
+   "percent_of_frame": 0.6961726162711108,
+   "wall_total_ms": 89.41929624415934
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "H: apply_H",
+   "calls": 183,
+   "total_ms": 1391.2572131156921,
+   "median_ms": 7.195871829986572,
+   "p95_ms": 7.3194495677948,
+   "percent_of_frame": 15.398325590260885,
+   "wall_total_ms": 1424.8824515379965
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "observation: apply_W",
+   "calls": 182,
+   "total_ms": 705.8913280963898,
+   "median_ms": 3.8348801136016846,
+   "p95_ms": 3.935743939876556,
+   "percent_of_frame": 7.812749791268113,
+   "wall_total_ms": 743.911465164274
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "solver: Steihaug-CG (incl. A_g applications)",
+   "calls": 10,
+   "total_ms": 3805.5330657958984,
+   "median_ms": 243.9784164428711,
+   "p95_ms": 656.5188995361328,
+   "percent_of_frame": 42.119341153601674,
+   "wall_total_ms": 3805.6313340202905
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "posterior: rigeuler_block_information",
+   "calls": 1,
+   "total_ms": 251.734619140625,
+   "median_ms": 251.734619140625,
+   "p95_ms": 251.734619140625,
+   "percent_of_frame": 2.7861789979056337,
+   "wall_total_ms": 251.76640797872096
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "FRAME: frame_step total",
+   "calls": 1,
+   "total_ms": 9035.1201171875,
+   "median_ms": 9035.1201171875,
+   "p95_ms": 9035.1201171875,
+   "percent_of_frame": 100.0,
+   "wall_total_ms": 9034.93206197163
+  },
+  {
+   "case": "blade_frame1",
+   "stage": "observation: CPU image decode + GPU upload (levels)",
+   "calls": 1,
+   "total_ms": 43.23596600443125,
+   "median_ms": 43.23596600443125,
+   "p95_ms": 43.23596600443125,
+   "percent_of_frame": null,
+   "wall_total_ms": 43.23596600443125
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "render: projection + footprint candidates",
+   "calls": 88,
+   "total_ms": 305.55923199653625,
+   "median_ms": 3.4872480630874634,
+   "p95_ms": 4.2916256189346305,
+   "percent_of_frame": 4.749797928688104,
+   "wall_total_ms": 310.45196088962257
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "render: one camera total (candidates, front, splat, Jacobian)",
+   "calls": 88,
+   "total_ms": 1248.4583978652954,
+   "median_ms": 13.21008014678955,
+   "p95_ms": 14.53574385643005,
+   "percent_of_frame": 19.40679413771098,
+   "wall_total_ms": 1253.8359150057659
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "render: all cameras",
+   "calls": 11,
+   "total_ms": 1251.2864837646484,
+   "median_ms": 106.52409362792969,
+   "p95_ms": 148.27881240844727,
+   "percent_of_frame": 19.450755619284056,
+   "wall_total_ms": 1255.0719500286505
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "observation: robust terms + IRLS weights",
+   "calls": 11,
+   "total_ms": 284.69833755493164,
+   "median_ms": 25.906911849975586,
+   "p95_ms": 26.70359992980957,
+   "percent_of_frame": 4.425523539850662,
+   "wall_total_ms": 284.9623580696061
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "H: apply_HT",
+   "calls": 102,
+   "total_ms": 873.7804479598999,
+   "median_ms": 6.8582398891448975,
+   "p95_ms": 25.274868202209433,
+   "percent_of_frame": 13.582572958866262,
+   "wall_total_ms": 905.8015941991471
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "G: reduce",
+   "calls": 101,
+   "total_ms": 87.72214365005493,
+   "median_ms": 0.7014399766921997,
+   "p95_ms": 1.6834559440612793,
+   "percent_of_frame": 1.3636061770630266,
+   "wall_total_ms": 112.19749826705083
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "H: block_fisher",
+   "calls": 11,
+   "total_ms": 1954.30712890625,
+   "median_ms": 160.91751098632812,
+   "p95_ms": 254.8854522705078,
+   "percent_of_frame": 30.378934690490798,
+   "wall_total_ms": 1956.1693320283666
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "G: blocks",
+   "calls": 10,
+   "total_ms": 129.98976039886475,
+   "median_ms": 13.008383750915527,
+   "p95_ms": 13.156607913970948,
+   "percent_of_frame": 2.020639633955454,
+   "wall_total_ms": 131.23544602422044
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "solver: group preconditioner (G^T M G + block Cholesky)",
+   "calls": 10,
+   "total_ms": 143.38457584381104,
+   "median_ms": 14.353327751159668,
+   "p95_ms": 14.528875160217286,
+   "percent_of_frame": 2.228856765016598,
+   "wall_total_ms": 144.7978508658707
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "solver: linear system assembly (b, Fisher, preconditioner)",
+   "calls": 10,
+   "total_ms": 1836.2822723388672,
+   "median_ms": 183.5929412841797,
+   "p95_ms": 185.2521957397461,
+   "percent_of_frame": 28.54428477468063,
+   "wall_total_ms": 1836.4894069964066
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "G: expand",
+   "calls": 101,
+   "total_ms": 36.54921594262123,
+   "median_ms": 0.31331199407577515,
+   "p95_ms": 0.45158401131629944,
+   "percent_of_frame": 0.5681431683314496,
+   "wall_total_ms": 48.26561233494431
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "H: apply_H",
+   "calls": 92,
+   "total_ms": 826.511326789856,
+   "median_ms": 6.878720045089722,
+   "p95_ms": 28.805170822143555,
+   "percent_of_frame": 12.84779308539503,
+   "wall_total_ms": 847.0226139179431
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "observation: apply_W",
+   "calls": 91,
+   "total_ms": 391.27347230911255,
+   "median_ms": 4.312064170837402,
+   "p95_ms": 6.4240639209747314,
+   "percent_of_frame": 6.082192039105178,
+   "wall_total_ms": 418.856093310751
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "solver: Steihaug-CG (incl. A_g applications)",
+   "calls": 10,
+   "total_ms": 2043.2394752502441,
+   "median_ms": 197.10206604003906,
+   "p95_ms": 468.9866210937497,
+   "percent_of_frame": 31.761352991839537,
+   "wall_total_ms": 2043.3836380252615
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "posterior: rigeuler_block_information",
+   "calls": 1,
+   "total_ms": 443.1089782714844,
+   "median_ms": 443.1089782714844,
+   "p95_ms": 443.1089782714844,
+   "percent_of_frame": 6.887954565878921,
+   "wall_total_ms": 443.1746950140223
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "FRAME: frame_step total",
+   "calls": 1,
+   "total_ms": 6433.099609375,
+   "median_ms": 6433.099609375,
+   "p95_ms": 6433.099609375,
+   "percent_of_frame": 100.0,
+   "wall_total_ms": 6433.013748028316
+  },
+  {
+   "case": "blade_frame10",
+   "stage": "observation: CPU image decode + GPU upload (levels)",
+   "calls": 1,
+   "total_ms": 8.891511999536306,
+   "median_ms": 8.891511999536306,
+   "p95_ms": 8.891511999536306,
+   "percent_of_frame": null,
+   "wall_total_ms": 8.891511999536306
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "render: projection + footprint candidates",
+   "calls": 88,
+   "total_ms": 619.571583032608,
+   "median_ms": 3.59878408908844,
+   "p95_ms": 22.98682279586792,
+   "percent_of_frame": 5.651068698817385,
+   "wall_total_ms": 628.9672373095527
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "render: one camera total (candidates, front, splat, Jacobian)",
+   "calls": 88,
+   "total_ms": 3190.933352470398,
+   "median_ms": 13.419072151184082,
+   "p95_ms": 104.86036834716796,
+   "percent_of_frame": 29.10427799140822,
+   "wall_total_ms": 3200.8515405468643
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "render: all cameras",
+   "calls": 11,
+   "total_ms": 3194.1264038085938,
+   "median_ms": 105.3331527709961,
+   "p95_ms": 791.6781616210938,
+   "percent_of_frame": 29.133401587398012,
+   "wall_total_ms": 3202.1653100964613
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "observation: robust terms + IRLS weights",
+   "calls": 11,
+   "total_ms": 932.907262802124,
+   "median_ms": 25.929983139038086,
+   "p95_ms": 243.94844818115234,
+   "percent_of_frame": 8.508981328543316,
+   "wall_total_ms": 933.1945679150522
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "H: apply_HT",
+   "calls": 112,
+   "total_ms": 1512.231451034546,
+   "median_ms": 6.603776216506958,
+   "p95_ms": 41.60783462524414,
+   "percent_of_frame": 13.792956378793047,
+   "wall_total_ms": 1578.7641032366082
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "G: reduce",
+   "calls": 111,
+   "total_ms": 172.0748798251152,
+   "median_ms": 0.711679995059967,
+   "p95_ms": 5.156864166259766,
+   "percent_of_frame": 1.569482839211,
+   "wall_total_ms": 240.405282122083
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "H: block_fisher",
+   "calls": 11,
+   "total_ms": 2146.9490966796875,
+   "median_ms": 150.15219116210938,
+   "p95_ms": 316.8051300048828,
+   "percent_of_frame": 19.582171246163018,
+   "wall_total_ms": 2153.463938040659
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "G: blocks",
+   "calls": 10,
+   "total_ms": 159.39795303344727,
+   "median_ms": 13.014527797698975,
+   "p95_ms": 27.73760061264038,
+   "percent_of_frame": 1.4538574842859924,
+   "wall_total_ms": 164.8377930978313
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "solver: group preconditioner (G^T M G + block Cholesky)",
+   "calls": 10,
+   "total_ms": 191.81517124176025,
+   "median_ms": 14.440224170684814,
+   "p95_ms": 38.88747749328613,
+   "percent_of_frame": 1.7495326445686246,
+   "wall_total_ms": 197.414401860442
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "solver: linear system assembly (b, Fisher, preconditioner)",
+   "calls": 10,
+   "total_ms": 2243.346450805664,
+   "median_ms": 172.55331420898438,
+   "p95_ms": 409.53343811035154,
+   "percent_of_frame": 20.461404712429744,
+   "wall_total_ms": 2243.5772119788453
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "G: expand",
+   "calls": 111,
+   "total_ms": 43.479775846004486,
+   "median_ms": 0.3123199939727783,
+   "p95_ms": 0.4940800070762634,
+   "percent_of_frame": 0.3965759680460047,
+   "wall_total_ms": 80.71361418114975
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "H: apply_H",
+   "calls": 102,
+   "total_ms": 1361.0396795272827,
+   "median_ms": 6.615551948547363,
+   "p95_ms": 41.962914085388185,
+   "percent_of_frame": 12.413946897271234,
+   "wall_total_ms": 1412.3048611800186
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "observation: apply_W",
+   "calls": 101,
+   "total_ms": 431.66924715042114,
+   "median_ms": 3.8451199531555176,
+   "p95_ms": 6.138879776000977,
+   "percent_of_frame": 3.937224749517644,
+   "wall_total_ms": 488.204603723716
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "solver: Steihaug-CG (incl. A_g applications)",
+   "calls": 10,
+   "total_ms": 3443.037040710449,
+   "median_ms": 219.2006072998047,
+   "p95_ms": 997.0631530761718,
+   "percent_of_frame": 31.403697946236573,
+   "wall_total_ms": 3443.150563747622
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "posterior: rigeuler_block_information",
+   "calls": 1,
+   "total_ms": 420.2063903808594,
+   "median_ms": 420.2063903808594,
+   "p95_ms": 420.2063903808594,
+   "percent_of_frame": 3.8326728416131006,
+   "wall_total_ms": 420.244969020132
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "FRAME: frame_step total",
+   "calls": 1,
+   "total_ms": 10963.794921875,
+   "median_ms": 10963.794921875,
+   "p95_ms": 10963.794921875,
+   "percent_of_frame": 100.0,
+   "wall_total_ms": 10965.715475031175
+  },
+  {
+   "case": "blade_frame30",
+   "stage": "observation: CPU image decode + GPU upload (levels)",
+   "calls": 1,
+   "total_ms": 72.52516300650313,
+   "median_ms": 72.52516300650313,
+   "p95_ms": 72.52516300650313,
+   "percent_of_frame": null,
+   "wall_total_ms": 72.52516300650313
+  }
+ ],
+ "method": "torch.cuda.Event per instrumented call with synchronize; warmed; saved priors"
+}

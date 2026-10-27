@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RGB-D Image IEKF</title>
+<style>
+  :root { --bg:#111418; --panel:#1b2027; --text:#e6e9ee; --muted:#9aa4b2; --accent:#5aa9ff; --line:#2c333d; }
+  body { margin:0; background:var(--bg); color:var(--text); font:13px/1.4 system-ui, sans-serif; }
+  header { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--line); }
+  header label { color:var(--muted); } select, input { background:#0d1014; color:var(--text); border:1px solid var(--line); border-radius:4px; padding:3px 6px; }
+  main { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:12px; padding:12px; }
+  @media (max-width: 900px) { main { grid-template-columns:1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px; min-width:0; }
+  h2 { font-size:13px; margin:0 0 8px; color:var(--accent); }
+  .mosaic { width:100%; image-rendering:pixelated; background:#000; }
+  .cols { display:grid; grid-template-columns:repeat(4,1fr); color:var(--muted); font-size:11px; text-align:center; }
+  table { border-collapse:collapse; width:100%; table-layout:fixed; font-variant-numeric:tabular-nums; }
+  td { border-bottom:1px solid var(--line); padding:2px 6px; vertical-align:top; overflow-wrap:anywhere; } td:first-child { color:var(--muted); width:38%; }
+  #three { width:100%; height:520px; display:block; background:#0b0d10; border-radius:4px; }
+  pre { white-space:pre-wrap; word-break:break-word; color:var(--muted); font-size:11px; max-height:260px; overflow:auto; }
+  .legend span { display:inline-block; width:10px; height:10px; margin:0 4px 0 10px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<header>
+  <label>Direction <select id="dir"></select></label>
+  <label>Stage <select id="stage"></select></label>
+  <label>Camera <select id="cam"></select></label>
+  <label>Frame <input id="frame" type="range" min="0" value="0"></label><span id="frameLabel"></span>
+  <label>3D colour <select id="color"><option>rgb</option><option>group</option><option>core</option><option>support</option><option>observed</option><option>speed</option><option>sigma</option></select></label>
+  <label><input id="axes" type="checkbox" checked> joint axes</label>
+  <label><input id="graph" type="checkbox"> coherence graph</label>
+</header>
+<main>
+  <section>
+    <h2>Observed vs rendered RGB-D (actual camera/frame)</h2>
+    <div class="cols"><div>observed RGB</div><div>rendered RGB</div><div>|RGB residual| 0..0.5</div><div>domain / coverage</div></div>
+    <img id="mosaic" class="mosaic" alt="image panel">
+    <div class="cols"><div>observed depth (m)</div><div>rendered depth</div><div>depth residual ±0.05 m</div><div>contributors</div></div>
+    <div class="legend">coverage: <span style="background:#28c846"></span>observed+covered <span style="background:#dc2828"></span>observed, unexplained <span style="background:#f0a01e"></span>predicted outside domain (not scored)</div>
+    <table id="stats"></table>
+  </section>
+  <section>
+    <h2>Transported 3D points, rigid trajectory and joint candidates</h2>
+    <canvas id="three"></canvas>
+    <table id="summary"></table>
+    <pre id="detail"></pre>
+  </section>
+</main>
+<script src="three.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let M, cache = {}, scene, camera, renderer, cloud, overlay;
+const SUPPORT = [[.6,.6,.6],[1,.25,.2],[1,.7,.1],[.2,.6,1]];
+async function bin(url, Type){ if(cache[url]) return cache[url]; const r = await fetch(url); if(!r.ok) return null; return cache[url] = new Type(await r.arrayBuffer()); }
+function fmt(v){ return typeof v === 'number' ? (Math.abs(v) >= 1e4 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(4) : v.toFixed(4)) : (v === null || v === undefined ? '—' : JSON.stringify(v)); }
+function table(el, rows){ el.innerHTML = rows.map(([k,v]) => `<tr><td>${k}</td><td>${fmt(v)}</td></tr>`).join(''); }
+function hash(i){ i = Math.imul(i ^ 61, 0x45d9f3b); i ^= i >>> 15; return [(i & 255)/255, ((i >> 8) & 255)/255, ((i >> 16) & 255)/255]; }
+function initThree(){
+  const c = $('three'); renderer = new THREE.WebGLRenderer({canvas:c, antialias:true, preserveDrawingBuffer:true});
+  scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(45, 1, .01, 100);
+  let az = .8, el = .5, dist = 5, target = new THREE.Vector3(0,0,.3), drag = null;
+  window.frameCloud = xyz => { const n = xyz.length/3; let c = [0,0,0]; for(let i = 0; i < n; i++) for(let j = 0; j < 3; j++) c[j] += xyz[3*i+j]/n;
+    let r = 0; for(let i = 0; i < n; i += 7) r = Math.max(r, Math.hypot(xyz[3*i]-c[0], xyz[3*i+1]-c[1], xyz[3*i+2]-c[2]));
+    target.set(...c); dist = 2.6*Math.max(r, .05); place(); };
+  const place = () => { camera.position.set(target.x + dist*Math.cos(el)*Math.cos(az), target.y + dist*Math.cos(el)*Math.sin(az), target.z + dist*Math.sin(el)); camera.up.set(0,0,1); camera.lookAt(target); draw(); };
+  c.addEventListener('mousedown', e => drag = [e.clientX, e.clientY]); window.addEventListener('mouseup', () => drag = null);
+  window.addEventListener('mousemove', e => { if(!drag) return; az -= (e.clientX-drag[0])*.01; el = Math.max(-1.5, Math.min(1.5, el + (e.clientY-drag[1])*.01)); drag = [e.clientX, e.clientY]; place(); });
+  c.addEventListener('wheel', e => { e.preventDefault(); dist *= Math.exp(e.deltaY*.001); place(); }, {passive:false});
+  window.draw = () => { const w = c.clientWidth, h = c.clientHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); renderer.render(scene, camera); };
+  window.addEventListener('resize', draw); place();
+}
+async function update(){
+  const dir = $('dir').value, stage = $('stage').value, ci = +$('cam').value, k = +$('frame').value;
+  const D = M.directions[dir];
+  $('frameLabel').textContent = `index ${k}, original frame ${M.original_frame_ids[k]}, t = ${M.timestamps_seconds[k].toFixed(4)} s, camera ${M.cameras[ci].name}`;
+  const P = (D.panels[stage] || {})[k] || {};
+  const img = $('mosaic');
+  if(P[ci]){ img.src = `panels/${dir}/${stage}/${String(k).padStart(6,'0')}_c${ci}.png`; img.alt = `${dir} ${stage} frame ${k} camera ${ci}`; }
+  else { img.removeAttribute('src'); img.alt = 'no saved panel for this stage/frame/camera'; }
+  const rep = ((D.reports || {})[stage] || {})[k] || {};
+  table($('stats'), [...Object.entries(P[ci] || {}), ...Object.entries(rep).filter(([key]) => !['pose','kabsch_pose'].includes(key))]);
+  const J = D.joint || {};
+  table($('summary'), [['anchor frame', D.anchor_frame], ['points (all shown)', D.points], ['coherence', D.coherence.status], ['core points', D.coherence.core_points],
+    ['rigid', D.rigid.status], ['rigid max rotation (rad)', (D.rigid.diagnostics||{}).max_rotation_rad], ['Kabsch max rotation (rad)', (D.rigid.diagnostics||{}).kabsch_max_rotation_rad],
+    ['joint', J.status], ['joint reason', J.reason], ['gamma_1dof', J.gamma_1dof], ['image NLL', J.image_nll], ['support', (D.support||{}).counts], ['bidirectional', (M.bidirectional||{}).status]]);
+  $('detail').textContent = JSON.stringify({candidates: J.candidates && Object.fromEntries(Object.entries(J.candidates).map(([t,c]) => [t, {axis:c.axis, axis_point:c.axis_point, image_nll:c.image_nll, discrepancy:c.point_discrepancy_image_q_m}])), bidirectional: M.bidirectional && M.bidirectional.candidate_comparison}, null, 1);
+  const xyz = await bin(`points/${dir}/xyz_${String(k).padStart(6,'0')}.bin`, Float32Array);
+  const mode = $('color').value, n = D.points;
+  const attr = mode === 'rgb' ? await bin(`points/${dir}/rgb.bin`, Uint8Array) : mode === 'group' ? await bin(`points/${dir}/group.bin`, Int32Array)
+    : mode === 'core' ? await bin(`points/${dir}/core.bin`, Uint8Array) : mode === 'support' ? await bin(`points/${dir}/support.bin`, Uint8Array)
+    : mode === 'speed' ? await bin(`points/${dir}/speed_${String(k).padStart(6,'0')}.bin`, Float32Array)
+    : mode === 'sigma' ? await bin(`points/${dir}/sigma_${String(k).padStart(6,'0')}.bin`, Float32Array)
+    : await bin(`points/${dir}/observed_${String(k).padStart(6,'0')}.bin`, Uint8Array);
+  let scale = 1; if(attr && (mode === 'speed' || mode === 'sigma')){ const v = Array.from(attr).sort((a,b) => a-b); scale = v[Math.floor(.98*(v.length-1))] || 1; }
+  const col = new Float32Array(3*n);
+  for(let i = 0; i < n; i++){ let c;
+    if(!attr) c = [.7,.7,.7]; else if(mode === 'rgb') c = [attr[3*i]/255, attr[3*i+1]/255, attr[3*i+2]/255]; else if(mode === 'group') c = hash(attr[i]);
+    else if(mode === 'core') c = attr[i] ? [1,.25,.2] : [.45,.5,.55]; else if(mode === 'support') c = SUPPORT[attr[i]];
+    else if(mode === 'speed' || mode === 'sigma'){ const x = Math.min(1, attr[i]/scale); c = [x, .3 + .5*(1-Math.abs(2*x-1)), 1-x]; }
+    else c = attr[i] ? [.3,.9,.4] : [.9,.3,.3];
+    col.set(c, 3*i); }
+  if(cloud) scene.remove(cloud);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(xyz, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  cloud = new THREE.Points(g, new THREE.PointsMaterial({size:.008, vertexColors:true})); scene.add(cloud);
+  if(!window.framed){ window.framed = true; frameCloud(xyz); }
+  if(overlay) scene.remove(overlay); overlay = new THREE.Group();
+  if($('axes').checked && J.candidates){ for(const [t, c] of Object.entries(J.candidates)){ const e = new THREE.Vector3(...c.axis), a = new THREE.Vector3(...(c.axis_point || [0,0,0]));
+      const pts = [a.clone().addScaledVector(e, -1.5), a.clone().addScaledVector(e, 1.5)];
+      overlay.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color: t === 'PRISMATIC' ? 0xffb020 : 0x40c0ff}))); } }
+  const G = D.representative_graph;
+  if($('graph').checked && G){ const P = G.trajectory[k], L = {MOVING_RIGID: 0xff3030, STATIC_COMPATIBLE: 0x3080ff};
+    const pos = []; for(const [a, b] of G.edges) pos.push(...P[a], ...P[b]);
+    const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); overlay.add(new THREE.LineSegments(eg, new THREE.LineBasicMaterial({color: 0x557799})));
+    P.forEach((p, i) => { const m = new THREE.Mesh(new THREE.SphereGeometry(.012), new THREE.MeshBasicMaterial({color: L[G.labels[i]] || 0xbbbbbb})); m.position.set(...p); overlay.add(m); }); }
+  for(const [key, color] of [['poses', 0xff4040], ['kabsch', 0x909090]]){ const T = D.rigid[key]; if(!T) continue;
+    overlay.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(T.map(m => new THREE.Vector3(m[0][3], m[1][3], m[2][3]))), new THREE.LineBasicMaterial({color}))); }
+  for(const c of M.cameras){ const R = c.world_to_camera; const p = [0,1,2].map(j => -(R[0][j]*R[0][3] + R[1][j]*R[1][3] + R[2][j]*R[2][3]));
+    const s = new THREE.Mesh(new THREE.SphereGeometry(.05), new THREE.MeshBasicMaterial({color: c.name === M.cameras[ci].name ? 0xffff00 : 0x6080a0})); s.position.set(...p); overlay.add(s); }
+  scene.add(overlay); draw();
+}
+(async () => {
+  M = await (await fetch('manifest.json')).json();
+  for(const d of Object.keys(M.directions)) $('dir').add(new Option(d, d));
+  M.cameras.forEach((c, i) => $('cam').add(new Option(c.name, i)));
+  $('frame').max = M.timestamps_seconds.length - 1;
+  const stages = () => { const s = $('stage'); const keep = s.value; s.innerHTML = ''; for(const k of Object.keys(M.directions[$('dir').value].panels)) s.add(new Option(k, k)); if([...s.options].some(o => o.value === keep)) s.value = keep; };
+  stages(); initThree();
+  $('dir').onchange = () => { stages(); update(); }; for(const id of ['stage','cam','frame','color','axes','graph']) $(id).oninput = update;
+  const q = new URLSearchParams(location.search); for(const id of ['dir','stage','cam','frame','color']) if(q.has(id)) $(id).value = q.get(id);
+  await update(); document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

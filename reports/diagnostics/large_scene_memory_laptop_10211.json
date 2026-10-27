@@ -1,0 +1,23 @@
+{
+ "scene": "laptop_10211",
+ "memory_fraction": 0.45,
+ "cap_MB": 3624.01875,
+ "points": 145973,
+ "groups": 2280,
+ "render_only": {
+  "contributions": 5568268,
+  "candidates": 7991794,
+  "peak_allocated_MB": 1610.54443359375,
+  "linearization_MB": 637.2377014160156
+ },
+ "frame_step": {
+  "oom": "CUDA out of memory. Tried to allocate 162.00 MiB. GPU 0 has a total capacity of 7.86 GiB",
+  "stack": [
+   "pointwise_rgbd/image_iekf.py:98 linear_system: return b, A_solve, group_precond(M, basis)",
+   "pointwise_rgbd/image_iekf.py:80 group_precond: blocks = basis.blocks(M)",
+   "pointwise_rgbd/supernodes.py:120 blocks: return _segsum(g.transpose(1, 2)@M@g, self.seg, self.count)",
+   "pointwise_rgbd/rgbd_point_renderer.py:91 _segsum: if len(order): out[unique] = torch.segment_reduce(values[order], 'sum', lengths=lengths)"
+  ]
+ },
+ "frame_step_peak_allocated_MB": 3317.71533203125
+}

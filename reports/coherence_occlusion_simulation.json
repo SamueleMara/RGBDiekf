@@ -1,0 +1,30 @@
+{
+ "metric": "IoU of the selected moving nodes with the true moving set (D: 1 - selected fraction, static truth)",
+ "scenarios": {
+  "A_static_patch_drifting_while_occluded": {
+   "reference": 1.0,
+   "zoh": 1.0,
+   "supported": 1.0
+  },
+  "B_moving_half_hidden_and_reversing": {
+   "reference": 0.5,
+   "zoh": 1.0,
+   "supported": 1.0
+  },
+  "C_moving_part_fully_hidden_second_half": {
+   "reference": 1.0,
+   "zoh": 1.0,
+   "supported": 1.0
+  },
+  "D_static_scene_patch_drifting_while_occluded": {
+   "reference": 0.8421052631578947,
+   "zoh": 0.38421052631578945,
+   "supported": 0.34736842105263155
+  },
+  "E_moving_half_hidden_motion_continues": {
+   "reference": 1.0,
+   "zoh": 1.0,
+   "supported": 1.0
+  }
+ }
+}

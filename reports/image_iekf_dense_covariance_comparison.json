@@ -1,0 +1,347 @@
+{
+ "semantics": ">= 5 frames on the SAME linearizations (those of the production filter), growing fixtures, both directions:\n      actual       dense 6N Joseph of the production gain (block prior information from the carried marginals)\n                   applied to the full propagated covariance of its errors: the TRUE error covariance;\n      structured   production StructuredCovariance marginals: must equal 'actual' to round-off;\n      optimal      dense 6N restricted Kalman with gain and Joseph from the full propagated prior;\n      assumed      restricted-Joseph marginals carried as a block-diagonal density (ablation);\n      rigeuler     pinned block information (comparison).",
+ "fixtures": [
+  {
+   "points": 40,
+   "groups": 4,
+   "direction": "forward",
+   "frames": [
+    {
+     "frame": 1,
+     "structured_vs_actual_rel": 8.031513959073755e-11,
+     "actual_over_optimal_position_trace": 1.0,
+     "assumed_over_actual_position_trace": 0.9999999999976574,
+     "assumed_over_actual_velocity_trace": 0.9999999999992032,
+     "assumed_vs_actual_rel": 8.031513765420265e-11,
+     "rigeuler_over_actual_position_trace": 0.052798517117413825,
+     "rigeuler_vs_actual_rel": 0.9378661399581634
+    },
+    {
+     "frame": 2,
+     "structured_vs_actual_rel": 5.182628924432389e-11,
+     "actual_over_optimal_position_trace": 1.0083810120878902,
+     "assumed_over_actual_position_trace": 0.9220128793838497,
+     "assumed_over_actual_velocity_trace": 0.9224027053949825,
+     "assumed_vs_actual_rel": 0.19690365559933415,
+     "rigeuler_over_actual_position_trace": 0.0024298719581495897,
+     "rigeuler_vs_actual_rel": 0.9945719289103262
+    },
+    {
+     "frame": 3,
+     "structured_vs_actual_rel": 2.9968674047261046e-11,
+     "actual_over_optimal_position_trace": 1.0027225000880613,
+     "assumed_over_actual_position_trace": 0.8104355795691277,
+     "assumed_over_actual_velocity_trace": 0.8110223376567914,
+     "assumed_vs_actual_rel": 0.2599902271604961,
+     "rigeuler_over_actual_position_trace": 0.00022020951277765426,
+     "rigeuler_vs_actual_rel": 0.9978490904384052
+    },
+    {
+     "frame": 4,
+     "structured_vs_actual_rel": 2.265562509461578e-11,
+     "actual_over_optimal_position_trace": 1.0031781173774255,
+     "assumed_over_actual_position_trace": 0.6992390273038886,
+     "assumed_over_actual_velocity_trace": 0.6999688862085872,
+     "assumed_vs_actual_rel": 0.34619318436506313,
+     "rigeuler_over_actual_position_trace": 0.00010575437063159489,
+     "rigeuler_vs_actual_rel": 0.9983712210326309
+    },
+    {
+     "frame": 5,
+     "structured_vs_actual_rel": 2.145662861333424e-11,
+     "actual_over_optimal_position_trace": 1.0035674650855673,
+     "assumed_over_actual_position_trace": 0.6101555435256677,
+     "assumed_over_actual_velocity_trace": 0.6109994372007241,
+     "assumed_vs_actual_rel": 0.4270494730443351,
+     "rigeuler_over_actual_position_trace": 6.218192385712289e-05,
+     "rigeuler_vs_actual_rel": 0.9986229991834134
+    }
+   ]
+  },
+  {
+   "points": 40,
+   "groups": 4,
+   "direction": "reverse",
+   "frames": [
+    {
+     "frame": 4,
+     "structured_vs_actual_rel": 8.031513959073755e-11,
+     "actual_over_optimal_position_trace": 1.0,
+     "assumed_over_actual_position_trace": 0.9999999999976574,
+     "assumed_over_actual_velocity_trace": 0.9999999999992032,
+     "assumed_vs_actual_rel": 8.031513765420265e-11,
+     "rigeuler_over_actual_position_trace": 0.052798517117413825,
+     "rigeuler_vs_actual_rel": 0.9378661399581634
+    },
+    {
+     "frame": 3,
+     "structured_vs_actual_rel": 6.566839500533829e-11,
+     "actual_over_optimal_position_trace": 1.0078266748554738,
+     "assumed_over_actual_position_trace": 0.9222049523033703,
+     "assumed_over_actual_velocity_trace": 0.9225957671306967,
+     "assumed_vs_actual_rel": 0.19582707087329515,
+     "rigeuler_over_actual_position_trace": 0.0024384715355959476,
+     "rigeuler_vs_actual_rel": 0.9945829226100186
+    },
+    {
+     "frame": 2,
+     "structured_vs_actual_rel": 3.290614205933168e-11,
+     "actual_over_optimal_position_trace": 1.0026751013050332,
+     "assumed_over_actual_position_trace": 0.8098656818539292,
+     "assumed_over_actual_velocity_trace": 0.8104532170694556,
+     "assumed_vs_actual_rel": 0.26105080002259273,
+     "rigeuler_over_actual_position_trace": 0.00022146087180444755,
+     "rigeuler_vs_actual_rel": 0.9978483056649152
+    },
+    {
+     "frame": 1,
+     "structured_vs_actual_rel": 2.370246572424595e-11,
+     "actual_over_optimal_position_trace": 1.0032592585517095,
+     "assumed_over_actual_position_trace": 0.6995093372758934,
+     "assumed_over_actual_velocity_trace": 0.7002387970045238,
+     "assumed_vs_actual_rel": 0.34853481547346343,
+     "rigeuler_over_actual_position_trace": 0.0001059779186377925,
+     "rigeuler_vs_actual_rel": 0.9983719348910394
+    },
+    {
+     "frame": 0,
+     "structured_vs_actual_rel": 2.764740534929614e-11,
+     "actual_over_optimal_position_trace": 1.0029329779238025,
+     "assumed_over_actual_position_trace": 0.6104570520134067,
+     "assumed_over_actual_velocity_trace": 0.6113067213093633,
+     "assumed_vs_actual_rel": 0.4299980305919197,
+     "rigeuler_over_actual_position_trace": 6.244210644560729e-05,
+     "rigeuler_vs_actual_rel": 0.9986064382269351
+    }
+   ]
+  },
+  {
+   "points": 80,
+   "groups": 8,
+   "direction": "forward",
+   "frames": [
+    {
+     "frame": 1,
+     "structured_vs_actual_rel": 6.333962563630483e-11,
+     "actual_over_optimal_position_trace": 1.0,
+     "assumed_over_actual_position_trace": 1.000000000001489,
+     "assumed_over_actual_velocity_trace": 1.0000000000026112,
+     "assumed_vs_actual_rel": 6.333962489207937e-11,
+     "rigeuler_over_actual_position_trace": 0.027106641735428042,
+     "rigeuler_vs_actual_rel": 0.9612317466787768
+    },
+    {
+     "frame": 2,
+     "structured_vs_actual_rel": 6.349893066807413e-11,
+     "actual_over_optimal_position_trace": 1.004947488993229,
+     "assumed_over_actual_position_trace": 0.9545366121818081,
+     "assumed_over_actual_velocity_trace": 0.9547126877888716,
+     "assumed_vs_actual_rel": 0.2682070628830102,
+     "rigeuler_over_actual_position_trace": 0.0009541044461690292,
+     "rigeuler_vs_actual_rel": 0.9959290342137411
+    },
+    {
+     "frame": 3,
+     "structured_vs_actual_rel": 3.8908776411963264e-11,
+     "actual_over_optimal_position_trace": 1.0056447548656642,
+     "assumed_over_actual_position_trace": 0.8527241703030695,
+     "assumed_over_actual_velocity_trace": 0.8531787380489189,
+     "assumed_vs_actual_rel": 0.366915248315138,
+     "rigeuler_over_actual_position_trace": 0.00023079835811156958,
+     "rigeuler_vs_actual_rel": 0.9978721968244456
+    },
+    {
+     "frame": 4,
+     "structured_vs_actual_rel": 3.387090942291208e-11,
+     "actual_over_optimal_position_trace": 1.0103263512210348,
+     "assumed_over_actual_position_trace": 0.7544034225828126,
+     "assumed_over_actual_velocity_trace": 0.7549480643591826,
+     "assumed_vs_actual_rel": 0.3949796732259449,
+     "rigeuler_over_actual_position_trace": 9.948856760544964e-05,
+     "rigeuler_vs_actual_rel": 0.9985862327411336
+    },
+    {
+     "frame": 5,
+     "structured_vs_actual_rel": 3.080286305908559e-11,
+     "actual_over_optimal_position_trace": 1.0106361355655322,
+     "assumed_over_actual_position_trace": 0.6940339244189088,
+     "assumed_over_actual_velocity_trace": 0.6946966955491939,
+     "assumed_vs_actual_rel": 0.4476688307766942,
+     "rigeuler_over_actual_position_trace": 6.151591485318629e-05,
+     "rigeuler_vs_actual_rel": 0.9987312603138032
+    }
+   ]
+  },
+  {
+   "points": 80,
+   "groups": 8,
+   "direction": "reverse",
+   "frames": [
+    {
+     "frame": 4,
+     "structured_vs_actual_rel": 2.2425273358094628e-10,
+     "actual_over_optimal_position_trace": 1.0,
+     "assumed_over_actual_position_trace": 1.0000000000051632,
+     "assumed_over_actual_velocity_trace": 1.000000000019663,
+     "assumed_vs_actual_rel": 2.2425273947541643e-10,
+     "rigeuler_over_actual_position_trace": 0.02056972618703631,
+     "rigeuler_vs_actual_rel": 0.9684348163209897
+    },
+    {
+     "frame": 3,
+     "structured_vs_actual_rel": 9.314562593864439e-11,
+     "actual_over_optimal_position_trace": 1.010485867352471,
+     "assumed_over_actual_position_trace": 0.9122411695953011,
+     "assumed_over_actual_velocity_trace": 0.9126863403738841,
+     "assumed_vs_actual_rel": 0.21734841068663419,
+     "rigeuler_over_actual_position_trace": 0.001961605581223543,
+     "rigeuler_vs_actual_rel": 0.9946649325189276
+    },
+    {
+     "frame": 2,
+     "structured_vs_actual_rel": 6.141918465002431e-11,
+     "actual_over_optimal_position_trace": 1.0092394233389237,
+     "assumed_over_actual_position_trace": 0.8285399544477139,
+     "assumed_over_actual_velocity_trace": 0.829096990378592,
+     "assumed_vs_actual_rel": 0.34871051704498096,
+     "rigeuler_over_actual_position_trace": 0.00022156146019713973,
+     "rigeuler_vs_actual_rel": 0.9980499696919783
+    },
+    {
+     "frame": 1,
+     "structured_vs_actual_rel": 4.76615824317905e-11,
+     "actual_over_optimal_position_trace": 1.0060107491982295,
+     "assumed_over_actual_position_trace": 0.7492009668092059,
+     "assumed_over_actual_velocity_trace": 0.7498508671641932,
+     "assumed_vs_actual_rel": 0.4087686799220438,
+     "rigeuler_over_actual_position_trace": 0.00010308986334515085,
+     "rigeuler_vs_actual_rel": 0.9984790128608138
+    },
+    {
+     "frame": 0,
+     "structured_vs_actual_rel": 3.9428176395590423e-11,
+     "actual_over_optimal_position_trace": 1.0077322221168525,
+     "assumed_over_actual_position_trace": 0.668856481801789,
+     "assumed_over_actual_velocity_trace": 0.6696160689559411,
+     "assumed_vs_actual_rel": 0.4504224148272224,
+     "rigeuler_over_actual_position_trace": 6.108881804314009e-05,
+     "rigeuler_vs_actual_rel": 0.9986498443714585
+    }
+   ]
+  },
+  {
+   "points": 160,
+   "groups": 12,
+   "direction": "forward",
+   "frames": [
+    {
+     "frame": 1,
+     "structured_vs_actual_rel": 1.3877080862960398e-10,
+     "actual_over_optimal_position_trace": 1.0,
+     "assumed_over_actual_position_trace": 1.0000000000001632,
+     "assumed_over_actual_velocity_trace": 1.0000000000115072,
+     "assumed_vs_actual_rel": 1.3877086276924982e-10,
+     "rigeuler_over_actual_position_trace": 0.025949899718991625,
+     "rigeuler_vs_actual_rel": 0.9631904005062686
+    },
+    {
+     "frame": 2,
+     "structured_vs_actual_rel": 9.818431455943027e-11,
+     "actual_over_optimal_position_trace": 1.0180629315027099,
+     "assumed_over_actual_position_trace": 1.0006426120593832,
+     "assumed_over_actual_velocity_trace": 1.0006796468214856,
+     "assumed_vs_actual_rel": 0.23454954106224551,
+     "rigeuler_over_actual_position_trace": 0.005571377475767757,
+     "rigeuler_vs_actual_rel": 0.9899317925478662
+    },
+    {
+     "frame": 3,
+     "structured_vs_actual_rel": 3.941017079288485e-11,
+     "actual_over_optimal_position_trace": 1.0211598118296932,
+     "assumed_over_actual_position_trace": 0.9592166430003491,
+     "assumed_over_actual_velocity_trace": 0.9594425561906722,
+     "assumed_vs_actual_rel": 0.3438881398580785,
+     "rigeuler_over_actual_position_trace": 0.002633512789760195,
+     "rigeuler_vs_actual_rel": 0.9953076766277842
+    },
+    {
+     "frame": 4,
+     "structured_vs_actual_rel": 3.5481094539379534e-11,
+     "actual_over_optimal_position_trace": 1.0108464375511754,
+     "assumed_over_actual_position_trace": 1.0177772225934247,
+     "assumed_over_actual_velocity_trace": 1.0179532359130408,
+     "assumed_vs_actual_rel": 0.6650544781926981,
+     "rigeuler_over_actual_position_trace": 0.002107171712915015,
+     "rigeuler_vs_actual_rel": 0.9961521636939177
+    },
+    {
+     "frame": 5,
+     "structured_vs_actual_rel": 8.152704496484201e-11,
+     "actual_over_optimal_position_trace": 1.0204380100053116,
+     "assumed_over_actual_position_trace": 0.9485790124102711,
+     "assumed_over_actual_velocity_trace": 0.9488294218267114,
+     "assumed_vs_actual_rel": 0.6388001234639419,
+     "rigeuler_over_actual_position_trace": 0.00184671699189196,
+     "rigeuler_vs_actual_rel": 0.9967250181033119
+    }
+   ]
+  },
+  {
+   "points": 160,
+   "groups": 12,
+   "direction": "reverse",
+   "frames": [
+    {
+     "frame": 4,
+     "structured_vs_actual_rel": 9.443883294009573e-11,
+     "actual_over_optimal_position_trace": 1.0,
+     "assumed_over_actual_position_trace": 1.0000000000020433,
+     "assumed_over_actual_velocity_trace": 1.000000000002792,
+     "assumed_vs_actual_rel": 9.443884067606392e-11,
+     "rigeuler_over_actual_position_trace": 0.03945280511518948,
+     "rigeuler_vs_actual_rel": 0.9505229862424546
+    },
+    {
+     "frame": 3,
+     "structured_vs_actual_rel": 2.3931678304898468e-11,
+     "actual_over_optimal_position_trace": 1.0098542381047284,
+     "assumed_over_actual_position_trace": 0.9375853370590839,
+     "assumed_over_actual_velocity_trace": 0.9379206839540393,
+     "assumed_vs_actual_rel": 0.1472126453081246,
+     "rigeuler_over_actual_position_trace": 0.0065610109167207435,
+     "rigeuler_vs_actual_rel": 0.9890714905725504
+    },
+    {
+     "frame": 2,
+     "structured_vs_actual_rel": 2.5426707720515422e-11,
+     "actual_over_optimal_position_trace": 1.0153179831311883,
+     "assumed_over_actual_position_trace": 0.8928943202360196,
+     "assumed_over_actual_velocity_trace": 0.8932418171910419,
+     "assumed_vs_actual_rel": 0.2670528574236865,
+     "rigeuler_over_actual_position_trace": 0.00174822499169315,
+     "rigeuler_vs_actual_rel": 0.9960123218991361
+    },
+    {
+     "frame": 1,
+     "structured_vs_actual_rel": 1.68521372831074e-11,
+     "actual_over_optimal_position_trace": 1.0133005920799771,
+     "assumed_over_actual_position_trace": 0.853342431188477,
+     "assumed_over_actual_velocity_trace": 0.8537130309648403,
+     "assumed_vs_actual_rel": 0.36628492763764126,
+     "rigeuler_over_actual_position_trace": 0.0006048178587926667,
+     "rigeuler_vs_actual_rel": 0.9979763676917194
+    },
+    {
+     "frame": 0,
+     "structured_vs_actual_rel": 1.7610132094782128e-11,
+     "actual_over_optimal_position_trace": 1.0148215279024408,
+     "assumed_over_actual_position_trace": 0.8253172894582885,
+     "assumed_over_actual_velocity_trace": 0.8261535948113115,
+     "assumed_vs_actual_rel": 0.3899463921884581,
+     "rigeuler_over_actual_position_trace": 0.0004039392432825643,
+     "rigeuler_vs_actual_rel": 0.9984618558218158
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,226 @@
+{
+ "environment": {
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "memory_fraction": 0.45,
+  "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU, 580.178.04, 3818 MiB, 8188 MiB, 97 %",
+  "other_processes": "1599382, 3804 MiB"
+ },
+ "frames": [
+  {
+   "frame": 1,
+   "wall_s_off": [
+    10.417069224000443,
+    11.020230271969922,
+    8.545722337963525
+   ],
+   "wall_s_on": [
+    6.250462256022729,
+    8.41643684200244,
+    7.955716627009679
+   ],
+   "median_wall_s_off": 10.417069224000443,
+   "median_wall_s_on": 7.955716627009679,
+   "speedup_median": 1.3093816324018461,
+   "memory_off": {
+    "peak_allocated_above_inputs_MB": 2003.18994140625,
+    "peak_reserved_MB": 3334.0
+   },
+   "memory_on": {
+    "peak_allocated_above_inputs_MB": 1998.00146484375,
+    "peak_reserved_MB": 3334.0
+   },
+   "state_correction_rel": 0.02286924105404368,
+   "state_max_abs_m": 0.04798730808125248,
+   "posterior_blocks_rel": 0.015878831665692872,
+   "posterior_max_abs": 0.628978429968724,
+   "energy_final": [
+    41849.55590036865,
+    41833.34227345585
+   ],
+   "accept_sequence_equal": true,
+   "pcg_iterations": [
+    [
+     9,
+     11,
+     30,
+     30,
+     30,
+     30,
+     8,
+     10,
+     2,
+     2
+    ],
+    [
+     9,
+     11,
+     30,
+     30,
+     30,
+     30,
+     8,
+     10,
+     2,
+     2
+    ]
+   ],
+   "operator_rel_discrepancy_at_off_final_linearization": {
+    "H v": 9.052982036528168e-17,
+    "H^T a": 1.1770230352235116e-16,
+    "block_fisher": 1.8621375536924392e-17,
+    "G^T M G blocks": 1.2646286557669456e-20,
+    "b_g": 1.8082164797385864e-16,
+    "A_g z": 1.0455626874053173e-16,
+    "preconditioner z": 3.305711052580488e-17
+   }
+  },
+  {
+   "frame": 10,
+   "wall_s_off": [
+    8.916662220028229,
+    6.177211839007214,
+    12.673138412006665
+   ],
+   "wall_s_on": [
+    3.165702885016799,
+    4.074291078024544,
+    10.758629837015178
+   ],
+   "median_wall_s_off": 8.916662220028229,
+   "median_wall_s_on": 4.074291078024544,
+   "speedup_median": 2.1885187016023293,
+   "memory_off": {
+    "peak_allocated_above_inputs_MB": 1866.74755859375,
+    "peak_reserved_MB": 3228.0
+   },
+   "memory_on": {
+    "peak_allocated_above_inputs_MB": 1863.22802734375,
+    "peak_reserved_MB": 3232.0
+   },
+   "state_correction_rel": 1.670360917687148e-11,
+   "state_max_abs_m": 3.7499794935946795e-12,
+   "posterior_blocks_rel": 7.756503052014521e-12,
+   "posterior_max_abs": 6.276868001059421e-11,
+   "energy_final": [
+    66220.00459412024,
+    66220.00459409857
+   ],
+   "accept_sequence_equal": true,
+   "pcg_iterations": [
+    [
+     9,
+     12,
+     14,
+     12,
+     12,
+     9,
+     2,
+     4,
+     1,
+     1
+    ],
+    [
+     9,
+     12,
+     14,
+     12,
+     12,
+     9,
+     2,
+     4,
+     1,
+     1
+    ]
+   ],
+   "operator_rel_discrepancy_at_off_final_linearization": {
+    "H v": 5.58021982522105e-17,
+    "H^T a": 1.3038358199579118e-16,
+    "block_fisher": 3.440119546710707e-17,
+    "G^T M G blocks": 7.266746674452347e-19,
+    "b_g": 1.6700867551073928e-16,
+    "A_g z": 9.960061366618911e-17,
+    "preconditioner z": 6.603571235462572e-16
+   }
+  },
+  {
+   "frame": 30,
+   "wall_s_off": [
+    13.356013140000869,
+    7.425138154998422,
+    8.914361322997138
+   ],
+   "wall_s_on": [
+    4.757441479014233,
+    3.3827362830052152,
+    4.330412979004905
+   ],
+   "median_wall_s_off": 8.914361322997138,
+   "median_wall_s_on": 4.330412979004905,
+   "speedup_median": 2.058547618025473,
+   "memory_off": {
+    "peak_allocated_above_inputs_MB": 1819.11767578125,
+    "peak_reserved_MB": 3178.0
+   },
+   "memory_on": {
+    "peak_allocated_above_inputs_MB": 1825.28564453125,
+    "peak_reserved_MB": 3178.0
+   },
+   "state_correction_rel": 8.740688808740774e-12,
+   "state_max_abs_m": 9.172593240514004e-13,
+   "posterior_blocks_rel": 9.003495387626805e-13,
+   "posterior_max_abs": 3.929096631383189e-12,
+   "energy_final": [
+    135113.54641128657,
+    135113.54641128512
+   ],
+   "accept_sequence_equal": true,
+   "pcg_iterations": [
+    [
+     9,
+     8,
+     11,
+     11,
+     11,
+     22,
+     11,
+     2,
+     1,
+     1
+    ],
+    [
+     9,
+     8,
+     11,
+     11,
+     11,
+     22,
+     11,
+     2,
+     1,
+     1
+    ]
+   ],
+   "operator_rel_discrepancy_at_off_final_linearization": {
+    "H v": 8.505041372230318e-17,
+    "H^T a": 1.7842491185281546e-16,
+    "block_fisher": 4.332412443103674e-17,
+    "G^T M G blocks": 6.268717676225987e-19,
+    "b_g": 4.3890209653654915e-16,
+    "A_g z": 5.4526699646679226e-17,
+    "preconditioner z": 1.352760930967604e-14
+   }
+  }
+ ],
+ "large_scene": {
+  "scene": "laptop_10211",
+  "points": 145973,
+  "groups": 2280,
+  "on": {
+   "out_of_memory": "CUDA out of memory. Tried to allocate 56.00 MiB. GPU 0 has a total capacity of 7.86 GiB"
+  },
+  "off": {
+   "out_of_memory": "CUDA out of memory. Tried to allocate 32.00 MiB. GPU 0 has a total capacity of 7.86 GiB"
+  }
+ }
+}

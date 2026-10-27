@@ -1,0 +1,5 @@
+{
+  "tail_probability": 0.01,
+  "assumption_class": "declared-implementation-decision-policy",
+  "qualification": "One declared significance level alpha, used for (a) the Diebold-Mariano / Newey-West predictive comparisons of the joint stage (static vs prismatic vs revolute vs free rigid, one-step predictive image NLL per frame, Harvey-Leybourne-Newbold, t(n-1)) and (b) the Benjamini-Hochberg false-discovery level of the support labels (frame-level HAC tests of single-flip differences). It is not sensor calibration and was not tuned on any result. Removed (contract sections 0 and 9): far_axis_ratio and excitation_resolution_footprints (thresholds retrofitted after a failed static test) and support_log_bayes_factor (pixel-sum log ratios are not calibrated under pixel dependence)."
+}
