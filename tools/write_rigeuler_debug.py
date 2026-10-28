@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Write the RigEuler3DGS debug pages for a finished rendered-image RGB-D run (see pointwise_rgbd/rigeuler_debug.py)."""
+"""Write the RigEuler3DGS debug pages for a finished rendered-image RGB-D run (see debug/rigeuler_pages.py)."""
 import argparse, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from pointwise_rgbd.dataset import Dataset
-from pointwise_rgbd.rigeuler_debug import write
+from scene.dataset import Dataset
+from debug.rigeuler_pages import write
 
 
 def main():

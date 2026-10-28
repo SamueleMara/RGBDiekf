@@ -8,7 +8,7 @@ import numpy as np, torch
 from scipy.spatial import cKDTree
 from tools.audit_phase1_operators import blade_setup, observation, gt_labels
 from tools.evaluate_image_iekf_gt import ply
-from pointwise_rgbd.rgbd_point_renderer import render
+from estimator.point_renderer import render
 run, scene = Path(sys.argv[1]), Path(sys.argv[2]); frames = [int(x) for x in sys.argv[3].split(',')]
 B = blade_setup(run, scene, 'cuda', 59); _, axis, qrel = gt_labels(B, scene)
 x0, l0 = ply(scene/'pointcloud/points3D_parts.ply'); xf, lf = ply(scene/'pointcloud/points3D_parts_final.ply')

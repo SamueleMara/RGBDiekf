@@ -3,7 +3,7 @@
 
 For each run: pinned build_supernodes(mu0.float(), 192, seed 0) -> pinned run_motion_coherence (k = 12) -> pinned
 extract_moving_component (folds 5), all loaded from the 481b2cf2 Git blobs; pages written by the verbatim pinned
-debug writers (pointwise_rgbd/rigeuler_ref/motion_coherence_debug.py, sha256 facc4f58...). No ground truth is read.
+debug writers (rigeuler_ref/motion_coherence_debug.py, sha256 facc4f58...). No ground truth is read.
 Usage: python tools/write_parity_debug_pages.py --runs v1=<run> v2=<run> --out <dir>
 """
 import argparse, json, sys, tempfile
@@ -11,8 +11,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]; sys.path.insert(0, str(REPO))
 import numpy as np, torch
 from tools.audit_coherence_parity import load_pinned, load_run
-from pointwise_rgbd.rigeuler_ref import motion_coherence_debug as mcd
-from pointwise_rgbd.rigeuler_debug import _local_three
+from rigeuler_ref import motion_coherence_debug as mcd
+from debug.rigeuler_pages import _local_three
 
 
 def main():

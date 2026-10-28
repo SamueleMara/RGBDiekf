@@ -25,17 +25,17 @@ def main():
     axis = np.asarray(meta['axis_vector'], float); jtype = meta['type'].upper()
     vals = np.genfromtxt(a.scene/'metadata/frame_values.csv', delimiter=',', names=True)
     q_gt = np.asarray(vals[vals.dtype.names[1]], float)
-    report = {'gt_type': jtype, 'gt_axis': axis.tolist(), 'gt_q_range': float(np.ptp(q_gt)), 'directions': {}}
-    K = len(q_gt)
+    K = len(json.loads((a.run/'manifest.json').read_text())['dataset']['original_frame_ids'])
+    report = {'gt_type': jtype, 'gt_axis': axis.tolist(), 'gt_q_range': float(np.ptp(q_gt)), 'directions': {}, 'run_frames': K, 'gt_frames': len(q_gt)}
+    if K < len(q_gt):   # --frame-limit TEST prefix: score the prefix; the 'last' part labels come from the true final frame, so they are approximate
+        report['frame_limited_note'] = 'test prefix: q truncated to the run frames; last-anchor GT part cloud is the true final frame, not the prefix end'
+        q_gt = q_gt[:K]
     (xi, li), (xf, lf) = ply(a.scene/'pointcloud/points3D_parts.ply'), ply(a.scene/'pointcloud/points3D_parts_final.ply')
     moving_label = max(set(li) & set(lf), key=lambda l: np.linalg.norm(xi[li == l].mean(0)-xf[lf == l].mean(0)))
     for anchor, cloud in (('first', 'points3D_parts.ply'), ('last', 'points3D_parts_final.ply')):
         d = a.run/anchor
         p1 = d/'phase1'
-        if not (p1/'partition.npz').exists():          # stages reused a verified Phase 1 (--phase1-from)
-            src = json.loads((a.run/'manifest.json').read_text())['arguments'].get('phase1_from')
-            if not src: continue
-            p1 = Path(src)/anchor/'phase1'
+        if not (p1/'partition.npz').exists(): continue  # direction not run (reused stages are symlinked folders, so they resolve here)
         k0 = 0 if anchor == 'first' else K-1
         part = np.load(p1/'partition.npz'); xyz = part['xyz']
         x0, l0 = ply(a.scene/'pointcloud'/cloud)

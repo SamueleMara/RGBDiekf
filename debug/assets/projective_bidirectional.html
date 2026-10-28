@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Bidirectional</title>
+<style>body{margin:0;font:12px sans-serif;display:flex;height:100vh}#view{flex:1}#side{width:460px;overflow:auto;padding:8px;border-left:1px solid #ccc}#errors{color:#c00}</style>
+<script src="three.min.js"></script><script src="projective_common.js"></script></head>
+<body><div id="view"></div><div id="side"><h3>Forward vs backward (common calibrated world; no point links, no fused posterior)</h3><div id="errors"></div><div id="legend"></div><pre id="cmp" style="white-space:pre-wrap"></pre></div>
+<script>
+const DIRS = __DIRECTIONS__, state = {}; window.__state = state;
+(async () => {
+  const B = await PD.load('bidirectional'), V = PD.viewer(document.getElementById('view')); const cols = {forward: [.12, .47, .71], backward: [1, .5, .05]}; let fitted = false;
+  for (const d of DIRS) { let J; try { J = await PD.load('joint_'+d); } catch (e) { continue; } if (!J.xyz) continue;
+    const p = PD.f32(J.xyz), c = new Float32Array(p.length); for (let i = 0; i < p.length; i += 3) c.set(cols[d], i); V.scene.add(PD.points(p, c, .004)); if (!fitted) { V.fit(p); fitted = true; }
+    const cand = (J.joint.candidates || {})[J.joint.status]; if (cand) { const e = cand.axis, a = cand.axis_point || [p[0], p[1], p[2]], L = .6;
+      V.scene.add(PD.lines([a[0]-L*e[0], a[1]-L*e[1], a[2]-L*e[2], a[0]+L*e[0], a[1]+L*e[1], a[2]+L*e[2]], d === 'forward' ? 0x1f77b4 : 0xff7f0e)); } }
+  PD.legend(document.getElementById('legend'), [['#1f77b4', 'forward: frame-0 canonical P_0 + its axis'], ['#ff7f0e', 'backward: frame-T canonical P_T + its axis']]);
+  document.getElementById('cmp').textContent = JSON.stringify(B.comparison, null, 1) || 'no comparison (a direction did not reach the joint stage)';
+  state.ready = true;
+})();
+</script></body></html>

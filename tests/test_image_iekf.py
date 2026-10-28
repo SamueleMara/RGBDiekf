@@ -1,19 +1,19 @@
 """Contract section 13 Kalman gates for the Phase-1 rendered-image IEKF (no correspondences are given)."""
-import json, tempfile, unittest
+import json, sys, tempfile, unittest
 from pathlib import Path
 from unittest import mock
 import numpy as np
 import torch
 from tests.image_fixtures import two_plate_scene, catalog, source_parts, true_positions
-from pointwise_rgbd.config import load_config
-from pointwise_rgbd.rgbd_point_renderer import CameraTensors, RenderPolicy, render
-from pointwise_rgbd.image_observation import FrameObservation, ObservationPolicy
-from pointwise_rgbd.image_iekf import IEKFConfig, frame_step
-from pointwise_rgbd.supernodes import GroupBasis, build_supernodes
-from pointwise_rgbd.process6 import predict, transition, process_covariance
-from pointwise_rgbd import restricted_posterior as rp
-from pointwise_rgbd import image_phase1
-from rgbd_common.backends.torch_cuda import Backend
+from scene.config import load_config
+from estimator.point_renderer import CameraTensors, RenderPolicy, render
+from estimator.observation_terms import FrameObservation, ObservationPolicy
+from estimator.sparse_iekf import IEKFConfig, frame_step
+from estimator.supernodes import GroupBasis, build_supernodes
+from estimator.process import predict, transition, process_covariance
+from estimator import restricted_posterior as rp
+from estimator import phase1 as image_phase1
+from utils.backend import Backend
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 REPORT = Path(__file__).resolve().parents[1]/'reports/image_iekf_dense_covariance_comparison.json'
@@ -185,7 +185,7 @@ class DenseMultiFrameCovarianceTest(unittest.TestCase):
       assumed      restricted-Joseph marginals carried as a block-diagonal density (ablation);
       rigeuler     pinned block information (comparison)."""
     def test_multi_frame_forward_and_reverse(self):
-        from pointwise_rgbd.phase1_covariance import StructuredCovariance, BlockCovariance
+        from estimator.covariance import StructuredCovariance, BlockCovariance
         config = load_config(); out = []
         tr = lambda M: float(M[:, :3, :3].diagonal(dim1=1, dim2=2).sum())
         trv = lambda M: float(M[:, 3:, 3:].diagonal(dim1=1, dim2=2).sum())
@@ -242,8 +242,8 @@ class IteratedSolverTest(unittest.TestCase):
 
     def test_matrix_free_system_and_steihaug_equal_dense(self):
         """At one linearization: b, A = G^T(Lambda + H^T W H + lambda I)G and the Steihaug solve (huge radius) vs dense algebra."""
-        from pointwise_rgbd.image_iekf import linear_system
-        from pointwise_rgbd.rigeuler_ref.trust_region import ScalingMetric, steihaug_cg
+        from estimator.sparse_iekf import linear_system
+        from rigeuler_ref.trust_region import ScalingMetric, steihaug_cg
         config = load_config()
         ds, xyz, rgb, rho, G, C, s0, P0 = small_problem()
         sm, Pm = predict(s0, P0, 1/30, config)
@@ -306,8 +306,8 @@ class Phase1TrackingTest(unittest.TestCase):
     def run_phase(self, motion, anchor, frames=5):
         ds = two_plate_scene(motion, frames=frames, cameras=3)
         root = tempfile.mkdtemp()
-        with mock.patch('pointwise_rgbd.association.associate', side_effect=AssertionError('associate() called')):
-            part, arr, rho = image_phase1.run(ds, self.config, self.backend, root, anchor)
+        part, arr, rho = image_phase1.run(ds, self.config, self.backend, root, anchor)
+        self.assertFalse([m for m in sys.modules if m.split('.')[-1] == 'association'], 'no correspondence-association module may be loaded')
         return ds, root, part, arr
 
     def check(self, ds, root, part, arr, k0):
@@ -370,7 +370,7 @@ class ObservationModelTest(unittest.TestCase):
         self.assertLess(abs(fd-float((grad*d).sum())), 1e-4*abs(fd))
 
     def test_student_t_irls_weight_and_variance(self):
-        from pointwise_rgbd.image_observation import student_t
+        from estimator.observation_terms import student_t
         r = torch.linspace(-.3, .3, 41, dtype=torch.float64); sigma, nu = .05, 5.
         e, w = student_t(r, sigma, nu)
         de = (student_t(r+1e-7, sigma, nu)[0]-student_t(r-1e-7, sigma, nu)[0])/2e-7

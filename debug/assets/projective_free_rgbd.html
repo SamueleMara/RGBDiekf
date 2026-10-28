@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Free __DIRECTION__ RGB-D</title>
+<style>body{margin:0;font:12px sans-serif}#top{padding:6px;border-bottom:1px solid #ccc}.panel{position:relative;display:inline-block;margin:4px;vertical-align:top}
+.panel img,.panel canvas{position:absolute;left:0;top:0}.cap{font-weight:bold}#errors{color:#c00}#tip{position:fixed;background:#fff;border:1px solid #888;padding:4px;pointer-events:none;display:none;max-width:420px}
+table{border-collapse:collapse}td{padding:1px 5px;border-bottom:1px solid #eee}</style>
+<script src="projective_common.js"></script></head>
+<body><div id="top"><b>Free pass __DIRECTION__: measured RGB-D at actual point projections</b> <span id="errors"></span><br>
+frame <select id="frame"></select> camera <select id="cam"></select>
+<label><input type="checkbox" id="init" checked>initial (canonical) ○</label> <label><input type="checkbox" id="pred" checked>predicted □</label>
+<label><input type="checkbox" id="post" checked>posterior ●</label> <label><input type="checkbox" id="arrow" checked>predicted→posterior</label>
+<label><input type="checkbox" id="zoom" checked>zoom to the projected points</label> colour posterior by <select id="mode"><option value="reason">validity reason</option><option value="dz">Z_pred − D_meas (valid samples only)</option></select>
+<div id="src" style="color:#555"></div><div id="legend"></div></div>
+<div id="panels"></div><div style="padding:6px"><h4>exact reason counts (all points, this camera and frame)</h4><div id="counts"></div></div><div id="tip"></div>
+<script>
+const DIR = '__DIRECTION__', state = {}; window.__state = state; let M, R;
+// the recorded image is kept untouched in a hidden <img> (QA reads its pixels); the visible canvas shows a crop of it
+// around the projected points (zoom), drawn with nearest-neighbour scaling, markers in the same transform
+const panel = (name, w, h) => `<div class="panel" style="width:${w}px;height:${h+16}px"><div class="cap">${name}</div><div style="position:relative;width:${w}px;height:${h}px"><img id="img_${name}" style="display:none"><canvas id="cv_${name}" width="${w}" height="${h}"></canvas></div></div>`;
+function hexrgb(h) { const v = parseInt(h.slice(1), 16); return `rgb(${v>>16 & 255},${v>>8 & 255},${v & 255})`; }
+async function draw() {
+  const k = +document.getElementById('frame').value, c = +document.getElementById('cam').value;
+  R = await PD.load(`free_${DIR}_rgbd_f${String(k).padStart(4, '0')}`);
+  const C = R.cameras[c], W = C.width, H = C.height;
+  const u0 = PD.f32(C.uv_initial), up = PD.f32(C.uv_predicted), uq = PD.f32(C.uv_posterior), rs = PD.u8(C.reason), sd = PD.f32(C.sampled_depth), zq = PD.f32(C.z_posterior);
+  const zoom = document.getElementById('zoom').checked; let x0 = 0, y0 = 0, x1 = W, y1 = H;
+  if (zoom && C.ids.length) { x0 = W; y0 = H; x1 = 0; y1 = 0; for (let i = 0; i < C.ids.length; i++) for (const a of [uq, up, u0]) { x0 = Math.min(x0, a[2*i]); x1 = Math.max(x1, a[2*i]); y0 = Math.min(y0, a[2*i+1]); y1 = Math.max(y1, a[2*i+1]); }
+    x0 = Math.max(0, Math.floor(x0-15)); y0 = Math.max(0, Math.floor(y0-15)); x1 = Math.min(W, Math.ceil(x1+15)); y1 = Math.min(H, Math.ceil(y1+15)); }
+  const sc = Math.min(760/(x1-x0), 520/(y1-y0), zoom ? 8 : 1), VW = Math.round((x1-x0)*sc), VH = Math.round((y1-y0)*sc);
+  const tx = u => (u-x0)*sc, ty = v => (v-y0)*sc;
+  document.getElementById('panels').innerHTML = panel('rgb', VW, VH)+panel('depth', VW, VH)+panel('mask', VW, VH);
+  const imgs = {rgb: C.images.rgb, depth: C.images.depth, mask: C.images.mask};
+  await Promise.all(Object.entries(imgs).map(([n, src]) => new Promise(ok => { const im = document.getElementById('img_'+n); im.onload = ok; im.src = src; })));
+  for (const n of Object.keys(imgs)) { const ctx = document.getElementById('cv_'+n).getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.drawImage(document.getElementById('img_'+n), x0, y0, x1-x0, y1-y0, 0, 0, VW, VH); }
+  document.getElementById('src').innerHTML = `RGB: ${C.rgb_source} (sha256 ${String(C.rgb_sha256 || '').slice(0, 12)}) | depth: ${C.depth_source}, colour map ${C.depth_colormap}, range ${C.depth_range_m.map(v => v.toFixed(3)).join('–')} m | mask: ${C.mask_source}<br>` +
+    `view: pixels [${x0}, ${x1}) x [${y0}, ${y1}) at ${sc.toFixed(2)}x (nearest-neighbour) | original frame ${M.original_frames[k]}, t = ${M.timestamps[k].toFixed(4)} s, camera ${M.cameras[c].name} (fx ${M.cameras[c].K[0].toFixed(1)}, fy ${M.cameras[c].K[1].toFixed(1)}), canonical cloud = frame ${M.canonical_frame} endpoint; ${C.markers} markers shown (deterministic subset)`;
+  const mode = document.getElementById('mode').value, n = C.ids.length, rad = Math.max(1.5, Math.min(4, sc*.6));
+  state.frame = k; state.camera = c; state.markers = C.ids.map((id, i) => ({id, u: uq[2*i], v: uq[2*i+1], reason: rs[i]})); state.image = C.images.rgb;
+  for (const name of ['rgb', 'depth', 'mask']) { const ctx = document.getElementById('cv_'+name).getContext('2d');
+    for (let i = 0; i < n; i++) {
+      if (document.getElementById('init').checked) { ctx.strokeStyle = '#bbbbbb'; ctx.beginPath(); ctx.arc(tx(u0[2*i]), ty(u0[2*i+1]), rad, 0, 7); ctx.stroke(); }
+      if (document.getElementById('pred').checked) { ctx.strokeStyle = '#1f77b4'; ctx.strokeRect(tx(up[2*i])-rad, ty(up[2*i+1])-rad, 2*rad, 2*rad); }
+      if (document.getElementById('arrow').checked) { ctx.strokeStyle = '#ff7f0e'; ctx.beginPath(); ctx.moveTo(tx(up[2*i]), ty(up[2*i+1])); ctx.lineTo(tx(uq[2*i]), ty(uq[2*i+1])); ctx.stroke(); }
+      if (document.getElementById('post').checked) { let col;
+        if (mode === 'reason') col = hexrgb(PD.REASON_COLORS[rs[i]]);
+        else { if (!(rs[i] === 0 && Number.isFinite(sd[i]))) continue; const t = (zq[i]-sd[i])/.02, d = PD.diverging(t); col = `rgb(${d.map(x => Math.round(255*x)).join(',')})`; }
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(tx(uq[2*i]), ty(uq[2*i+1]), rad*.9, 0, 7); ctx.fill(); } } }
+  PD.legend(document.getElementById('legend'), mode === 'reason' ? Object.entries(M.reasons).map(([a, b]) => [PD.REASON_COLORS[a], b]) : [['#3366ff', 'Z_pred < D_meas by 2 cm (point in front of surface)'], ['#ffffff', '0'], ['#ff3333', 'Z_pred > D_meas by 2 cm']]);
+  document.getElementById('counts').innerHTML = '<table>' + Object.entries(C.exact_reason_counts).map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('') + '</table>';
+  const cv = document.getElementById('cv_rgb'), tip = document.getElementById('tip');
+  cv.onmousemove = e => { const r = cv.getBoundingClientRect(), x = (e.clientX-r.left)/sc+x0, y = (e.clientY-r.top)/sc+y0; let b = -1, bd = 25/(sc*sc);
+    for (let i = 0; i < n; i++) { const d = (uq[2*i]-x)**2+(uq[2*i+1]-y)**2; if (d < bd) { bd = d; b = i; } }
+    if (b < 0) { tip.style.display = 'none'; return; }
+    const sr = PD.f32(C.sampled_rgb), cr = PD.f32(C.canonical_rgb);
+    tip.style.display = 'block'; tip.style.left = (e.clientX+12)+'px'; tip.style.top = (e.clientY+12)+'px';
+    tip.innerHTML = `point ${C.ids[b]}<br>posterior (u,v) ${uq[2*b].toFixed(2)}, ${uq[2*b+1].toFixed(2)}; predicted ${up[2*b].toFixed(2)}, ${up[2*b+1].toFixed(2)}<br>` +
+      `sampled RGB ${sr[3*b] < 0 ? 'invalid sample' : [0, 1, 2].map(j => sr[3*b+j].toFixed(3))}, canonical RGB ${[0, 1, 2].map(j => cr[3*b+j].toFixed(3))}<br>` +
+      `sampled depth ${Number.isFinite(sd[b]) ? sd[b].toFixed(4)+' m' : 'invalid'}, predicted Z ${zq[b].toFixed(4)} m, Z − D ${Number.isFinite(sd[b]) ? ((zq[b]-sd[b])*1000).toFixed(2)+' mm' : '—'}<br>reason ${M.reasons[rs[b]]}`; };
+  cv.onclick = e => { const r = cv.getBoundingClientRect(), x = (e.clientX-r.left)/sc+x0, y = (e.clientY-r.top)/sc+y0; let b = -1, bd = 25/(sc*sc);
+    for (let i = 0; i < n; i++) { const d = (uq[2*i]-x)**2+(uq[2*i+1]-y)**2; if (d < bd) { bd = d; b = i; } }
+    if (b >= 0) window.open(`free_${DIR}_3d.html#point=${C.ids[b]}&frame=${k}`, `free3d_${DIR}`); };
+  state.ready = true;
+}
+(async () => {
+  M = await PD.load(`free_${DIR}_meta`);
+  const fs = document.getElementById('frame'), cs = document.getElementById('cam');
+  M.debug_frames.forEach(k => fs.add(new Option(`frame ${M.original_frames[k]}${k === M.canonical_frame ? ' (canonical)' : ''}`, k)));
+  M.cameras.forEach((c, i) => cs.add(new Option(c.name, i)));
+  const f0 = PD.param('frame', null), c0 = PD.param('camera', null); if (f0 !== null) fs.value = f0; if (c0 !== null) cs.value = c0;
+  document.querySelectorAll('select,input').forEach(e => e.onchange = draw);
+  await draw();
+})();
+</script></body></html>

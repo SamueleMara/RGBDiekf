@@ -1,45 +1,57 @@
-> **24 October 2026 — rendered-image IEKF v2 (current):** the measurement is the RGB-D image rendered from the transported coloured point cloud into all cameras, inside the pinned RigEuler3DGS 481b2cf2 fixed-prior trust-region IEKF, with the exact restricted-Joseph covariance, information-supported coherence, the pinned small-state rigid/joint solvers, a predictive joint decision and global-label support (`CLAUDE_RIGEULER_RGBD_RIGOROUS_IMPLEMENTATION_CONTRACT.md`). See [IMAGE_IEKF_RGBD.md](IMAGE_IEKF_RGBD.md), the [pre-implementation audit](reports/theory_to_code_audit.md) and the [theory validation](reports/rigeuler_rgbd_theory_validation.md). The v1 image-IEKF report ([image_iekf_blade_2026-10-24_validation.md](reports/image_iekf_blade_2026-10-24_validation.md)) is a superseded baseline; association-based runners below are legacy.
+# RGBDekf
 
-> **24 October correction:** production uses ALL available cameras jointly at every frame and stage. Coherence cross-validation splits supernodes, not cameras. See [current execution contract](FREE_GROUPED_RGBD.md) and [all-camera results](reports/free_grouped_all_cameras_2026-10-24_validation.md). Historical camera-partitioned results below are superseded.
+Four independent directional RGB-D Kalman filters for articulated-object discovery
+(`CODEX_RGBD_FOUR_PASS_PROJECTIVE_IEKF_CUDA_SUBSAMPLING_2026-10-27.md`):
 
-> **23 October correction:** the physical-supernode and boundary-splitting architecture below is superseded. The current runner implements free individual 6D point states with grouped increments, reference coherence, shared rigid RGB-D fitting, joint inference and endpoint support completion. See [current architecture and commands](FREE_GROUPED_RGBD.md). Real-data acceptance is determined by the new measured validation report, not the historical gates below.
+| Pass | Canonical cloud | Order | State |
+|---|---|---|---|
+| F1 free forward | measured frame-0 points | 0 → T | one independent 6D `[x, v]` IEKF per original point |
+| B1 free backward | measured frame-T points | T → 0 | one independent 6D `[x, v]` IEKF per original point |
+| F2 rigid forward | frame-0 moving core (coherence of F1) | 0 → T | one shared SE(3) pose + twist (12D) |
+| B2 rigid backward | frame-T moving core (coherence of B1) | T → 0 | one shared SE(3) pose + twist (12D) |
 
-> **Grouped contract (22 October 2026):** isolated grouped Phase 1 is implemented, but the required joint-boundary gate fails. Recovery/full reconstruction remain paused. See [the exact audit and measured status](reports/grouped_2026-10-22_validation.md). This is not a completed grouped/coherence/rigid/joint pipeline.
+The only observations are the actual masked, calibrated RGB-D frames, sampled at the projections of the transported endpoint points (`r = [a − I(u,v); Z − D(u,v)]`, bilinear, exact interpolant gradient). Every correction is a Kalman correction.
 
-> **Correspondence correction (22 October):** geometric surface coverage is independent of exclusive IEKF ownership. See [the audit and matching equations](AUDIT_CORRESPONDENCE_2026-10-22.md) and [real-data comparison, incremental validation and commands](reports/correspondence_2026-10-22_results.md). Unlimited discovery has not been validated or launched by this correction.
+The pipeline uses none of the following: splatting, rendering, image energy, trust region, group tangent, point correspondence, or ground truth during inference.
 
-> **22 October 2026:** the current request is the isolated **6D pointwise** algorithm. Use [POINTWISE_RGBD.md](POINTWISE_RGBD.md), [its audit](AUDIT_POINTWISE_2026-10-22.md), and [current validation](reports/pointwise_2026-10-22_validation.md). The commands and rigid/group/UKF model-selection blockers below concern superseded pipelines; they are historical, not blockers for the new pointwise estimator.
+Coherence (the pinned RigEuler 192-node extractor), joint reduction and decision, the optional `(q, q̇)` IEKF and support labelling run downstream.
 
-> Historical status: the earlier rigid reconstruction was **NOT complete/accepted**. See [LATEST_REQUEST_VALIDATION.md](LATEST_REQUEST_VALIDATION.md) and [RUNNING.md](RUNNING.md).
+**Status:** see [reports/projective_four_pass_cuda_implementation.md](reports/projective_four_pass_cuda_implementation.md), which lists what is implemented, tested, passing and failing.
 
-> Workspace update (20 October): the masked point-reprojection v2 theory is now
-> authoritative. No visibility-policy configuration is required. Current commands
-> and measured validation status are in [RUNNING.md](RUNNING.md) and
-> [VALIDATION.md](VALIDATION.md); prior visibility-guard notes are superseded.
+## Run
 
-# Masked RGB-D point SLAM — two independent filter pipelines (20 October 2026)
-
-## Files
-
-- `Parallel_Masked_RGBD_IEKF_UKF_Theory_CUDA_v2.pdf`: complete 26-page theoretical specification, including source-to-point model correspondence (M1--M8), common solved/unsolved algorithm (C), analytical IEKF+RTS (A), Lie-group UKF+unscented RTS (B), sparse CUDA implementation (D), and numerical/real-data acceptance requirements.
-- `Parallel_Masked_RGBD_IEKF_UKF_Theory_CUDA_v2.md`: editable complete theory source.
-- `CODEX_IMPLEMENT_PARALLEL_MASKED_RGBD_IEKF_UKF_v2.md`: actionable mandatory Codex development, correctness, GPU, mask, and end-to-end validation contract.
-- `reference_3dgs_masked.pdf`: user-supplied reference note containing the 3DGS measurement model, especially Section 13. This is a scientific source, **not** a point-renderer implementation target.
-
-## Correct interpretation
-
-Only mask-positive, genuinely valid metric-depth observations can initialize points, enter correspondences, become UNSOLVED candidates, or provide Kalman measurement updates. RGB is considered at their corresponding measured foreground pixels. A point-only model has no Gaussian alpha, so randomized background compositing and transparency-carving gradients do not transfer. The two pipelines share data/matching/outer reconstruction logic, but their filter and smoother equations are independent.
-
-## Running Codex after copying these files into a local repository
-
-From the RGBDekf repo, place these four files under `specs/masked_point_v2/` and invoke:
+Everything, with debug pages, ground-truth evaluation (separate process) and page QA:
 
 ```bash
-codex exec -C /home/samuelemara/Joint3DGS/RGBDekf --sandbox workspace-write - <<'PROMPT'
-Implement the complete TWO-INDEPENDENT-PIPELINE masked RGB-D point SLAM specification.
-Read specs/masked_point_v2/CODEX_IMPLEMENT_PARALLEL_MASKED_RGBD_IEKF_UKF_v2.md and specs/masked_point_v2/Parallel_Masked_RGBD_IEKF_UKF_Theory_CUDA_v2.pdf completely before editing code. Study specs/masked_point_v2/reference_3dgs_masked.pdf Section 13 only for the measured RGB/depth/mask preparation.
-Use one common solved/unsolved outer loop, direct point reprojection and foreground-only observations. Do not transfer 3DGS alpha or artificial backgrounds. Implement analytical IEKF plus RTS and separately manifold UKF plus unscented RTS, both with sparse CUDA kernels. Remove all visibility-policy guards. Run ALL required tests, then both actual complete full-dataset forward/backward/discovery/frontier/second-forward pipelines. Report actual results and failures, never preflight/unit-tests as completed reconstruction.
-PROMPT
+python train.py --scene <scene folder | dataset root> --output <new folder>
 ```
 
-This provides instructions for implementation; it is not itself implemented workstation source code.
+Common options:
+- `--pcd-subsample-factor 4`: deterministic endpoint subsampling; images, cameras and frames are never reduced.
+- `--debug none|light|full`
+- `--direction forward|backward|both`
+- `--stop-after free|coherence|rigid|joint|support`
+- `--stage S --resume-from RUN`: reuse earlier stages read-only, after hash checks.
+
+`python train.py --help` lists everything. `tools/run_rgbd_projective_pipeline.py` is the contract's name for the same entry point.
+
+Outputs of one run:
+- `free_{forward,backward}/`, `coherence_*/`, `rigid_*/`, `joint/{forward,backward}/` (with `support/`), `bidirectional/`;
+- `debug/index.html`, `performance/`, `evaluation_gt/`;
+- `run_manifest.json` and `result.json`.
+
+## Layout
+
+| Folder | Contents |
+|---|---|
+| `train.py` | four-pass driver (stages, resume, dataset roots) |
+| `scene/` | dataset loading, timing, calibration, noise configuration, endpoint catalogue, `canonical_subsample.py` |
+| `estimator/` | `projective_camera`, `projective_sensor`, `projective_visibility`, `projective_terms`, `point_kalman_cuda`, `free_projective_run`, `projective_coherence`, `se3`, `rigid_kalman_cuda`; earlier rendered-splat modules kept as a labelled legacy baseline |
+| `joint_reduction/` | `joint_projective` (reduction, decision, `(q, q̇)` IEKF, F/B comparison), `support_projective` |
+| `debug/` | `projective_debug.py` and `assets/projective_*.html` (point-only measured RGB-D pages) |
+| `rigeuler_ref/` | vendored pinned RigEuler3DGS sources (coherence extractor, joint reduction) |
+| `tools/` | `evaluate_projective_gt.py`, `qa_projective_debug.py`, `profile_rgbd_projective_cuda.py`, audits; `legacy_rendered_splat_train.py` (LEGACY_RENDERED_SPLAT_BASELINE) |
+| `tests/` | `python -m unittest discover -s tests -t .` |
+| `configs/` | `projective_rgbd.json` (declared policy), `example_uncalibrated.json` (UNCALIBRATED noise), `image_joint_policy.json` (alpha) |
+| `docs/`, `reports/` | code map, specifications, audits and validation reports |
+| `attic/` | earlier pipelines, ignored by git |

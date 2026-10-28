@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Free __DIRECTION__ 3D</title>
+<style>body{margin:0;font:12px sans-serif;display:flex;height:100vh}#view{flex:1;position:relative}#side{width:390px;overflow:auto;padding:8px;border-left:1px solid #ccc}
+table{border-collapse:collapse}td{padding:1px 4px;border-bottom:1px solid #eee}#errors{color:#c00}.k{color:#666}</style>
+<script src="three.min.js"></script><script src="projective_common.js"></script></head>
+<body><div id="view"></div><div id="side">
+<h3 id="title">Free pass __DIRECTION__</h3><div id="errors"></div><div id="note" class="k"></div>
+<div>frame <input id="frame" type="range" min="0" value="0" style="width:220px"> <b id="flabel"></b> <button id="play">play</button></div>
+<div>colour <select id="mode"><option value="rgb">canonical RGB</option><option value="status">filter status</option><option value="valid">valid cameras</option>
+<option value="reason">dominant measurement reason</option><option value="info">weak observability (log10 min information eig)</option><option value="speed">speed |v|</option><option value="sigma">position sigma</option></select></div>
+<div><label><input type="checkbox" id="canon" checked>canonical (muted)</label> <label><input type="checkbox" id="pred">predicted</label> <label><input type="checkbox" id="post" checked>posterior</label>
+<label><input type="checkbox" id="cams" checked>cameras</label> <label><input type="checkbox" id="vel">velocity (x0.1 s)</label> <label><input type="checkbox" id="traj" checked>traced trajectories</label> <label><input type="checkbox" id="glyph" checked>2-sigma glyphs</label></div>
+<div id="legend"></div><h4>exact counts at this frame</h4><div id="counts"></div>
+<h4>selected point <input id="pid" size="7" placeholder="point id"></h4><div id="info" class="k">double-click a point (or enter an id)</div></div>
+<script>
+const DIR = '__DIRECTION__', state = {frame: 0, selected: null}; window.__state = state;
+let M, V, objs = {}, cache = {};
+const STATUS = ['#777777', '#1a9850', '#d62728'];
+function hex(c) { const v = parseInt(c.slice(1), 16); return [(v>>16 & 255)/255, (v>>8 & 255)/255, (v & 255)/255]; }
+async function frameData(k) { return cache[k] || (cache[k] = await PD.load(`free_${DIR}_f${String(k).padStart(4, '0')}`)); }
+function drop(n) { if (objs[n]) { V.scene.remove(objs[n]); objs[n] = null; } }
+function colors(F, n) {
+  const mode = document.getElementById('mode').value, out = new Float32Array(3*n), rgb = PD.u8(M.canonical_rgb);
+  const st = PD.u8(F.status), vc = PD.u8(F.valid_cameras), rs = PD.u8(F.reason), inf = PD.f32(F.info_min_log10), vel = PD.f32(F.velocity), sg = PD.f32(F.sigma_mm);
+  for (let i = 0; i < n; i++) { let c;
+    if (mode === 'rgb') c = [rgb[3*i]/255, rgb[3*i+1]/255, rgb[3*i+2]/255];
+    else if (mode === 'status') c = hex(STATUS[st[i]]);
+    else if (mode === 'valid') c = PD.viridis(vc[i]/M.cameras.length);
+    else if (mode === 'reason') c = hex(PD.REASON_COLORS[rs[i]]);
+    else if (mode === 'info') c = PD.viridis((inf[i]+2)/10);
+    else if (mode === 'speed') c = PD.viridis(Math.hypot(vel[3*i], vel[3*i+1], vel[3*i+2])/1.0);
+    else c = PD.viridis(Math.log10(Math.max(sg[i], 1e-3))/3+.33);
+    out.set(c, 3*i); }
+  const leg = {rgb: [['#888', 'canonical measured colour']], status: [[STATUS[0], 'anchor'], [STATUS[1], 'measured (>=1 valid row)'], [STATUS[2], 'prediction only']],
+    valid: [['#440154', '0 cameras'], ['#fde725', `${M.cameras.length} cameras`]], reason: Object.entries(M.reasons).map(([k, v]) => [PD.REASON_COLORS[k], v]),
+    info: [['#440154', '<=1e-2 (unobserved direction)'], ['#fde725', '>=1e8']], speed: [['#440154', '0 m/s'], ['#fde725', '>=1 m/s']], sigma: [['#440154', '~0.1 mm'], ['#fde725', '>=100 mm']]}[mode];
+  PD.legend(document.getElementById('legend'), leg);
+  return out;
+}
+function ellipse(P, c, s) {        // 2-sigma principal ellipses of a 3x3 covariance (three great circles)
+  const m = new THREE.Matrix3().set(P[0][0], P[0][1], P[0][2], P[1][0], P[1][1], P[1][2], P[2][0], P[2][1], P[2][2]);
+  // Cholesky-like square root via eigen-free LDL on the small SPD matrix: L L^T = P
+  const a = P, L = [[Math.sqrt(Math.max(a[0][0], 0)), 0, 0], [0, 0, 0], [0, 0, 0]];
+  L[1][0] = L[0][0] ? a[1][0]/L[0][0] : 0; L[1][1] = Math.sqrt(Math.max(a[1][1]-L[1][0]**2, 0));
+  L[2][0] = L[0][0] ? a[2][0]/L[0][0] : 0; L[2][1] = L[1][1] ? (a[2][1]-L[2][0]*L[1][0])/L[1][1] : 0; L[2][2] = Math.sqrt(Math.max(a[2][2]-L[2][0]**2-L[2][1]**2, 0));
+  const seg = [];
+  for (const [i, j] of [[0, 1], [1, 2], [0, 2]]) for (let t = 0; t < 36; t++) { const p = [], q = [];
+    for (const [ang, arr] of [[t/36*2*Math.PI, p], [(t+1)/36*2*Math.PI, q]]) { const u = [0, 0, 0]; u[i] = Math.cos(ang)*s; u[j] = Math.sin(ang)*s;
+      for (let r = 0; r < 3; r++) arr.push(c[r]+L[r][0]*u[0]+L[r][1]*u[1]+L[r][2]*u[2]); }
+    seg.push(...p, ...q); }
+  return PD.lines(seg, 0xff00ff);
+}
+async function draw() {
+  const k = state.frame, F = await frameData(k), n = M.display_ids.length;
+  document.getElementById('flabel').textContent = `original frame ${M.original_frames[k]} (index ${k}), t=${M.timestamps[k].toFixed(4)} s` + (k === M.canonical_frame ? '  [CANONICAL ENDPOINT]' : '');
+  const col = colors(F, n);
+  ['canon', 'pred', 'post', 'vel', 'traj', 'glyph'].forEach(drop);
+  if (document.getElementById('canon').checked) { const c = new Float32Array(3*n).fill(.82); objs.canon = PD.points(PD.f32(M.canonical_xyz), c, .003); V.scene.add(objs.canon); }
+  if (document.getElementById('pred').checked) { const c = new Float32Array(3*n); for (let i = 0; i < n; i++) c.set([.3, .5, 1], 3*i); objs.pred = PD.points(PD.f32(F.predicted), c, .004); V.scene.add(objs.pred); }
+  if (document.getElementById('post').checked) { objs.post = PD.points(PD.f32(F.posterior), col, .005); V.scene.add(objs.post); }
+  if (document.getElementById('vel').checked) { const p = PD.f32(F.posterior), v = PD.f32(F.velocity), seg = [];
+    for (let i = 0; i < n; i += 25) seg.push(p[3*i], p[3*i+1], p[3*i+2], p[3*i]+.1*v[3*i], p[3*i+1]+.1*v[3*i+1], p[3*i+2]+.1*v[3*i+2]);
+    objs.vel = PD.lines(seg, 0xff7f0e); V.scene.add(objs.vel); }
+  if (document.getElementById('traj').checked) { const seg = [], g = new THREE.Group();
+    for (const [id, t] of Object.entries(M.trajectories)) { const ord = M.processing_order;
+      for (let i = 0; i+1 < ord.length && ord[i+1] !== undefined; i++) { if (ord.indexOf(k) < i+1) break; const a = t.posterior[ord[i]], b = t.posterior[ord[i+1]]; seg.push(...a, ...b); } }
+    objs.traj = PD.lines(seg, 0x000000); V.scene.add(objs.traj); }
+  if (document.getElementById('glyph').checked) { const g = new THREE.Group();
+    for (const [id, t] of Object.entries(M.trajectories)) { const P = (M.glyph_covariance[k] || {})[id] || [[t.var_diag[k][0], 0, 0], [0, t.var_diag[k][1], 0], [0, 0, t.var_diag[k][2]]];
+      g.add(ellipse(P, t.posterior[k], 2)); }
+    objs.glyph = g; V.scene.add(g); }
+  const cnt = M.counts[k]; document.getElementById('counts').innerHTML = cnt.anchor ? 'canonical endpoint: no update' :
+    `<table><tr><td>observed points</td><td>${cnt.observed}</td></tr><tr><td>prediction only</td><td>${cnt.prediction_only}</td></tr><tr><td>accepted rows</td><td>${cnt.rows}</td></tr><tr><td>not converged</td><td>${cnt.not_converged}</td></tr></table>` +
+    '<table><tr><td>camera</td><td>reason counts</td></tr>' + cnt.per_camera.map((r, c) => `<tr><td>${M.cameras[c].name}</td><td>${Object.entries(r).map(([a, b]) => a+':'+b).join(' ')}</td></tr>`).join('') + '</table>';
+  state.posterior = PD.f32(F.posterior); state.drawn_frame = k; info();
+}
+function info() {
+  const id = state.selected; if (id === null) return;
+  const t = M.trajectories[id], k = state.frame, el = document.getElementById('info');
+  if (t) { el.innerHTML = `<b>point ${id}</b> (traced) source (frame,camera,pixel) ${t.source}<br>posterior x ${t.posterior[k].map(v => v.toFixed(5))}<br>predicted x ${t.predicted[k].map(v => v.toFixed(5))}<br>v ${t.velocity[k].map(v => v.toFixed(4))} m/s<br>diag P_xx ${t.var_diag[k].map(v => v.toExponential(2))}<br>status ${['anchor', 'measured', 'prediction only'][t.status[k]]}`; return; }
+  const j = M.display_ids.indexOf(id); if (j < 0) { el.textContent = `point ${id} is not in the displayed subset`; return; }
+  frameData(k).then(F => { const p = PD.f32(F.posterior), v = PD.f32(F.velocity), st = PD.u8(F.status), vc = PD.u8(F.valid_cameras), r = PD.u8(F.reason);
+    el.innerHTML = `<b>point ${id}</b><br>posterior x ${[0, 1, 2].map(a => p[3*j+a].toFixed(5))}<br>v ${[0, 1, 2].map(a => v[3*j+a].toFixed(4))} m/s<br>status ${['anchor', 'measured', 'prediction only'][st[j]]}, valid cameras ${vc[j]}, dominant reason ${M.reasons[r[j]]}`; });
+}
+function pick(ev) {
+  if (!state.posterior) return; const rect = V.renderer.domElement.getBoundingClientRect(), p = state.posterior; let best = null, bd = 64;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < M.display_ids.length; i++) { v.set(p[3*i], p[3*i+1], p[3*i+2]).project(V.camera);
+    const x = (v.x+1)/2*rect.width, y = (1-v.y)/2*rect.height, d = (x-(ev.clientX-rect.left))**2+(y-(ev.clientY-rect.top))**2; if (d < bd) { bd = d; best = M.display_ids[i]; } }
+  if (best !== null) { state.selected = best; document.getElementById('pid').value = best; info(); }
+}
+(async () => {
+  M = await PD.load(`free_${DIR}_meta`); V = PD.viewer(document.getElementById('view'));
+  document.getElementById('note').textContent = M.note + ` | ${M.N} points, ${M.display_ids.length} displayed (deterministic subset; counts are exact)`;
+  M.cameras.forEach(c => V.scene.add(PD.frustum(c, .2)));
+  V.scene.add(PD.axes([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]], .2));
+  V.fit(PD.f32(M.canonical_xyz));
+  const fr = document.getElementById('frame'); fr.max = M.K-1;
+  const k0 = +PD.param('frame', M.canonical_frame); fr.value = k0; state.frame = k0;
+  const sel = PD.param('point', null); if (sel !== null) state.selected = +sel;
+  fr.oninput = () => { state.frame = +fr.value; draw(); };
+  document.querySelectorAll('input[type=checkbox],select').forEach(e => e.onchange = draw);
+  document.getElementById('pid').onchange = e => { state.selected = +e.target.value; info(); };
+  let timer = null; document.getElementById('play').onclick = () => { if (timer) { clearInterval(timer); timer = null; return; }
+    timer = setInterval(() => { fr.value = (+fr.value+1) % M.K; fr.oninput(); }, 400); };
+  V.renderer.domElement.addEventListener('dblclick', pick);
+  window.addEventListener('hashchange', () => { const p = PD.param('point', null), f = PD.param('frame', null); if (f !== null) { fr.value = +f; state.frame = +f; } if (p !== null) state.selected = +p; draw(); });
+  await draw(); state.ready = true;
+})();
+</script></body></html>

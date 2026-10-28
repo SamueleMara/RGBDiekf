@@ -5,9 +5,9 @@ texture, NOT from the point renderer under test, and no point correspondence
 is ever handed to an estimator.
 """
 import numpy as np
-from rgbd_common.dataloader import RGBDFrame
-from rgbd_common.projection_cuda import Camera
-from rgbd_common.lie import exp as se3_exp
+from scene.dataloader import RGBDFrame
+from scene.camera import Camera
+from utils.lie import exp as se3_exp
 
 
 def look_at(name, position, target, width=96, height=72, f=150., up=(0, 0, 1)):

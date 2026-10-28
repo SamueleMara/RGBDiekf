@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Rigid RGB-D overlays</title>
+<style>body{margin:0;font:12px sans-serif}#top{padding:6px;border-bottom:1px solid #ccc}.panel{position:relative;display:inline-block;margin:4px;vertical-align:top}
+.panel img,.panel canvas{position:absolute;left:0;top:0}#errors{color:#c00}</style><script src="projective_common.js"></script></head>
+<body><div id="top"><b>Rigid passes: rigidly moved core projected onto MEASURED RGB-D</b> <span id="errors"></span><br>
+direction <select id="dir"></select> frame <select id="frame"></select> camera <select id="cam"></select> colour <select id="mode"><option value="reason">validity reason</option><option value="dz">Z − D_meas</option></select>
+<div id="src" style="color:#555"></div><div id="legend"></div></div><div id="panels"></div>
+<script>
+const DIRS = __DIRECTIONS__, state = {}; window.__state = state; let D;
+const hexrgb = h => { const v = parseInt(h.slice(1), 16); return `rgb(${v>>16 & 255},${v>>8 & 255},${v & 255})`; };
+async function setDir() { D = await PD.load('rigid_'+document.getElementById('dir').value); const f = document.getElementById('frame'); f.innerHTML = '';
+  if (!D.rgbd) { document.getElementById('panels').textContent = 'rigid pass status: '+D.status.status; state.ready = true; return; }
+  Object.keys(D.rgbd).forEach(k => f.add(new Option('frame '+k, k))); draw(); }
+async function draw() {
+  const k = document.getElementById('frame').value, c = +document.getElementById('cam').value, C = D.rgbd[k][c], W = C.width, H = C.height;
+  const uvz = PD.f32(C.uv); let x0 = W, y0 = H, x1 = 0, y1 = 0; for (let i = 0; i < uvz.length; i += 2) { x0 = Math.min(x0, uvz[i]); x1 = Math.max(x1, uvz[i]); y0 = Math.min(y0, uvz[i+1]); y1 = Math.max(y1, uvz[i+1]); }
+  if (!(x1 > x0)) { x0 = 0; y0 = 0; x1 = W; y1 = H; } x0 = Math.max(0, Math.floor(x0-15)); y0 = Math.max(0, Math.floor(y0-15)); x1 = Math.min(W, Math.ceil(x1+15)); y1 = Math.min(H, Math.ceil(y1+15));
+  const sc = Math.min(760/(x1-x0), 520/(y1-y0), 8), VW = Math.round((x1-x0)*sc), VH = Math.round((y1-y0)*sc), tx = u => (u-x0)*sc, ty = v => (v-y0)*sc;
+  document.getElementById('panels').innerHTML = ['rgb', 'depth'].map(n => `<div class="panel" style="width:${VW}px;height:${VH}px"><img id="i_${n}" style="display:none"><canvas id="c_${n}" width="${VW}" height="${VH}"></canvas></div>`).join('');
+  await Promise.all(['rgb', 'depth'].map(n => new Promise(ok => { const im = document.getElementById('i_'+n); im.onload = ok; im.src = C.images[n]; })));
+  for (const n of ['rgb', 'depth']) { const ctx = document.getElementById('c_'+n).getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.drawImage(document.getElementById('i_'+n), x0, y0, x1-x0, y1-y0, 0, 0, VW, VH); }
+  document.getElementById('src').textContent = `RGB ${C.rgb_source} | depth ${C.depth_source} (${C.depth_range_m.map(v => v.toFixed(3)).join('–')} m) | ${C.markers} of ${C.projected_in_image} projected core points shown`;
+  const uv = PD.f32(C.uv), rs = PD.u8(C.reason), dz = PD.f32(C.depth_residual_m), mode = document.getElementById('mode').value;
+  for (const n of ['rgb', 'depth']) { const ctx = document.getElementById('c_'+n).getContext('2d');
+    for (let i = 0; i < rs.length; i++) { let col; if (mode === 'reason') col = hexrgb(PD.REASON_COLORS[rs[i]]); else { if (!Number.isFinite(dz[i])) continue; col = `rgb(${PD.diverging(dz[i]/.02).map(v => Math.round(255*v)).join(',')})`; }
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(tx(uv[2*i]), ty(uv[2*i+1]), Math.max(1.5, Math.min(4, sc*.6)), 0, 7); ctx.fill(); } }
+  PD.legend(document.getElementById('legend'), mode === 'reason' ? Object.entries({0: 'VALID', 3: 'MASK_EXCLUDED', 4: 'INVALID_DEPTH', 5: 'DEPTH_DISCONTINUITY', 2: 'OUTSIDE'}).map(([a, b]) => [PD.REASON_COLORS[a], b]) : [['#3366ff', 'Z < D by 2 cm'], ['#ff3333', 'Z > D by 2 cm']]);
+  state.direction = document.getElementById('dir').value; state.frame = +k; state.camera = c; state.markers = Array.from({length: rs.length}, (_, i) => ({u: uv[2*i], v: uv[2*i+1]})); state.ready = true;
+}
+(async () => { const ds = document.getElementById('dir'); DIRS.forEach(d => ds.add(new Option(d, d)));
+  const D0 = await PD.load('rigid_'+DIRS[0]); const cs = document.getElementById('cam'); (D0.cameras || []).forEach((c, i) => cs.add(new Option(c.name, i)));
+  ds.onchange = setDir; document.getElementById('frame').onchange = draw; cs.onchange = draw; document.getElementById('mode').onchange = draw; setDir(); })();
+</script></body></html>

@@ -1,0 +1,18 @@
+{
+  "assumption_class": "declared-implementation-decision-policy",
+  "qualification": "Declared once, not tuned on any result or ground truth. Sensor noise and process densities come from --noise-config (default configs/example_uncalibrated.json, which declares itself UNCALIBRATED illustrative values).",
+  "same_surface_max_incidence_deg": 80.0,
+  "same_surface_n_sigma": 3.0,
+  "same_surface_note": "Bilinear 2x2 support is one surface when max-min neighbour depth <= n_sigma*sqrt(2)*sigma_D(z) + z*tan(max_incidence)*sqrt(2)/min(fx,fy); otherwise DEPTH_DISCONTINUITY (no sample, no gradient across a depth break).",
+  "visibility_n_sigma": 3.0,
+  "visibility_note": "Self-occlusion: a point is behind the front-most projected point of its pixel when z_i - z_front > n_sigma*sqrt(sigma_zi^2 + sigma_zfront^2), sigma_z from the PRIOR position covariance. External occlusion: measured depth in front of the predicted point by more than n_sigma*sqrt(S_zz), S_zz = H_D P- H_D^T + R_D the predicted depth-innovation variance (chi-square gating of the one occlusion-explicable sign; the other sign is the motion signal and is kept).",
+  "interpolation_variance": "sum_w2",
+  "interpolation_variance_note": "Bilinear interpolation of independent pixel noise: var = sum_j w_j^2 sigma_j^2 (contract 2.1).",
+  "rgb_model_variance": 0.0,
+  "depth_model_variance": 0.0,
+  "model_variance_note": "Additive appearance/geometry model-mismatch variances (fixed canonical colour vs view-dependent appearance). 0 = not modelled; an assumption, stated, not hidden.",
+  "max_iekf_iters": 10,
+  "iekf_step_tolerance": 1e-08,
+  "iekf_step_note": "Per-point convergence when delta^T A delta < tolerance (squared step in the posterior-information metric, dimensionless).",
+  "support_alpha_source": "configs/image_joint_policy.json tail_probability (one declared alpha for the joint adequacy tests and the support FDR)"
+}

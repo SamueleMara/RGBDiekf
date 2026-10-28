@@ -11,9 +11,9 @@ import argparse, json, sys, time
 from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]; sys.path.insert(0, str(REPO))
 import numpy as np, torch
-from pointwise_rgbd import small_contractions as sc
-from pointwise_rgbd.image_iekf import IEKFConfig, frame_step, linear_system
-from pointwise_rgbd.image_observation import levels, ObservationPolicy
+from estimator import small_contractions as sc
+from estimator.sparse_iekf import IEKFConfig, frame_step, linear_system
+from estimator.observation_terms import levels, ObservationPolicy
 
 
 def timed_update(sm, Pm, lv, rgb, rho, policy, G, flag):
@@ -76,15 +76,15 @@ def main():
         report['frames'].append(row); print(json.dumps(row), flush=True)
         del res, lin0, terms0; torch.cuda.empty_cache()
     if a.large_scene:
-        from pointwise_rgbd.dataset import Dataset
-        from pointwise_rgbd.image_phase1 import endpoint_catalogue
-        from pointwise_rgbd.rgbd_point_renderer import footprints
-        from pointwise_rgbd.supernodes import GroupBasis
-        from pointwise_rgbd.state6 import anchor_posterior
-        from pointwise_rgbd.process6 import predict
+        from scene.dataset import Dataset
+        from estimator.phase1 import endpoint_catalogue
+        from estimator.point_renderer import footprints
+        from estimator.supernodes import GroupBasis
+        from estimator.state import anchor_posterior
+        from estimator.process import predict
         del B; torch.cuda.empty_cache()
-        from pointwise_rgbd.config import load_config
-        from pointwise_rgbd.rgbd_point_renderer import CameraTensors, RenderPolicy
+        from scene.config import load_config
+        from estimator.point_renderer import CameraTensors, RenderPolicy
         config = load_config(); data = Dataset(a.large_scene, 2, None, fps=a.fps); t = lambda x, dt=torch.float64: torch.as_tensor(np.asarray(x), dtype=dt, device=dev)
         _, part, _ = endpoint_catalogue(data, 'first', config, IEKFConfig())
         rho = t(footprints(part, data, 1.5)); G = GroupBasis(t(part.xyz), t(part.membership, torch.long), t(part.centroids))

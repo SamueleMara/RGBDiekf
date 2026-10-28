@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Numerical diagnostics</title>
+<style>body{font:12px sans-serif;margin:8px}table{border-collapse:collapse;font-size:11px}td,th{padding:1px 5px;border-bottom:1px solid #eee}#errors{color:#c00}canvas{border:0}</style>
+<script src="projective_common.js"></script></head>
+<body><h3>Numerical diagnostics (exact per-frame values; CSV/JSON in each pass's numeric/ folder)</h3><div id="errors"></div><div id="charts"></div>
+<h4>frame scrubber</h4>direction <select id="dir"></select> frame <select id="frame"></select><div id="frame_detail"></div><h4>suspect frames</h4><div id="suspects"></div>
+<script>
+const DIRS = __DIRECTIONS__, state = {}; window.__state = state; let N;
+(async () => {
+  N = await PD.load('numeric'); const ch = document.getElementById('charts');
+  for (const d of DIRS) { const f = N['free_'+d] || [], r = N['rigid_'+d] || [];
+    const add = (title, rows, keys) => { if (!rows.length) return; const c = document.createElement('canvas'); c.width = 620; c.height = 170; ch.appendChild(c);
+      PD.chart(c, keys.map(([k, col]) => ({x: rows.map(x => +x.frame), y: rows.map(x => x[k] === '' || x[k] === 'None' ? NaN : +x[k]), color: col, label: k})), {title: `${title} (${d})`}); };
+    add('free: wall ms', f, [['wall_ms', '#000'], ['cuda_ms_total', '#1f77b4']]);
+    add('free: points', f, [['observed_points', '#2ca02c'], ['prediction_only_points', '#d62728'], ['not_converged_points', '#ff7f0e']]);
+    add('free: NIS per dof (median, prior)', f, [['nis_per_dof_median', '#9467bd']]);
+    add('free: correction / speed', f, [['correction_m_median', '#1f77b4'], ['speed_m_s_median', '#2ca02c'], ['speed_m_s_p95', '#d62728']]);
+    add('rigid: translation / rotation', r, [['translation_m', '#1f77b4'], ['rotation_rad', '#d62728']]);
+    add('rigid: rows, NIS per dof', r, [['rows', '#000']]); }
+  const ds = document.getElementById('dir'), fs = document.getElementById('frame'); DIRS.forEach(d => ds.add(new Option(d, d)));
+  const fill = () => { fs.innerHTML = ''; (N[`free_${ds.value}_frames`] || []).forEach(r => fs.add(new Option(r.frame, r.frame))); show(); };
+  const show = () => { const r = (N[`free_${ds.value}_frames`] || []).find(x => x.frame === +fs.value); if (!r) return;
+    document.getElementById('frame_detail').innerHTML = '<table><tr><th>camera</th><th>rows</th><th>reason counts</th><th>prior depth innovation quantiles (m)</th><th>information trace</th></tr>' +
+      r.cameras.map(c => `<tr><td>${c.camera}</td><td>${c.rows}</td><td>${Object.entries(c.reason_counts).map(([a, b]) => a+':'+b).join(' ')}</td><td>${(c.depth_innovation_m_quantiles_prior || []).map(v => v.toFixed(4)).join(' ')}</td><td>${c.information_trace_final.toExponential(2)}</td></tr>`).join('') +
+      `</table>NIS/dof quantiles ${(r.nis_quantiles || []).map(v => v.toPrecision(3)).join(' ')}; CUDA ms ${JSON.stringify(r.cuda_ms)}`; state.frame = +fs.value; state.ready = true; };
+  ds.onchange = fill; fs.onchange = show; fill();
+  document.getElementById('suspects').innerHTML = DIRS.map(d => { const f = (N['free_'+d] || []).slice().sort((a, b) => +b.not_converged_points - +a.not_converged_points).slice(0, 5);
+    return `<b>${d}</b> most non-converged points: ` + f.map(r => `frame ${r.frame} (${r.not_converged_points})`).join(', '); }).join('<br>');
+})();
+</script></body></html>

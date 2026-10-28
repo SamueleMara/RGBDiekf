@@ -2,12 +2,12 @@
 import unittest
 import torch
 from tests.test_image_iekf import small_problem, observation
-from pointwise_rgbd import small_contractions as sc
-from pointwise_rgbd.config import load_config
-from pointwise_rgbd.rgbd_point_renderer import RenderPolicy, render
-from pointwise_rgbd.image_iekf import IEKFConfig, frame_step
-from pointwise_rgbd.supernodes import GroupBasis, build_supernodes
-from pointwise_rgbd.process6 import predict
+from estimator import small_contractions as sc
+from scene.config import load_config
+from estimator.point_renderer import RenderPolicy, render
+from estimator.sparse_iekf import IEKFConfig, frame_step
+from estimator.supernodes import GroupBasis, build_supernodes
+from estimator.process import predict
 
 DEVICES = ['cpu']+(['cuda'] if torch.cuda.is_available() else [])
 rel = lambda a, b: float((a-b).norm()/b.norm().clamp_min(1e-300))

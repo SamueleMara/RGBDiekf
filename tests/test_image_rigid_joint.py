@@ -3,16 +3,19 @@ import tempfile, unittest
 import numpy as np
 import torch
 from tests.image_fixtures import two_plate_scene, source_parts, true_positions
-from pointwise_rgbd.config import load_config
-from pointwise_rgbd import image_phase1, image_coherence, rigid_image_iekf, joint_image
-from pointwise_rgbd.image_phase1 import endpoint_catalogue
-from pointwise_rgbd.image_iekf import IEKFConfig
-from pointwise_rgbd.rgbd_point_renderer import RenderPolicy, footprints
-from pointwise_rgbd.image_observation import ObservationPolicy
-from pointwise_rgbd.rigid_image_iekf import process, exp4, log4, inv4, RigidConfig
-from pointwise_rgbd.rigeuler_ref.joint_manifold import se3_left_jacobian
-from rgbd_common.backends.torch_cuda import Backend
-from rgbd_common.lie import log as se3log
+from scene.config import load_config
+from estimator import phase1 as image_phase1
+from estimator import motion_coherence_support as image_coherence
+from estimator import rigid_part_iekf as rigid_image_iekf
+from estimator import joint_iekf as joint_image
+from estimator.phase1 import endpoint_catalogue
+from estimator.sparse_iekf import IEKFConfig
+from estimator.point_renderer import RenderPolicy, footprints
+from estimator.observation_terms import ObservationPolicy
+from estimator.rigid_part_iekf import process, exp4, log4, inv4, RigidConfig
+from rigeuler_ref.joint_manifold import se3_left_jacobian
+from utils.backend import Backend
+from utils.lie import log as se3log
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -104,7 +107,7 @@ class RigidFromZeroInitTest(unittest.TestCase):
 class PredictiveTestCalibration(unittest.TestCase):
     """Diebold-Mariano / Newey-West: size under H0 with serially dependent loss differentials, and power."""
     def test_size_and_power(self):
-        from pointwise_rgbd.predictive_tests import diebold_mariano
+        from joint_reduction.predictive_tests import diebold_mariano
         g = np.random.default_rng(0); n, reps = 56, 4000
         def ar1(phi, shift):
             e = g.normal(size=(reps, n)); d = np.zeros_like(e)

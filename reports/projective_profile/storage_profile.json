@@ -1,0 +1,238 @@
+{
+ "environment": {
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+  "scene": "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/storage_45135",
+  "frames": 4,
+  "memory_fraction": null,
+  "note": "steady-state medians exclude the first (warm-up) update; CUDA ms are per-stage event times with one sync per frame"
+ },
+ "rows": [
+  {
+   "factor": 1,
+   "precision": "float64",
+   "status": "OK",
+   "N_full": 346437,
+   "N_selected": 346437,
+   "actual_reduction": 1.0,
+   "subsample_seconds": 0.00032440299401059747,
+   "run_seconds_total": 8.263785504968837,
+   "frame_wall_ms_median": 1005.6408390228171,
+   "frame_cuda_ms_median": 934.9165951013565,
+   "stage_cuda_ms_median": {
+    "covariance": 39.55404853820801,
+    "information_accumulation": 96.63795161247253,
+    "predict": 48.62406539916992,
+    "prior_information": 40.86988639831543,
+    "projection": 56.687952280044556,
+    "sampling_terms": 110.87497627735138,
+    "solve": 193.1499514579773,
+    "store": 23.62867259979248,
+    "transfer_images": 83.7144660949707,
+    "visibility": 241.1746244430542
+   },
+   "gpu_peak_allocated_MB_max": 1612.30810546875,
+   "gpu_peak_reserved_MB_max": 1902.0,
+   "h2d_bytes_per_frame": 44236800,
+   "rows_accepted_median": 330614.5,
+   "observed_points_median": 182668.5,
+   "iekf_iterations": [
+    10,
+    10,
+    10
+   ],
+   "not_converged_median": 89249.0
+  },
+  {
+   "factor": 1,
+   "precision": "mixed",
+   "status": "OK",
+   "N_full": 346437,
+   "N_selected": 346437,
+   "actual_reduction": 1.0,
+   "subsample_seconds": 0.00014501198893412948,
+   "run_seconds_total": 7.520281762990635,
+   "frame_wall_ms_median": 963.1855115003418,
+   "frame_cuda_ms_median": 892.0753744244576,
+   "stage_cuda_ms_median": {
+    "covariance": 38.691328048706055,
+    "information_accumulation": 92.78676795959473,
+    "predict": 48.31892776489258,
+    "prior_information": 40.408063888549805,
+    "projection": 15.04065591096878,
+    "sampling_terms": 88.73356866836548,
+    "solve": 186.89223909378052,
+    "store": 24.036975860595703,
+    "transfer_images": 168.68067169189453,
+    "visibility": 188.48617553710938
+   },
+   "gpu_peak_allocated_MB_max": 1416.5400390625,
+   "gpu_peak_reserved_MB_max": 1816.0,
+   "h2d_bytes_per_frame": 44236800,
+   "rows_accepted_median": 331214.0,
+   "observed_points_median": 183185.0,
+   "iekf_iterations": [
+    10,
+    10,
+    10
+   ],
+   "not_converged_median": 90363.5,
+   "vs_float64_position_diff_m": {
+    "median": 2.136144258806631e-07,
+    "p99": 0.0512179607578124,
+    "max": 2.250618828309829
+   }
+  },
+  {
+   "factor": 2,
+   "precision": "float64",
+   "status": "OK",
+   "N_full": 346437,
+   "N_selected": 173219,
+   "actual_reduction": 1.9999942269612456,
+   "subsample_seconds": 1.1564320960314944,
+   "run_seconds_total": 5.958073496003635,
+   "frame_wall_ms_median": 610.3032404789701,
+   "frame_cuda_ms_median": 583.1365470290184,
+   "stage_cuda_ms_median": {
+    "covariance": 20.883456230163574,
+    "information_accumulation": 75.58971190452576,
+    "predict": 24.265727996826172,
+    "prior_information": 20.26598358154297,
+    "projection": 23.367263972759247,
+    "sampling_terms": 112.23321628570557,
+    "solve": 131.12075328826904,
+    "store": 12.470816135406494,
+    "transfer_images": 70.0699691772461,
+    "visibility": 92.86964845657349
+   },
+   "gpu_peak_allocated_MB_max": 924.17724609375,
+   "gpu_peak_reserved_MB_max": 1120.0,
+   "h2d_bytes_per_frame": 44236800,
+   "rows_accepted_median": 260773.5,
+   "observed_points_median": 132351.0,
+   "iekf_iterations": [
+    10,
+    10,
+    10
+   ],
+   "not_converged_median": 68377.5
+  },
+  {
+   "factor": 2,
+   "precision": "mixed",
+   "status": "OK",
+   "N_full": 346437,
+   "N_selected": 173219,
+   "actual_reduction": 1.9999942269612456,
+   "subsample_seconds": 1.149260581994895,
+   "run_seconds_total": 5.801816029008478,
+   "frame_wall_ms_median": 548.6949134792667,
+   "frame_cuda_ms_median": 522.6411835551262,
+   "stage_cuda_ms_median": {
+    "covariance": 19.187199592590332,
+    "information_accumulation": 75.70092725753784,
+    "predict": 24.288256645202637,
+    "prior_information": 20.209152221679688,
+    "projection": 6.228511989116669,
+    "sampling_terms": 83.20860743522644,
+    "solve": 126.25975942611694,
+    "store": 12.706639766693115,
+    "transfer_images": 82.71233749389648,
+    "visibility": 72.13979172706604
+   },
+   "gpu_peak_allocated_MB_max": 819.86328125,
+   "gpu_peak_reserved_MB_max": 1086.0,
+   "h2d_bytes_per_frame": 44236800,
+   "rows_accepted_median": 261272.5,
+   "observed_points_median": 132750.5,
+   "iekf_iterations": [
+    10,
+    10,
+    10
+   ],
+   "not_converged_median": 69376.0,
+   "vs_float64_position_diff_m": {
+    "median": 2.523172072468889e-07,
+    "p99": 0.13798980151403295,
+    "max": 2.250618828309829
+   }
+  },
+  {
+   "factor": 4,
+   "precision": "float64",
+   "status": "OK",
+   "N_full": 346437,
+   "N_selected": 86610,
+   "actual_reduction": 3.9999653619674405,
+   "subsample_seconds": 0.9917506779893301,
+   "run_seconds_total": 4.210721183975693,
+   "frame_wall_ms_median": 382.61003702064045,
+   "frame_cuda_ms_median": 368.97285068035126,
+   "stage_cuda_ms_median": {
+    "covariance": 9.190911769866943,
+    "information_accumulation": 53.77126395702362,
+    "predict": 12.242944240570068,
+    "prior_information": 9.84071969985962,
+    "projection": 9.335999965667725,
+    "sampling_terms": 94.59956789016724,
+    "solve": 71.1547520160675,
+    "store": 6.8871681690216064,
+    "transfer_images": 70.41726684570312,
+    "visibility": 31.53225612640381
+   },
+   "gpu_peak_allocated_MB_max": 579.7685546875,
+   "gpu_peak_reserved_MB_max": 708.0,
+   "h2d_bytes_per_frame": 44236800,
+   "rows_accepted_median": 174024.0,
+   "observed_points_median": 77015.0,
+   "iekf_iterations": [
+    10,
+    10,
+    10
+   ],
+   "not_converged_median": 41921.5
+  },
+  {
+   "factor": 4,
+   "precision": "mixed",
+   "status": "OK",
+   "N_full": 346437,
+   "N_selected": 86610,
+   "actual_reduction": 3.9999653619674405,
+   "subsample_seconds": 1.0522730309749022,
+   "run_seconds_total": 3.980143180990126,
+   "frame_wall_ms_median": 354.2767105100211,
+   "frame_cuda_ms_median": 340.2768942415714,
+   "stage_cuda_ms_median": {
+    "covariance": 9.04753589630127,
+    "information_accumulation": 52.97369611263275,
+    "predict": 12.34065580368042,
+    "prior_information": 10.076671600341797,
+    "projection": 2.9696640074253082,
+    "sampling_terms": 71.10060787200928,
+    "solve": 70.94783973693848,
+    "store": 7.887135982513428,
+    "transfer_images": 75.96625518798828,
+    "visibility": 26.966832041740417
+   },
+   "gpu_peak_allocated_MB_max": 518.6630859375,
+   "gpu_peak_reserved_MB_max": 706.0,
+   "h2d_bytes_per_frame": 44236800,
+   "rows_accepted_median": 174187.5,
+   "observed_points_median": 77230.0,
+   "iekf_iterations": [
+    10,
+    10,
+    10
+   ],
+   "not_converged_median": 42567.5,
+   "vs_float64_position_diff_m": {
+    "median": 2.508349960053648e-07,
+    "p99": 0.22180734187756343,
+    "max": 2.0920450543203346
+   }
+  }
+ ]
+}

@@ -13,9 +13,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]; sys.path.insert(0, str(REPO))
 import numpy as np, torch
 from tools.audit_phase1_operators import blade_setup, saved_prior, observation, gt_labels
-from pointwise_rgbd.image_iekf import IEKFConfig, frame_step
-from pointwise_rgbd.image_observation import levels, ObservationPolicy
-from pointwise_rgbd.rgbd_point_renderer import render
+from estimator.sparse_iekf import IEKFConfig, frame_step
+from estimator.observation_terms import levels, ObservationPolicy
+from estimator.point_renderer import render
 
 ap = argparse.ArgumentParser(description=__doc__); ap.add_argument('--run', type=Path, required=True); ap.add_argument('--scene', type=Path, required=True)
 ap.add_argument('--frames', nargs='*', type=int, default=[1, 10]); ap.add_argument('--fps', type=float, default=59); ap.add_argument('--out', type=Path, required=True)

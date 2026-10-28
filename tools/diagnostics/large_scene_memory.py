@@ -6,15 +6,15 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]; sys.path.insert(0, str(REPO))
 import numpy as np, torch
 scene, frac = Path(sys.argv[1]), float(sys.argv[2]); torch.cuda.set_per_process_memory_fraction(frac); dev = 'cuda'
-from pointwise_rgbd.dataset import Dataset
-from pointwise_rgbd.config import load_config
-from pointwise_rgbd.image_phase1 import endpoint_catalogue
-from pointwise_rgbd.rgbd_point_renderer import footprints, CameraTensors, RenderPolicy, render
-from pointwise_rgbd.supernodes import GroupBasis
-from pointwise_rgbd.state6 import anchor_posterior
-from pointwise_rgbd.process6 import predict
-from pointwise_rgbd.image_iekf import IEKFConfig, frame_step
-from pointwise_rgbd.image_observation import levels, ObservationPolicy
+from scene.dataset import Dataset
+from scene.config import load_config
+from estimator.phase1 import endpoint_catalogue
+from estimator.point_renderer import footprints, CameraTensors, RenderPolicy, render
+from estimator.supernodes import GroupBasis
+from estimator.state import anchor_posterior
+from estimator.process import predict
+from estimator.sparse_iekf import IEKFConfig, frame_step
+from estimator.observation_terms import levels, ObservationPolicy
 config, cfg = load_config(), IEKFConfig(); data = Dataset(scene, 2, None, fps=59)
 t = lambda a, dt=torch.float64: torch.as_tensor(np.asarray(a), dtype=dt, device=dev)
 _, part, _ = endpoint_catalogue(data, 'first', config, cfg)

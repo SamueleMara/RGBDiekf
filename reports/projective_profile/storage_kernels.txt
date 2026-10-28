@@ -1,0 +1,36 @@
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg     Self CUDA   Self CUDA %    CUDA total  CUDA time avg    # of Calls  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                             aten::sort         0.10%     786.799us         0.37%       3.060ms      90.008us     107.708ms        13.17%     112.804ms       3.318ms            34  
+                                          aten::argsort         0.01%      50.309us         0.37%       3.015ms      91.378us       0.000us         0.00%     110.556ms       3.350ms            33  
+                               aten::linalg_cholesky_ex         0.05%     398.886us         0.12%       1.018ms      84.867us      88.018ms        10.77%      97.211ms       8.101ms            12  
+                                            aten::index         0.76%       6.225ms        29.16%     238.516ms     269.510us      88.832ms        10.87%      90.672ms     102.455us           885  
+void potrf_cta_lower_batch<double, double, 16>(int, ...         0.00%       0.000us         0.00%       0.000us       0.000us      87.919ms        10.75%      87.919ms       7.327ms            12  
+                                   aten::cholesky_solve         0.01%      98.962us        10.36%      84.724ms       8.472ms       0.000us         0.00%      80.558ms       8.056ms            10  
+                           aten::_cholesky_solve_helper         0.27%       2.236ms        10.35%      84.625ms       8.463ms      76.437ms         9.35%      80.558ms       8.056ms            10  
+                                 aten::cholesky_inverse         0.11%     917.431us         9.10%      74.467ms      18.617ms      30.229ms         3.70%      71.595ms      17.899ms             4  
+void at_cuda_detail::cub::DeviceRadixSortOnesweepKer...         0.00%       0.000us         0.00%       0.000us       0.000us      66.110ms         8.09%      66.110ms     375.625us           176  
+                                           aten::einsum         0.11%     859.618us         0.60%       4.945ms      88.305us       0.000us         0.00%      65.659ms       1.172ms            56  
+                                              aten::bmm         0.28%       2.263ms         0.36%       2.972ms      37.617us      65.271ms         7.98%      65.271ms     826.216us            79  
+                                            aten::copy_         0.34%       2.787ms         1.16%       9.455ms      11.545us      62.783ms         7.68%      63.974ms      78.113us           819  
+void at::native::index_elementwise_kernel<128, 4, at...         0.00%       0.000us         0.00%       0.000us       0.000us      63.005ms         7.71%      63.005ms     140.324us           449  
+                                   aten::segment_reduce         0.15%       1.223ms         4.70%      38.437ms     436.783us      53.258ms         6.51%      57.186ms     649.837us            88  
+                                              aten::mul         0.67%       5.462ms         1.14%       9.344ms       7.122us      54.077ms         6.61%      54.077ms      41.217us          1312  
+void at_cuda_detail::cub::DeviceSegmentedReduceKerne...         0.00%       0.000us         0.00%       0.000us       0.000us      51.588ms         6.31%      51.588ms       1.172ms            44  
+void at::native::elementwise_kernel<128, 2, at::nati...         0.00%       0.000us         0.00%       0.000us       0.000us      43.229ms         5.29%      43.229ms      75.050us           576  
+void dtrsv_notrans_kernel_outplace_batched<128, 128,...         0.00%       0.000us         0.00%       0.000us       0.000us      37.470ms         4.58%      37.470ms     814.554us            46  
+void dtrsv_trans_kernel_outplace_batched<32, 16, 8, ...         0.00%       0.000us         0.00%       0.000us       0.000us      37.133ms         4.54%      37.133ms     807.239us            46  
+void at::native::elementwise_kernel<128, 2, at::nati...         0.00%       0.000us         0.00%       0.000us       0.000us      33.491ms         4.10%      33.491ms      98.794us           339  
+void at_cuda_detail::cub::DeviceRadixSortOnesweepKer...         0.00%       0.000us         0.00%       0.000us       0.000us      32.181ms         3.94%      32.181ms     365.691us            88  
+                                              aten::add         0.33%       2.704ms         0.56%       4.597ms       7.332us      26.398ms         3.23%      26.398ms      42.101us           627  
+std::enable_if<!(false), void>::type internal::gemvx...         0.00%       0.000us         0.00%       0.000us       0.000us      26.033ms         3.18%      26.033ms     228.357us           114  
+                                            aten::clone         0.04%     347.013us         0.36%       2.961ms      14.881us       0.000us         0.00%      25.095ms     126.104us           199  
+                         Memcpy DtoD (Device -> Device)         0.00%       0.000us         0.00%       0.000us       0.000us      21.869ms         2.68%      21.869ms     102.192us           214  
+void at::native::vectorized_gather_kernel<16, long>(...         0.00%       0.000us         0.00%       0.000us       0.000us      21.047ms         2.57%      21.047ms     250.561us            84  
+                                              aten::sum         0.33%       2.661ms         0.53%       4.326ms      11.693us      20.791ms         2.54%      20.918ms      56.536us           370  
+void at::native::elementwise_kernel<128, 2, at::nati...         0.00%       0.000us         0.00%       0.000us       0.000us      20.251ms         2.48%      20.251ms      52.059us           389  
+void cutlass::Kernel2<cutlass_80_tensorop_d884gemm_6...         0.00%       0.000us         0.00%       0.000us       0.000us      19.856ms         2.43%      19.856ms       1.805ms            11  
+                                              aten::cat         0.24%       1.966ms         0.40%       3.269ms       9.007us      19.475ms         2.38%      19.475ms      53.651us           363  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 817.894ms
+Self CUDA time total: 817.523ms

@@ -3,12 +3,12 @@ import itertools, tempfile, unittest
 import numpy as np
 import torch
 from tests.image_fixtures import two_plate_scene, catalog, source_parts
-from pointwise_rgbd.config import load_config
-from pointwise_rgbd.rgbd_point_renderer import CameraTensors, RenderPolicy, render
-from pointwise_rgbd.image_observation import FrameObservation, ObservationPolicy
-from pointwise_rgbd.image_support import delta_flips, total_energy, block_icm, scene_points
-from pointwise_rgbd.image_bidirectional import compare
-from pointwise_rgbd.joint_image import joint_transform
+from scene.config import load_config
+from estimator.point_renderer import CameraTensors, RenderPolicy, render
+from estimator.observation_terms import FrameObservation, ObservationPolicy
+from joint_reduction.support import delta_flips, total_energy, block_icm, scene_points
+from joint_reduction.bidirectional import compare
+from estimator.joint_iekf import joint_transform
 
 DEVICES = ['cpu']+(['cuda'] if torch.cuda.is_available() else [])
 MODEL = {'type': 'PRISMATIC', 'axis': (np.array([1., .3, 0.])/np.linalg.norm([1., .3, 0.])).tolist()}
@@ -82,11 +82,11 @@ class ExactEnumerationTest(unittest.TestCase):
 
 class SupportLabelsTest(unittest.TestCase):
     def test_labels_on_textured_scene(self):
-        from pointwise_rgbd.image_phase1 import endpoint_catalogue
-        from pointwise_rgbd.image_iekf import IEKFConfig
-        from pointwise_rgbd.rgbd_point_renderer import footprints
-        from pointwise_rgbd import image_support
-        from rgbd_common.backends.torch_cuda import Backend
+        from estimator.phase1 import endpoint_catalogue
+        from estimator.sparse_iekf import IEKFConfig
+        from estimator.point_renderer import footprints
+        from joint_reduction import support as image_support
+        from utils.backend import Backend
         config = load_config()
         ds = two_plate_scene('prismatic', frames=16, cameras=4)
         _, part, _ = endpoint_catalogue(ds, 'first', config, IEKFConfig()); rho = footprints(part, ds)
@@ -108,11 +108,11 @@ class SupportLabelsTest(unittest.TestCase):
 class TexturelessSlideTest(unittest.TestCase):
     def test_textureless_plate_sliding_in_plane_stays_ambiguous(self):
         """Interior points of a uniform plate sliding in its own plane are observationally indistinguishable."""
-        from pointwise_rgbd.image_phase1 import endpoint_catalogue
-        from pointwise_rgbd.image_iekf import IEKFConfig
-        from pointwise_rgbd.rgbd_point_renderer import footprints
-        from pointwise_rgbd import image_support
-        from rgbd_common.backends.torch_cuda import Backend
+        from estimator.phase1 import endpoint_catalogue
+        from estimator.sparse_iekf import IEKFConfig
+        from estimator.point_renderer import footprints
+        from joint_reduction import support as image_support
+        from utils.backend import Backend
         import tests.image_fixtures as fx
         config = load_config()
         ds = two_plate_scene('prismatic', frames=10, cameras=4)

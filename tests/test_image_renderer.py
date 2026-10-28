@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import torch
 from tests.image_fixtures import two_plate_scene, catalog
-from pointwise_rgbd.rgbd_point_renderer import RenderPolicy, CameraTensors, render, reference_render
+from estimator.point_renderer import RenderPolicy, CameraTensors, render, reference_render
 
 DEVICES = ['cpu']+(['cuda'] if torch.cuda.is_available() else [])
 
@@ -182,7 +182,7 @@ class VisibilityTransitionTest(unittest.TestCase):
 
 class PyramidTest(unittest.TestCase):
     def test_coarse_level_aligns_with_block_averaged_observation(self):
-        from pointwise_rgbd.image_observation import downsample
+        from estimator.observation_terms import downsample
         ds, x, c, r, cams, policy = setup('cpu')
         for ci, cam in enumerate(ds.cameras):
             f = downsample(ds.observation(0, ci), 2)

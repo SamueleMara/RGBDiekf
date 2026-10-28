@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Four-pass debug index</title>
+<style>body{font:13px sans-serif;margin:12px}table{border-collapse:collapse}td{padding:2px 8px;border-bottom:1px solid #eee}#errors{color:#c00}</style><script src="projective_common.js"></script></head>
+<body><h2>Four-pass projective RGB-D IEKF — debug index</h2><div id="errors"></div>
+<p>Every image is a recorded RGB / metric depth / binary mask frame; every 3D element is an original measured endpoint point, its own propagated state, an estimated rigid transform or a joint axis. No rendered image, splat, opacity or correspondence arrow appears anywhere.</p>
+<div id="status"></div><h3>pages</h3><div id="pages"></div><h3>run manifest</h3><pre id="man" style="white-space:pre-wrap;font-size:11px"></pre>
+<script>
+(async () => { const I = await PD.load('index'), r = I.result || {};
+  document.getElementById('status').innerHTML = `<b>${r.status || '?'}</b><table>` + Object.entries(r.stages || {}).map(([k, v]) => `<tr><td>${k}</td><td>${typeof v === 'string' ? v : (v || {}).status}</td></tr>`).join('') + '</table>';
+  const desc = {'_3d.html': '3D transport of the canonical endpoint points', '_rgbd.html': 'measured RGB / depth / mask with point projections', 'coherence': '192-node coherence graph',
+    'rigid_rgbd': 'rigid core on measured RGB-D', 'joint': 'joint axis and q(t)', 'bidirectional': 'forward vs backward', 'numerical': 'numerical timelines'};
+  document.getElementById('pages').innerHTML = '<ul>' + I.pages.filter(p => p !== 'index.html').map(p => `<li><a href="${p}">${p}</a> — ${Object.entries(desc).filter(([k]) => p.includes(k)).map(([, v]) => v).join(', ')}</li>`).join('') + '</ul>';
+  document.getElementById('man').textContent = JSON.stringify({arguments: (I.run_manifest || {}).arguments, debug_frames: I.debug_frames, source_hashes: (I.run_manifest || {}).source_hashes}, null, 1);
+  window.__state = {ready: true};
+})();
+</script></body></html>

@@ -27,9 +27,9 @@ def timed(name, fn):
 
 
 def instrument():
-    import pointwise_rgbd.rgbd_point_renderer as R, pointwise_rgbd.image_observation as O, pointwise_rgbd.supernodes as SN
-    import pointwise_rgbd.image_iekf as I, pointwise_rgbd.restricted_posterior as RP, pointwise_rgbd.phase1_covariance as PC
-    import pointwise_rgbd.rigeuler_ref.trust_region as TR
+    import estimator.point_renderer as R, estimator.observation_terms as O, estimator.supernodes as SN
+    import estimator.sparse_iekf as I, estimator.restricted_posterior as RP, estimator.covariance as PC
+    import rigeuler_ref.trust_region as TR
     R._candidates = timed('render: projection + footprint candidates', R._candidates)
     R.render_view = timed('render: one camera total (candidates, front, splat, Jacobian)', R.render_view)
     R.render = timed('render: all cameras', R.render)
@@ -64,7 +64,7 @@ def contributions(lin):
 
 
 def profile_frame(I, sm, Pm, frames, cfg, rgb, rho, policy, G, dev, tag, config):
-    from pointwise_rgbd.image_observation import levels, ObservationPolicy
+    from estimator.observation_terms import levels, ObservationPolicy
     TIMES.clear(); COUNTS.clear(); torch.cuda.reset_peak_memory_stats()
     t0 = time.perf_counter(); lv = levels(frames, config, ObservationPolicy(), dev); torch.cuda.synchronize(); t_obs = 1e3*(time.perf_counter()-t0)
     s, P, obs_, lin, terms, rep = I.frame_step(sm, Pm.clone(), lv, rgb, rho, policy, G, cfg)
@@ -92,7 +92,7 @@ def main():
     a = ap.parse_args(); dev = 'cuda'
     if a.memory_fraction: torch.cuda.set_per_process_memory_fraction(a.memory_fraction)
     from tools.audit_phase1_operators import blade_setup, saved_prior
-    from pointwise_rgbd.image_iekf import IEKFConfig
+    from estimator.sparse_iekf import IEKFConfig
     I = instrument()
     env = {'memory_fraction': a.memory_fraction, 'torch': torch.__version__, 'cuda': torch.version.cuda, 'cudnn': torch.backends.cudnn.version(), 'tf32_matmul': torch.backends.cuda.matmul.allow_tf32,
            'threads': torch.get_num_threads(), **gpu_state()}
@@ -107,18 +107,18 @@ def main():
     if a.kernel_table:
         from torch.profiler import profile, ProfilerActivity
         sm, Pm = saved_prior(B, a.frames[-1])
-        from pointwise_rgbd.image_observation import levels, ObservationPolicy
+        from estimator.observation_terms import levels, ObservationPolicy
         lv = levels(frames_of(a.frames[-1]), B['config'], ObservationPolicy(), dev)
         with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
             I.frame_step(sm, Pm.clone(), lv, B['rgb'], B['rho'], B['policy'], B['G'], cfg)
         (REPO/'reports/phase1_gpu_kernels.txt').write_text(prof.key_averages().table(sort_by='cuda_time_total', row_limit=40))
     if a.large_scene:
-        from pointwise_rgbd.dataset import Dataset
-        from pointwise_rgbd.image_phase1 import endpoint_catalogue
-        from pointwise_rgbd.rgbd_point_renderer import footprints, CameraTensors
-        from pointwise_rgbd.supernodes import GroupBasis
-        from pointwise_rgbd.state6 import anchor_posterior
-        from pointwise_rgbd.process6 import predict
+        from scene.dataset import Dataset
+        from estimator.phase1 import endpoint_catalogue
+        from estimator.point_renderer import footprints, CameraTensors
+        from estimator.supernodes import GroupBasis
+        from estimator.state import anchor_posterior
+        from estimator.process import predict
         data = Dataset(a.large_scene, 2, None, fps=a.fps); config = B['config']
         k0, part, _ = endpoint_catalogue(data, 'first', config, cfg)
         t = B['t']; rho = t(footprints(part, data, 1.5)); G = GroupBasis(t(part.xyz), t(part.membership, torch.long), t(part.centroids))

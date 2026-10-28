@@ -27,9 +27,9 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 COMMIT = '481b2cf2d5602932286948cf14114f9caee4de3c'
 PINNED = ['estimator/supernodes.py', 'estimator/motion_coherence_support.py', 'estimator/coherence_extraction.py']
-LOCAL = ['pointwise_rgbd/image_coherence.py', 'pointwise_rgbd/supported_coherence.py', 'pointwise_rgbd/rigeuler_ref/coherence_extraction.py',
-         'pointwise_rgbd/supernodes.py', 'pointwise_rgbd/image_phase1.py', 'pointwise_rgbd/image_iekf.py', 'pointwise_rgbd/rgbd_point_renderer.py',
-         'pointwise_rgbd/phase1_covariance.py', 'pointwise_rgbd/restricted_posterior.py', 'tools/run_rgbd_image_iekf.py']
+LOCAL = ['estimator/motion_coherence_support.py', 'estimator/supported_coherence.py', 'rigeuler_ref/coherence_extraction.py',
+         'estimator/supernodes.py', 'estimator/phase1.py', 'estimator/sparse_iekf.py', 'estimator/point_renderer.py',
+         'estimator/covariance.py', 'estimator/restricted_posterior.py', 'train.py']
 
 
 def sha(path, chunk=1 << 24):
@@ -53,10 +53,17 @@ def load_pinned(ref_repo, tmp):
         (tmp/f).write_bytes(data)
         assert hashlib.sha256((tmp/f).read_bytes()).hexdigest() == hashlib.sha256(data).hexdigest()
         blobs[f] = {'git_blob': blob, 'sha256': hashlib.sha256(data).hexdigest()}
+    # The pinned package is also named `estimator` (as is this repository's): import it with our `estimator`/`utils`
+    # temporarily unloaded, then restore ours so the rest of the process is unaffected.
+    clash = lambda m: m.split('.')[0] in ('estimator', 'utils')
+    ours = {m: sys.modules.pop(m) for m in [m for m in sys.modules if clash(m)]}
     sys.path.insert(0, str(tmp))
-    for m in [m for m in list(sys.modules) if m == 'estimator' or m.startswith('estimator.') or m == 'utils' or m.startswith('utils.')]:
-        del sys.modules[m]
-    mods = {name: importlib.import_module(f'estimator.{name}') for name in ('supernodes', 'motion_coherence_support', 'coherence_extraction')}
+    try:
+        mods = {name: importlib.import_module(f'estimator.{name}') for name in ('supernodes', 'motion_coherence_support', 'coherence_extraction')}
+    finally:
+        sys.path.remove(str(tmp))
+        for m in [m for m in sys.modules if clash(m)]: del sys.modules[m]
+        sys.modules.update(ours)
     for name, m in mods.items(): assert Path(m.__file__).resolve().parent == (tmp/'estimator').resolve(), f'{name} not loaded from the pinned blob'
     return mods, blobs
 
@@ -74,7 +81,7 @@ def refine_energies(X, omega, core, kabsch, weighted):
     idx = torch.arange(n)
     for t in range(T):
         if weighted:
-            from pointwise_rgbd.supported_coherence import _fit
+            from estimator.supported_coherence import _fit
             fit = _fit(X[0, core], X[t, core], omega[t, core])
             if fit is None: continue
             R, p = fit; w = omega[t]
@@ -94,7 +101,7 @@ def run_cell(name, X, omega, ei, ej, mods, extractor, refine, folds=5):
         res = ce.extract_moving_component(X, e_i, e_j, C, n, folds=folds, refine=refine, verbose=False)
         kabsch, weighted = ce._kabsch, False
     else:
-        from pointwise_rgbd import supported_coherence as sc
+        from estimator import supported_coherence as sc
         st = sc.weighted_edge_strain(X, omega, ei, ej); keep = st['supported_edges']
         C, e_i, e_j = st['C'][keep], ei[keep], ej[keep]
         res = sc.extract_moving_component(X, omega, e_i, e_j, C, n, folds=folds, refine=refine)
@@ -176,8 +183,8 @@ def main():
     watched.update({str(REPO/f): sha(REPO/f) for f in LOCAL})
     mods, blobs = load_pinned(a.reference_repo, a.out/'pinned_import')
     mcs, sn_mod = mods['motion_coherence_support'], mods['supernodes']
-    from pointwise_rgbd import supported_coherence as sc
-    from pointwise_rgbd.image_coherence import build_supernodes as local_build, canonical_knn_graph as local_knn
+    from estimator import supported_coherence as sc
+    from estimator.motion_coherence_support import build_supernodes as local_build, canonical_knn_graph as local_knn
 
     v2 = load_run(a.v2)
     K, N = v2['xyz'].shape[:2]

@@ -3,3 +3,6 @@ __pycache__/
 .pytest_cache/
 build/
 *.egg-info/
+
+# earlier pipelines, kept on disk only (see attic/MOVED_FILES.txt)
+attic/

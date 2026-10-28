@@ -7,9 +7,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]; sys.path.insert(0, str(REPO))
 import numpy as np, torch
 from tools.audit_phase1_operators import blade_setup, saved_prior, observation, energy
-from pointwise_rgbd.image_iekf import IEKFConfig, frame_step, linear_system
-from pointwise_rgbd.image_observation import levels, ObservationPolicy
-from pointwise_rgbd.rigeuler_ref.trust_region import ScalingMetric, steihaug_cg
+from estimator.sparse_iekf import IEKFConfig, frame_step, linear_system
+from estimator.observation_terms import levels, ObservationPolicy
+from rigeuler_ref.trust_region import ScalingMetric, steihaug_cg
 run, scene, k = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3])
 B = blade_setup(run, scene, 'cuda', 59); sm, Pm = saved_prior(B, k); Lam = torch.linalg.inv(Pm); Lam = (Lam+Lam.transpose(1, 2))/2
 obs = observation(B, k, 'cuda'); lv = levels([B['data'].observation(k, c) for c in range(len(B['cams']))], B['config'], ObservationPolicy(), 'cuda')

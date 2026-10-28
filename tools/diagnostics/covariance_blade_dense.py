@@ -13,17 +13,17 @@ import argparse, json, sys, time
 from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]; sys.path.insert(0, str(REPO))
 import numpy as np, torch
-from pointwise_rgbd.dataset import Dataset
-from pointwise_rgbd.config import load_config
-from pointwise_rgbd.image_iekf import IEKFConfig, frame_step
-from pointwise_rgbd.image_phase1 import endpoint_catalogue
-from pointwise_rgbd.image_observation import levels, ObservationPolicy
-from pointwise_rgbd.rgbd_point_renderer import RenderPolicy, footprints, CameraTensors, render
-from pointwise_rgbd.supernodes import GroupBasis, build_supernodes
-from pointwise_rgbd.state6 import anchor_posterior
-from pointwise_rgbd.process6 import transition, process_covariance
-from pointwise_rgbd.phase1_covariance import BlockCovariance, StructuredCovariance
-from pointwise_rgbd.restricted_posterior import channel_weights
+from scene.dataset import Dataset
+from scene.config import load_config
+from estimator.sparse_iekf import IEKFConfig, frame_step
+from estimator.phase1 import endpoint_catalogue
+from estimator.observation_terms import levels, ObservationPolicy
+from estimator.point_renderer import RenderPolicy, footprints, CameraTensors, render
+from estimator.supernodes import GroupBasis, build_supernodes
+from estimator.state import anchor_posterior
+from estimator.process import transition, process_covariance
+from estimator.covariance import BlockCovariance, StructuredCovariance
+from estimator.restricted_posterior import channel_weights
 
 ap = argparse.ArgumentParser(description=__doc__)
 ap.add_argument('--scene', type=Path, required=True); ap.add_argument('--out', type=Path, required=True)

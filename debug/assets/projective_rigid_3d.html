@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Rigid __DIRECTION__ 3D</title>
+<style>body{margin:0;font:12px sans-serif;display:flex;height:100vh}#view{flex:1}#side{width:470px;overflow:auto;padding:8px;border-left:1px solid #ccc}#errors{color:#c00}
+table{border-collapse:collapse}td{padding:1px 4px;border-bottom:1px solid #eee}</style>
+<script src="three.min.js"></script><script src="projective_common.js"></script></head>
+<body><div id="view"></div><div id="side"><h3>Rigid pass __DIRECTION__ (one shared SE(3) pose + twist)</h3><div id="errors"></div><div id="status"></div>
+<div>frame <input id="frame" type="range" min="0" value="0" style="width:260px"> <b id="flabel"></b> <button id="play">play</button></div>
+<div><label><input type="checkbox" id="canon" checked>canonical core (muted)</label> <label><input type="checkbox" id="static" checked>static-compatible points (neutral, occluders only)</label> <label><input type="checkbox" id="cams" checked>cameras</label></div>
+<div id="pose"></div><canvas id="c1" width="450" height="150"></canvas><canvas id="c2" width="450" height="150"></canvas><canvas id="c3" width="450" height="150"></canvas><canvas id="c4" width="450" height="150"></canvas></div>
+<script>
+const DIR = '__DIRECTION__', state = {}; window.__state = state; let D, V, objs = {};
+function draw() {
+  const k = +document.getElementById('frame').value, T = D.poses[k];
+  for (const o of Object.values(objs)) if (o) V.scene.remove(o);
+  const p = PD.f32(D.core_xyz), rgb = PD.u8(D.core_rgb), n = p.length/3, x = new Float32Array(3*n), col = new Float32Array(3*n);
+  for (let i = 0; i < n; i++) { for (let r = 0; r < 3; r++) x[3*i+r] = T[r][0]*p[3*i]+T[r][1]*p[3*i+1]+T[r][2]*p[3*i+2]+T[r][3]; col.set([rgb[3*i]/255, rgb[3*i+1]/255, rgb[3*i+2]/255], 3*i); }
+  objs.core = PD.points(x, col, .005); V.scene.add(objs.core);
+  if (document.getElementById('canon').checked) { objs.canon = PD.points(p, new Float32Array(3*n).fill(.8), .003); V.scene.add(objs.canon); }
+  if (document.getElementById('static').checked) { const s = PD.f32(D.static_xyz); objs.st = PD.points(s, new Float32Array(s.length).fill(.55), .003); V.scene.add(objs.st); }
+  const g = new THREE.Group(); [0, Math.floor(n/2), n-1].forEach(i => { const A = T.map(r => r.slice()); A[0][3] = x[3*i]; A[1][3] = x[3*i+1]; A[2][3] = x[3*i+2]; g.add(PD.axes(A, .05)); }); objs.tri = g; V.scene.add(g);
+  const tl = D.timeline.find(r => +r.frame === k);
+  document.getElementById('flabel').textContent = `index ${k}, t=${D.timestamps[k].toFixed(4)} s` + (k === D.canonical_frame ? ' (canonical, T = I)' : '');
+  document.getElementById('pose').innerHTML = `<table><tr><td>translation (m)</td><td>${[0, 1, 2].map(r => T[r][3].toFixed(5))}</td></tr><tr><td>twist v (m/s), omega (rad/s)</td><td>${D.twists[k].map(v => v.toFixed(4))}</td></tr>` +
+    `<tr><td>pose sigma [tau_v (m), tau_w (rad)]</td><td>${D.pose_sigma[k].map(v => v.toExponential(2))}</td></tr>` + (tl ? `<tr><td>rows / converged / iterations</td><td>${tl.rows} / ${tl.converged} / ${tl.iterations}</td></tr><tr><td>max pair-distance error (m)</td><td>${(+tl.rigidity_error_m).toExponential(2)}</td></tr><tr><td>NIS per dof (prior)</td><td>${(+tl.nis_per_dof).toFixed(3)}</td></tr>` : '') + '</table>';
+  state.frame = k; state.ready = true;
+}
+(async () => {
+  D = await PD.load(`rigid_${DIR}`); const st = D.status;
+  document.getElementById('status').innerHTML = `<b>${st.status}</b> ${JSON.stringify(st)}`;
+  if (st.status !== 'COMPLETE') { state.ready = true; return; }
+  V = PD.viewer(document.getElementById('view')); D.cameras.forEach(c => V.scene.add(PD.frustum(c, .2))); V.fit(PD.f32(D.core_xyz));
+  const fr = document.getElementById('frame'); fr.max = D.poses.length-1; fr.value = D.canonical_frame; fr.oninput = draw;
+  document.querySelectorAll('input[type=checkbox]').forEach(e => e.onchange = draw);
+  let timer = null; document.getElementById('play').onclick = () => { if (timer) { clearInterval(timer); timer = null; return; } timer = setInterval(() => { fr.value = (+fr.value+1) % D.poses.length; draw(); }, 300); };
+  const ks = D.poses.map((_, k) => k), col = ['#d62728', '#2ca02c', '#1f77b4'];
+  PD.chart(document.getElementById('c1'), [0, 1, 2].map(r => ({x: ks, y: D.poses.map(T => T[r][3]), color: col[r], label: 't'+'xyz'[r]+' (m)'})), {title: 'translation'});
+  PD.chart(document.getElementById('c2'), [3, 4, 5].map(r => ({x: ks, y: D.twists.map(t => t[r]), color: col[r-3], label: 'w'+'xyz'[r-3]+' (rad/s)'})), {title: 'angular velocity'});
+  PD.chart(document.getElementById('c3'), [0, 1, 2].map(r => ({x: ks, y: D.twists.map(t => t[r]), color: col[r], label: 'v'+'xyz'[r]+' (m/s)'})), {title: 'linear velocity'});
+  PD.chart(document.getElementById('c4'), [{x: ks, y: D.pose_sigma.map(s => Math.max(s[0], s[1], s[2])), color: '#000', label: 'max sigma tau_v (m)'}, {x: ks, y: D.pose_sigma.map(s => Math.max(s[3], s[4], s[5])), color: '#9467bd', label: 'max sigma tau_w (rad)'}], {title: 'pose uncertainty'});
+  draw();
+})();
+</script></body></html>

@@ -3,10 +3,10 @@ import json, unittest
 from pathlib import Path
 import numpy as np
 import torch
-from pointwise_rgbd.image_coherence import canonical_knn_graph, build_supernodes
-from pointwise_rgbd.reference_motion import edge_strain
-from pointwise_rgbd.rigeuler_ref import coherence_extraction as pinned
-from pointwise_rgbd import supported_coherence as sc
+from estimator.motion_coherence_support import canonical_knn_graph, build_supernodes
+from tests.reference_motion import edge_strain
+from rigeuler_ref import coherence_extraction as pinned
+from estimator import supported_coherence as sc
 
 REPORT = Path(__file__).resolve().parents[1]/'reports/coherence_occlusion_simulation.json'
 
@@ -74,7 +74,7 @@ class SupportedCoherenceTest(unittest.TestCase):
         pts = np.repeat(traj, 4, axis=1)+g.normal(0, 1e-3, (traj.shape[0], 4*traj.shape[1], 3))
         sid = torch.arange(traj.shape[1]).repeat_interleave(4)
         T, om, ids, _ = sc.supported_node_trajectories(pts, np.ones(pts.shape[:2], bool), sid, 0)
-        from pointwise_rgbd.reference_motion import supernode_trajectories
+        from tests.reference_motion import supernode_trajectories
         ref = supernode_trajectories(pts, sid)['trajectories']
         self.assertLess(float((T-ref).abs().max()), 1e-12)
         ei, ej = canonical_knn_graph(T[0], 12)
@@ -178,7 +178,7 @@ class CoherenceSceneGates(unittest.TestCase):
     def test_independent_of_phase1_group_occupancy(self):
         import tempfile
         from types import SimpleNamespace
-        from pointwise_rgbd.image_coherence import run as coherence_run
+        from estimator.motion_coherence_support import run as coherence_run
         traj, moving = scene(12, motion='rotation')
         pts = np.repeat(traj, 5, axis=1)+np.random.default_rng(2).normal(0, 1e-4, (12, 5*traj.shape[1], 3))
         arrays = {'xyz': pts, 'point_observed': np.ones(pts.shape[:2], bool)}

@@ -7,13 +7,13 @@ import sys, json, itertools
 from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]; sys.path.insert(0, str(REPO))
 import numpy as np, torch
-from pointwise_rgbd.dataset import Dataset
-from pointwise_rgbd.config import load_config
-from pointwise_rgbd import image_phase1
-from pointwise_rgbd.image_iekf import IEKFConfig, frame_step
-from pointwise_rgbd.rgbd_point_renderer import RenderPolicy
-from pointwise_rgbd.image_observation import ObservationPolicy
-from rgbd_common.backends.torch_cuda import Backend
+from scene.dataset import Dataset
+from scene.config import load_config
+from estimator import phase1 as image_phase1
+from estimator.sparse_iekf import IEKFConfig, frame_step
+from estimator.point_renderer import RenderPolicy
+from estimator.observation_terms import ObservationPolicy
+from utils.backend import Backend
 scene, scratch, frames = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3])
 config = load_config(); data = Dataset(scene, frames, None, fps=59); backend = Backend('cuda')
 policy = RenderPolicy(depth_variance=config.depth_variance, depth_squared_variance=config.depth_squared_variance)

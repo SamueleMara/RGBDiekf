@@ -16,9 +16,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]; sys.path.insert(0, str(REPO))
 import numpy as np, torch
 
-SOURCES = ['pointwise_rgbd/supernodes.py', 'pointwise_rgbd/image_iekf.py', 'pointwise_rgbd/image_phase1.py', 'pointwise_rgbd/rgbd_point_renderer.py',
-           'pointwise_rgbd/image_observation.py', 'pointwise_rgbd/phase1_covariance.py', 'pointwise_rgbd/restricted_posterior.py', 'pointwise_rgbd/process6.py',
-           'pointwise_rgbd/rigeuler_ref/trust_region.py', 'pointwise_rgbd/rigeuler_ref/pcg.py']
+SOURCES = ['estimator/supernodes.py', 'estimator/sparse_iekf.py', 'estimator/phase1.py', 'estimator/point_renderer.py',
+           'estimator/observation_terms.py', 'estimator/covariance.py', 'estimator/restricted_posterior.py', 'estimator/process.py',
+           'rigeuler_ref/trust_region.py', 'rigeuler_ref/pcg.py']
 
 
 def sha(p):
@@ -33,7 +33,7 @@ def cross_np(a, b): return np.cross(a, b)
 
 # ------------------------------------------------------------------------------------------------ A1
 def audit_basis(xyz, member, centroids, devices):
-    from pointwise_rgbd.supernodes import GroupBasis
+    from estimator.supernodes import GroupBasis
     out = {}
     S = int(member.max())+1
     sizes = np.bincount(member, minlength=S)
@@ -88,10 +88,10 @@ def audit_basis(xyz, member, centroids, devices):
 
 # ------------------------------------------------------------------------------------------------ helpers on the blade
 def blade_setup(run, scene, dev, fps):
-    from pointwise_rgbd.dataset import Dataset
-    from pointwise_rgbd.config import load_config
-    from pointwise_rgbd.supernodes import GroupBasis
-    from pointwise_rgbd.rgbd_point_renderer import CameraTensors, RenderPolicy
+    from scene.dataset import Dataset
+    from scene.config import load_config
+    from estimator.supernodes import GroupBasis
+    from estimator.point_renderer import CameraTensors, RenderPolicy
     d = Path(run)/'first/phase1'
     part = np.load(d/'partition.npz'); st = np.load(d/'state.npy', mmap_mode='r'); cov = np.load(d/'covariance.npy', mmap_mode='r')
     rho = np.load(d/'footprint_radius.npy'); config = load_config(); data = Dataset(scene, None, None, fps=fps)
@@ -104,26 +104,26 @@ def blade_setup(run, scene, dev, fps):
 
 def saved_prior(B, k):
     """Fixed prior of frame k: process6.predict of the SAVED posterior of frame k-1 (exactly the production prediction)."""
-    from pointwise_rgbd.process6 import predict
+    from estimator.process import predict
     dt = float(B['data'].times[k]-B['data'].times[k-1])
     return predict(B['t'](B['state'][k-1]), B['t'](B['cov'][k-1]), dt, B['config'])
 
 
 def observation(B, k, dev):
-    from pointwise_rgbd.image_observation import FrameObservation, ObservationPolicy
+    from estimator.observation_terms import FrameObservation, ObservationPolicy
     return FrameObservation([B['data'].observation(k, c) for c in range(len(B['cams']))], B['config'], ObservationPolicy(), dev)
 
 
 def energy(B, obs, s, sm, Lam):
-    from pointwise_rgbd.rgbd_point_renderer import render
+    from estimator.point_renderer import render
     lin = render(s[:, :3], B['rgb'], B['rho'], B['cams'], B['policy']); terms = obs.terms(lin); e = s-sm
     return .5*float(torch.einsum('ni,nij,nj->', e, Lam, e))+terms['energy'], lin, terms
 
 
 def audit_operator(B, k, dev):
-    from pointwise_rgbd.rgbd_point_renderer import render
-    from pointwise_rgbd.image_iekf import linear_system
-    from pointwise_rgbd.rigeuler_ref.trust_region import ScalingMetric, steihaug_cg
+    from estimator.point_renderer import render
+    from estimator.sparse_iekf import linear_system
+    from rigeuler_ref.trust_region import ScalingMetric, steihaug_cg
     sm, Pm = saved_prior(B, k); obs = observation(B, k, dev); G = B['G']
     Lam = torch.linalg.inv(Pm); Lam = (Lam+Lam.transpose(1, 2))/2
     out = {'frame': k}
@@ -168,13 +168,13 @@ def audit_operator(B, k, dev):
 def dense_oracles():
     """A_dense vs matrix-free A_g and b_g on synthetic geometries (overlap/taper, disocclusion, multi-camera)."""
     from tests.image_fixtures import two_plate_scene, catalog
-    from pointwise_rgbd.config import load_config
-    from pointwise_rgbd.supernodes import GroupBasis, build_supernodes
-    from pointwise_rgbd.rgbd_point_renderer import CameraTensors, RenderPolicy, render
-    from pointwise_rgbd.image_observation import FrameObservation, ObservationPolicy
-    from pointwise_rgbd.process6 import predict
-    from pointwise_rgbd.image_iekf import linear_system
-    from pointwise_rgbd import restricted_posterior as rp
+    from scene.config import load_config
+    from estimator.supernodes import GroupBasis, build_supernodes
+    from estimator.point_renderer import CameraTensors, RenderPolicy, render
+    from estimator.observation_terms import FrameObservation, ObservationPolicy
+    from estimator.process import predict
+    from estimator.sparse_iekf import linear_system
+    from estimator import restricted_posterior as rp
     config = load_config(); out = {}
     for name, kw, frame in (('overlap_taper_offset3cm', dict(motion='prismatic', offset=.03), 1), ('revolute_disocclusion', dict(motion='revolute'), 2),
                             ('prismatic_4cams', dict(motion='prismatic', cameras=4), 1)):
@@ -206,8 +206,8 @@ def dense_oracles():
 
 # ------------------------------------------------------------------------------------------------ A3
 def one_step(B, k, dev, variants, gt_slide=None):
-    from pointwise_rgbd.image_iekf import IEKFConfig, frame_step
-    from pointwise_rgbd.image_observation import levels, ObservationPolicy
+    from estimator.sparse_iekf import IEKFConfig, frame_step
+    from estimator.observation_terms import levels, ObservationPolicy
     sm, Pm = saved_prior(B, k)
     frames = [B['data'].observation(k, c) for c in range(len(B['cams']))]
     lv = levels(frames, B['config'], ObservationPolicy(), dev)
@@ -271,7 +271,7 @@ def main():
         report['A2_dense_oracles_synthetic'] = dense_oracles(); print(json.dumps(report['A2_dense_oracles_synthetic'], indent=1), flush=True)
         report['A2_blade_operator'] = [audit_operator(B, k, a.device) for k in (1, 10)]; print(json.dumps(report['A2_blade_operator'], indent=1, default=float), flush=True)
     if 'A3' in a.parts:
-        from pointwise_rgbd.image_iekf import IEKFConfig
+        from estimator.sparse_iekf import IEKFConfig
         variants = {'production': IEKFConfig(), 'accurate_linear_solve': IEKFConfig(forcing_max=1e-10, forcing_min=1e-12, pcg_max_iters=500),
                     'budget30': IEKFConfig(max_iters=30), 'budget100_accurate': IEKFConfig(max_iters=100, forcing_max=1e-10, forcing_min=1e-12, pcg_max_iters=500)}
         lab, axis, qrel = gt_labels(B, a.scene)
