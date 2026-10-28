@@ -15,9 +15,23 @@ Per-point stopping: a point stops once delta^T A delta < tol (squared step in th
 iterate; the loop ends when every point stopped or at max_iters. Points that never met it are counted and reported
 (piecewise-bilinear image fields make the plain IEKF oscillate between pixel cells near the solution; no line search
 or damping is added: that would be an optimizer, not the Kalman update).
-Posterior ONCE at the final iterate's own linearization: P+ = (Lambda- + H^T R^-1 H)^-1, the Joseph-equivalent form
-(verified against (I-KH)P-(I-KH)^T + K R K^T in float64). A point with no valid row at the final linearization keeps
-s+ = s-, P+ = P- (no unsupported shifted state).
+Acceptance (configs/projective_rgbd.json update_acceptance = 'last_consistent_iterate'). Convergence of the step is
+not evidence that the state explains the measurements, and a large step can cross many pixels and surfaces. Every
+iterate s_j is therefore tested against the ACTUAL RGB-D samples at its own projection, with the posterior cost
+    J(s_j) = (s_j - s-)^T Lambda- (s_j - s-) + r_j^T R^-1 r_j,      J ~ chi2(4 m_j) for a consistent update,
+m_j valid rows at s_j (the IEKF analogue of the NIS: at a linear-Gaussian optimum J equals r_0^T S^-1 r_0). The
+accepted state is the final iterate if J <= chi2_{4m}(1 - alpha), else the LAST earlier iterate (j >= 1) that passed,
+re-linearized at that state; if none passed, the point is prediction-only for this frame (s+ = s-, P+ = P-). alpha is
+the row-gate tail 2 (1 - Phi(visibility_n_sigma)) (projective_terms.row_gate_threshold): no new number. Non-converged
+iterates are accepted when they are consistent (bilinear oscillation near the solution), so the ablation that
+rejected every non-converged point (static drift down, moving parts lost) is NOT what this does. The prior term is
+what rejects a 0.2 m correction of a point whose prior allows centimetres; a legitimate fast motion passes whenever the
+prior covariance (velocity prior, q_c) allows it. 'final_iterate' is the earlier rule (accept the final iterate
+whenever it has a valid row), kept for the one-variable ablation.
+Posterior ONCE at the accepted state's own linearization: P+ = (Lambda- + H^T R^-1 H)^-1, the Joseph-equivalent form
+(verified against (I-KH)P-(I-KH)^T + K R K^T in float64). The acceptance linearization re-checks self-occlusion at
+the current states (final_visibility = 'recheck_self_occlusion', projective_visibility.apply_frozen_assignment).
+Invalid rows enter the information sums through torch.where (never 0 * value: IEEE 0 * NaN = NaN).
 Pixel-reuse assignment (contract 2.2 item 5: front-most point per pixel per camera): 'per-frame' (default) decides it
 once at the prior prediction s- and keeps it through the iterations, while samples, validity and Jacobians are re-
 evaluated at every iterate; 'per-iteration' re-decides it at every iterate (the contract's pseudocode placement).
@@ -31,8 +45,19 @@ import time
 import numpy as np
 import torch
 from estimator.projective_sensor import CODE, REASONS
+from scipy.stats import chi2, norm
 from estimator.projective_terms import build_terms, h_value
 from estimator.projective_visibility import visibility, position_sigma_z2, apply_frozen_assignment
+
+
+ACCEPTANCE = {0: 'ANCHOR_OR_NOT_PROCESSED', 1: 'ACCEPTED_FINAL_ITERATE', 2: 'ACCEPTED_EARLIER_CONSISTENT_ITERATE',
+              3: 'REJECTED_INCONSISTENT', 4: 'NO_VALID_ROWS'}
+
+
+def cost_thresholds(policy, cameras, dtype, device):
+    """chi2_{4m}(1 - alpha) for m = 0..cameras valid rows (index 0: no rows, +inf), alpha = 2 (1 - Phi(n_sigma))."""
+    alpha = 2*norm.sf(policy['visibility_n_sigma'])
+    return torch.tensor([float('inf')]+[float(chi2.isf(alpha, 4*m)) for m in range(1, cameras+1)], dtype=dtype, device=device)
 
 
 def transition(dt, dtype=torch.float64, device='cpu'):
@@ -145,10 +170,11 @@ class PointMeasurement:
         if assignment not in ('per-frame', 'per-iteration'): raise ValueError(assignment)
         self.assignment, self.frozen = assignment, None
 
-    def __call__(self, x, keep_terms=None, active=None):
+    def __call__(self, x, keep_terms=None, active=None, dx=None, recheck=False):
         """x [N,3] -> dict(Ixx [N,3,3], gx [N,3], rTWr [N], nrows [N], reason [C,N], terms of keep_terms points).
         active [N] bool: only these points' rows are sampled (stopped points need no new terms); visibility always uses
-        every point."""
+        every point. dx [N,3] = x - x- (row gate on the prior-linearized innovation); recheck: acceptance linearization
+        (fresh self-occlusion added to the frozen assignment)."""
         N, C = len(x), self.rig.count
         T = self.timers
         with T('projection'):
@@ -157,7 +183,7 @@ class PointMeasurement:
             vreason, front = visibility(proj, self.sigma_z2, self.frame.H, self.frame.W, self.rig.near, self.policy['visibility_n_sigma'], self.measured)
             if self.assignment == 'per-frame':
                 if self.frozen is None: self.frozen = vreason.clone()          # first call = the prior prediction s-
-                vreason = apply_frozen_assignment(vreason, self.frozen)
+                vreason = apply_frozen_assignment(vreason, self.frozen, recheck)
             cand = vreason.T == CODE['VALID']
             if active is not None: cand &= active[:, None]
             rows = torch.nonzero(cand)                                   # [M,2] (point, cam), ordered by point then camera
@@ -174,15 +200,17 @@ class PointMeasurement:
             if b <= a: continue
             p, c = pts[a:b], rows[a:b, 1]
             with T('sampling_terms'):
-                t = build_terms(self.rig, self.frame, c, p, x[p], self.rgb0[p], self.Sigma_prior[p], self.noise, self.policy, self.dtype)
+                t = build_terms(self.rig, self.frame, c, p, x[p], self.rgb0[p], self.Sigma_prior[p], self.noise, self.policy, self.dtype,
+                                None if dx is None else dx[p])
             reason[c, p] = t.reason
             with T('information_accumulation'):
                 ok = t.valid()
                 w = torch.where(ok[:, None], 1/t.var, torch.zeros_like(t.var))
-                wr = w*t.r
-                I = (t.Hx[:, :, :, None]*w[:, :, None, None]*t.Hx[:, :, None, :]).sum(1)      # [m,3,3] H^T R^-1 H
-                g = (t.Hx*wr[:, :, None]).sum(1)                                               # [m,3]   H^T R^-1 r
-                q = (wr*t.r).sum(1)
+                tr_ = torch.where(ok[:, None], t.r, torch.zeros_like(t.r)); Hx = torch.where(ok[:, None, None], t.Hx, torch.zeros_like(t.Hx))
+                wr = w*tr_
+                I = (Hx[:, :, :, None]*w[:, :, None, None]*Hx[:, :, None, :]).sum(1)          # [m,3,3] H^T R^-1 H
+                g = (Hx*wr[:, :, None]).sum(1)                                                 # [m,3]   H^T R^-1 r
+                q = (wr*tr_).sum(1)
                 up, lengths = torch.unique_consecutive(p, return_counts=True)
                 Ixx[up] = segment_sum(I, lengths); gx[up] = segment_sum(g, lengths); rTWr[up] = segment_sum(q, lengths)
                 nrows[up] = segment_sum(ok.to(self.dtype), lengths).round().long()
@@ -209,15 +237,22 @@ def update_points(s_minus, P_minus, frame, rig, rgb0, noise, policy, max_iters, 
         Sigma_prior = P_minus[:, :3, :3]
         sigma_z2 = position_sigma_z2(rig.R.to(dtype), Sigma_prior)
     meas = PointMeasurement(rig, frame, noise, policy, rgb0.to(dtype), Sigma_prior, sigma_z2, chunk, dtype, timers=timers, assignment=assignment)
+    rule = policy.get('update_acceptance', 'final_iterate')
+    if rule not in ('last_consistent_iterate', 'final_iterate'): raise ValueError(f'update_acceptance {rule!r}')
+    recheck = policy.get('final_visibility', 'frozen') == 'recheck_self_occlusion'
+    thr = cost_thresholds(policy, rig.count, dtype, s_minus.device)
+    prior_cost = lambda idx, st: (lambda e: (e*(Lam[idx]@e[..., None])[..., 0]).sum(-1))(st[idx]-s_minus[idx])
     keep = None if trace_ids is None else torch.as_tensor(trace_ids, device=s_minus.device)
     sj = s_minus.clone()
     trace = {'iterations': []} if keep is not None else None
     history, converged, step = [], torch.zeros(N, dtype=torch.bool, device=sj.device), None
     iters = torch.zeros(N, dtype=torch.long, device=sj.device)
+    acc_state, acc_iter = s_minus.clone(), torch.full((N,), -1, dtype=torch.long, device=sj.device)
+    had_rows = torch.zeros(N, dtype=torch.bool, device=sj.device)
     nis = nis_dof = prior_innov = None
     for j in range(max_iters):
         act = ~converged                                               # stopped points are neither re-sampled nor re-solved
-        m = meas(sj[:, :3], keep, None if j == 0 else act)
+        m = meas(sj[:, :3], keep, None if j == 0 else act, sj[:, :3]-s_minus[:, :3])
         with timers('solve'):
             ia = torch.nonzero(act).flatten()
             A = Lam[ia].clone(); A[:, :3, :3] += m['Ixx'][ia]
@@ -228,12 +263,19 @@ def update_points(s_minus, P_minus, frame, rig, rgb0, noise, policy, max_iters, 
             delta = torch.zeros_like(sj); delta[ia] = d_a
             b = torch.zeros_like(sj); b[ia] = b_a
             step = torch.zeros(N, dtype=sj.dtype, device=sj.device); step[ia] = (d_a*b_a).sum(-1)     # delta^T A delta
+        with timers('acceptance'):                                    # J(s_j) of the iterate just measured (s_0 = s- is no update)
+            nr = m['nrows'][ia]; had_rows[ia] |= nr > 0
+            J = prior_cost(ia, sj)+m['rTWr'][ia]
+            if j >= 1:
+                ok = (nr > 0) & (J <= thr[nr.clamp_max(rig.count)])
+                acc_state[ia[ok]] = sj[ia[ok]]; acc_iter[ia[ok]] = j
         if j == 0:                                                    # NIS at the prior (s_0 = s-): r^T S^-1 r = r^T W r - g^T A^-1 g
             nis = (m['rTWr']-step).clamp_min(0); nis_dof = 4*m['nrows']
             prior_innov = (m['r_valid'], m['cam_valid'], m['reason'])
         if trace is not None:
             Afull = Lam.clone(); Afull[:, :3, :3] += m['Ixx']
-            trace['iterations'].append(_trace_iteration(j, sj, m, Afull, b, delta, keep))
+            Jfull = torch.full((N,), float('nan'), dtype=sj.dtype, device=sj.device); Jfull[ia] = J
+            trace['iterations'].append(_trace_iteration(j, sj, m, Afull, b, delta, keep, Jfull, thr, rig.count))
         # per-point stopping: a point whose step met the criterion keeps its iterate and is not iterated again, so its
         # result never depends on how long OTHER points iterate (independent filters)
         sj = torch.where(converged[:, None], sj, sj+delta)
@@ -243,30 +285,54 @@ def update_points(s_minus, P_minus, frame, rig, rgb0, noise, policy, max_iters, 
         history.append({'iteration': j, 'rows': m['rows_considered'], 'not_converged': (~converged).sum(), 'step_max': torch.where(converged & ~newly, torch.zeros_like(step), step).max(),
                         'points_with_rows': (m['nrows'] > 0).sum()})
         if bool(converged.all()): break
-    final = meas(sj[:, :3], keep)
+    final = meas(sj[:, :3], keep, None, sj[:, :3]-s_minus[:, :3], recheck)
+    with timers('acceptance'):
+        allp = torch.arange(N, device=sj.device)
+        nf = final['nrows']; had_rows |= nf > 0
+        Jf = prior_cost(allp, sj)+final['rTWr']
+        Ixx, nrows, reason, cost = final['Ixx'].clone(), nf.clone(), final['reason'].clone(), Jf.clone()
+        if rule == 'final_iterate':
+            ok_f = nf > 0; ok_e = torch.zeros_like(ok_f); state = sj
+        else:
+            ok_f = (nf > 0) & (Jf <= thr[nf.clamp_max(rig.count)])
+            fb = ~ok_f & (acc_iter >= 1)                            # fall back to the last consistent iterate
+            state = torch.where(ok_f[:, None], sj, torch.where(fb[:, None], acc_state, s_minus))
+            ok_e = torch.zeros_like(ok_f)
+            if bool(fb.any()):
+                m2 = meas(state[:, :3], keep, fb, state[:, :3]-s_minus[:, :3], recheck)
+                J2 = prior_cost(allp, state)+m2['rTWr']
+                ok_e = fb & (m2['nrows'] > 0) & (J2 <= thr[m2['nrows'].clamp_max(rig.count)])
+                Ixx[fb] = m2['Ixx'][fb]; nrows[fb] = m2['nrows'][fb]; reason[:, fb] = m2['reason'][:, fb]; cost[fb] = J2[fb]
+                if keep is not None: final = {**final, 'kept_fallback': m2['kept'], 'fallback': fb}
+        observed = ok_f | ok_e
+        acceptance = torch.where(ok_f, 1, torch.where(ok_e, 2, torch.where(had_rows, 3, 4))).to(torch.uint8)
     with timers('covariance'):
-        A = Lam.clone(); A[:, :3, :3] += final['Ixx']
+        A = Lam.clone(); A[:, :3, :3] += Ixx
         L, retry2 = spd_factor(A, 'final information matrix')
         P_plus = torch.cholesky_inverse(L); P_plus = (P_plus+P_plus.transpose(1, 2))/2
-        observed = final['nrows'] > 0
-        s_plus = torch.where(observed[:, None], sj, s_minus)
+        s_plus = torch.where(observed[:, None], state, s_minus)
         P_plus = torch.where(observed[:, None, None], P_plus, P_minus)
     if trace is not None:
-        trace['final'] = _trace_final(sj, s_minus, P_minus, P_plus, final, Lam, keep, rig, frame, rgb0, noise, policy, dtype)
-    report = {'s_iter_final': sj, 'observed': observed, 'nrows': final['nrows'], 'reason': final['reason'], 'front': final['front'],
+        trace['final'] = _trace_final(state, s_plus, s_minus, P_minus, P_plus, final, Lam, keep, rig, frame, rgb0, noise, policy, dtype,
+                                      {'acceptance': acceptance, 'cost': cost, 'nrows': nrows, 'thr': thr, 'converged': converged, 'acc_iter': acc_iter})
+    report = {'s_iter_final': sj, 'observed': observed, 'nrows': torch.where(observed, nrows, torch.zeros_like(nrows)) if rule != 'final_iterate' else nrows,
+              'reason': reason, 'front': final['front'],
               'converged': converged, 'point_iterations': iters, 'step': step, 'nis': nis, 'nis_dof': nis_dof, 'iterations': len(history), 'history': history,
-              'info_eig': eigvalsh3(final['Ixx']), 'proj': final['proj'], 'prior_innovation': prior_innov,
+              'info_eig': eigvalsh3(Ixx), 'proj': final['proj'], 'prior_innovation': prior_innov,
               'final_innovation': (final['r_valid'], final['cam_valid']), 'cam_information_trace': final['cam_information_trace'],
-              'float64_retry': [r for r in (retry, retry2) if r]}
+              'acceptance': acceptance, 'posterior_cost': cost, 'posterior_cost_dof': 4*nrows, 'accepted_iteration': torch.where(ok_f, iters, torch.where(ok_e, acc_iter, -1)),
+              'acceptance_rule': rule, 'float64_retry': [r for r in (retry, retry2) if r]}
     return s_plus, P_plus, report, trace
 
 
-def _trace_iteration(j, sj, m, A, b, delta, keep):
+def _trace_iteration(j, sj, m, A, b, delta, keep, J, thr, C):
     out = {'iteration': j, 'points': {}}
     for pid in keep.tolist():
         rows = [t.select(t.point == pid) for t in m['kept']]
         rows = [r for r in rows if len(r.point)]
+        n = int(m['nrows'][pid])
         out['points'][pid] = {'state': sj[pid].tolist(), 'A': A[pid].tolist(), 'b': b[pid].tolist(), 'delta': delta[pid].tolist(),
+                              'posterior_cost': float(J[pid]), 'posterior_cost_dof': 4*n, 'cost_threshold': float(thr[min(n, C)]),
                               'rows': [_row_dict(r, i) for r in rows for i in range(len(r.point))]}
     return out
 
@@ -274,17 +340,25 @@ def _trace_iteration(j, sj, m, A, b, delta, keep):
 def _row_dict(t, i):
     return {'camera': int(t.cam[i]), 'u': float(t.uv[i, 0]), 'v': float(t.uv[i, 1]), 'z_pred': float(t.z[i]),
             'sampled_rgb': t.meas_rgb[i].tolist(), 'sampled_depth_m': float(t.meas_depth[i]), 'pixel00_u_v': t.pixel00[i].tolist(),
-            'reason': REASONS[int(t.reason[i])], 'r': t.r[i].tolist(), 'H_x': t.Hx[i].tolist(), 'R_diag': t.var[i].tolist(), 'S_zz': float(t.S_zz[i])}
+            'reason': REASONS[int(t.reason[i])], 'r': t.r[i].tolist(), 'H_x': t.Hx[i].tolist(), 'R_diag': t.var[i].tolist(), 'S_zz': float(t.S_zz[i]),
+            'row_nis_prior_linearized': float(t.nis[i])}
 
 
-def _trace_final(sj, s_minus, P_minus, P_plus, final, Lam, keep, rig, frame, rgb0, noise, policy, dtype):
-    """Final linearization of traced points: explicit gain, Joseph cross-check and finite-difference H."""
+def _trace_final(state, s_plus, s_minus, P_minus, P_plus, final, Lam, keep, rig, frame, rgb0, noise, policy, dtype, acc):
+    """Accepted linearization of traced points: acceptance decision, explicit gain, Joseph cross-check and
+    finite-difference H (at the state whose rows give the covariance)."""
     out = {}
+    fb = final.get('fallback')
     for pid in keep.tolist():
-        rows = [t.select((t.point == pid) & t.valid()) for t in final['kept']]
+        src = final['kept_fallback'] if fb is not None and bool(fb[pid]) else final['kept']
+        rows = [t.select((t.point == pid) & t.valid()) for t in src]
         rows = [r for r in rows if len(r.point)]
-        d = {'s_minus': s_minus[pid].tolist(), 's_plus': sj[pid].tolist() if bool(final['nrows'][pid] > 0) else s_minus[pid].tolist(),
-             'P_minus': P_minus[pid].tolist(), 'P_plus': P_plus[pid].tolist(), 'valid_rows': int(final['nrows'][pid])}
+        n = int(acc['nrows'][pid])
+        d = {'s_minus': s_minus[pid].tolist(), 's_plus': s_plus[pid].tolist(), 'linearization_state': state[pid].tolist(),
+             'P_minus': P_minus[pid].tolist(), 'P_plus': P_plus[pid].tolist(), 'valid_rows': n,
+             'acceptance': ACCEPTANCE[int(acc['acceptance'][pid])], 'posterior_cost': float(acc['cost'][pid]), 'posterior_cost_dof': 4*n,
+             'cost_threshold': float(acc['thr'][min(n, rig.count)]), 'converged': bool(acc['converged'][pid]),
+             'last_consistent_iteration': int(acc['acc_iter'][pid])}
         if rows:
             Hx = torch.cat([r.Hx for r in rows]).reshape(-1, 3).double(); Rv = torch.cat([r.var for r in rows]).reshape(-1).double()
             H = torch.zeros((len(Hx), 6), dtype=torch.float64, device=Hx.device); H[:, :3] = Hx
@@ -294,8 +368,8 @@ def _trace_final(sj, s_minus, P_minus, P_plus, final, Lam, keep, rig, frame, rgb
             joseph = IKH@Pm@IKH.T+K@torch.diag(Rv)@K.T
             d.update(K=K.tolist(), joseph_P_plus=joseph.tolist(), joseph_vs_information_max_abs=float((joseph-P_plus[pid].double()).abs().max()),
                      rows=[_row_dict(r, i) for r in rows for i in range(len(r.point))])
-            # finite differences of h at the final iterate, same rows
-            cam = torch.cat([r.cam for r in rows]); x = sj[pid, :3].double()
+            # finite differences of h at the linearization state, same rows
+            cam = torch.cat([r.cam for r in rows]); x = state[pid, :3].double()
             fd = torch.zeros((len(cam), 4, 3), dtype=torch.float64, device=x.device); eps = 1e-6
             for a in range(3):
                 dx = torch.zeros(3, dtype=torch.float64, device=x.device); dx[a] = eps

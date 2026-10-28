@@ -1,108 +1,157 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Free __DIRECTION__ 3D</title>
-<style>body{margin:0;font:12px sans-serif;display:flex;height:100vh}#view{flex:1;position:relative}#side{width:390px;overflow:auto;padding:8px;border-left:1px solid #ccc}
-table{border-collapse:collapse}td{padding:1px 4px;border-bottom:1px solid #eee}#errors{color:#c00}.k{color:#666}</style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Free __DIRECTION__ 3D</title>
+<link rel="stylesheet" href="projective_theme.css">
 <script src="three.min.js"></script><script src="projective_common.js"></script></head>
-<body><div id="view"></div><div id="side">
-<h3 id="title">Free pass __DIRECTION__</h3><div id="errors"></div><div id="note" class="k"></div>
-<div>frame <input id="frame" type="range" min="0" value="0" style="width:220px"> <b id="flabel"></b> <button id="play">play</button></div>
-<div>colour <select id="mode"><option value="rgb">canonical RGB</option><option value="status">filter status</option><option value="valid">valid cameras</option>
-<option value="reason">dominant measurement reason</option><option value="info">weak observability (log10 min information eig)</option><option value="speed">speed |v|</option><option value="sigma">position sigma</option></select></div>
-<div><label><input type="checkbox" id="canon" checked>canonical (muted)</label> <label><input type="checkbox" id="pred">predicted</label> <label><input type="checkbox" id="post" checked>posterior</label>
-<label><input type="checkbox" id="cams" checked>cameras</label> <label><input type="checkbox" id="vel">velocity (x0.1 s)</label> <label><input type="checkbox" id="traj" checked>traced trajectories</label> <label><input type="checkbox" id="glyph" checked>2-sigma glyphs</label></div>
-<div id="legend"></div><h4>exact counts at this frame</h4><div id="counts"></div>
-<h4>selected point <input id="pid" size="7" placeholder="point id"></h4><div id="info" class="k">double-click a point (or enter an id)</div></div>
+<body class="app"><div id="app">
+<div id="view"><div id="hud"></div>
+ <div id="bar"><button id="play">play</button><button id="first">|&lt;</button><button id="last">&gt;|</button>
+  <input id="frame" type="range" min="0" value="0" step="1"><span id="flabel"></span>
+  <label class="inline">speed <select id="speed"><option>0.5</option><option selected>1</option><option>2</option><option>4</option></select></label></div></div>
+<div id="side">
+ <h1 id="title">Free pass __DIRECTION__</h1><div id="errors"></div><div id="note" class="note"></div>
+ <h2>Show</h2><div id="toggles"></div>
+ <label>view from <select id="viewfrom" style="flex:1"><option value="-1">free orbit</option></select></label>
+ <label>point size <input id="psize" type="range" min="0.3" max="3" step="0.1" value="1" style="flex:1"></label>
+ <h2>Estimated cloud colour</h2>
+ <select id="mode"><option value="single">single colour</option><option value="disp">displacement from start |x(t) − x(start)|</option>
+  <option value="status">filter status this frame</option><option value="rgb">measured RGB (start frame)</option><option value="valid">valid cameras this frame</option>
+  <option value="speed">speed |v|</option><option value="sigma">position σ</option><option value="info">weakest information direction</option></select>
+ <div id="legend" style="margin-top:6px"></div>
+ <h2>This frame</h2><div id="counts"></div>
+ <details><summary>per-camera measurement reasons</summary><div id="reasons"></div></details>
+ <h2>Tracked points</h2><div class="note" id="tnote"></div>
+ <div style="max-height:220px;overflow-y:auto"><table id="ttab"><thead><tr><th></th><th>id</th><th>|x − x(start)|</th><th>status</th></tr></thead><tbody></tbody></table></div>
+ <h2>Selected point</h2><input id="pid" type="text" size="9" placeholder="point id"><div id="info" class="note">click a row above, double-click a point, or enter an id</div>
+</div></div>
 <script>
 const DIR = '__DIRECTION__', state = {frame: 0, selected: null}; window.__state = state;
-let M, V, objs = {}, cache = {};
-const STATUS = ['#777777', '#1a9850', '#d62728'];
-function hex(c) { const v = parseInt(c.slice(1), 16); return [(v>>16 & 255)/255, (v>>8 & 255)/255, (v & 255)/255]; }
-async function frameData(k) { return cache[k] || (cache[k] = await PD.load(`free_${DIR}_f${String(k).padStart(4, '0')}`)); }
-function drop(n) { if (objs[n]) { V.scene.remove(objs[n]); objs[n] = null; } }
-function colors(F, n) {
-  const mode = document.getElementById('mode').value, out = new Float32Array(3*n), rgb = PD.u8(M.canonical_rgb);
-  const st = PD.u8(F.status), vc = PD.u8(F.valid_cameras), rs = PD.u8(F.reason), inf = PD.f32(F.info_min_log10), vel = PD.f32(F.velocity), sg = PD.f32(F.sigma_mm);
+let M, V, NT = 0, TR = {}, cache = {}, obj = {}, timer = null;
+const GROUP = {core: ['tracked: coherence moving core', PD.C.track], spread: ['tracked: spread over the cloud', PD.C.spread], motion: ['tracked: largest estimated displacement', PD.C.outlier]};
+const show = {start: true, est: true, core: true, spread: true, motion: false, trails: true, pred: false, vel: false, glyph: false, cams: false};
+const TOG = [['start', 'start cloud (measured endpoint, fixed)', '#6e7681'], ['est', 'estimated cloud at this frame', PD.C.est],
+  ['core', GROUP.core[0], GROUP.core[1]], ['spread', GROUP.spread[0], GROUP.spread[1]], ['motion', GROUP.motion[0], GROUP.motion[1]],
+  ['trails', 'trails of tracked points', '#c9d1d9'], ['pred', 'predicted cloud (before the update)', PD.C.pred], ['vel', 'velocity arrows (×0.1 s)', '#39c5cf'],
+  ['glyph', '2σ position ellipses (tracked)', '#db61a2'], ['cams', 'camera frustums', PD.C.cam]];
+const frameData = k => cache[k] || (cache[k] = PD.load(`free_${DIR}_f${String(k).padStart(4, '0')}`));
+const sz = f => V.state.radius*f*(+document.getElementById('psize').value);
+function put(name, o) { if (obj[name]) { V.scene.remove(obj[name]); obj[name].geometry && obj[name].geometry.dispose(); } obj[name] = o; if (o) V.scene.add(o); }
+function tpos(j, k) { const p = TR.posterior; return [p[(j*M.K+k)*3], p[(j*M.K+k)*3+1], p[(j*M.K+k)*3+2]]; }
+function colours(F, n) {
+  const mode = document.getElementById('mode').value, out = new Float32Array(3*n), c0 = PD.f32(M.canonical_xyz), p = PD.f32(F.posterior);
+  const st = PD.u8(F.status), vc = PD.u8(F.valid_cameras), vel = PD.f32(F.velocity), sg = PD.f32(F.sigma_mm), inf = PD.f32(F.info_min_log10), rgb = PD.u8(M.canonical_rgb);
+  const dmax = Math.max(M.displacement_m_quantiles_final[2], 1e-3), est = PD.hex3(PD.C.est), SC = [PD.hex3(PD.C.start), PD.hex3(PD.C.good), PD.hex3(PD.C.outlier)];
   for (let i = 0; i < n; i++) { let c;
-    if (mode === 'rgb') c = [rgb[3*i]/255, rgb[3*i+1]/255, rgb[3*i+2]/255];
-    else if (mode === 'status') c = hex(STATUS[st[i]]);
+    if (mode === 'single') c = est;
+    else if (mode === 'disp') c = PD.viridis(Math.hypot(p[3*i]-c0[3*i], p[3*i+1]-c0[3*i+1], p[3*i+2]-c0[3*i+2])/dmax);
+    else if (mode === 'status') c = SC[st[i]];
+    else if (mode === 'rgb') c = [rgb[3*i]/255, rgb[3*i+1]/255, rgb[3*i+2]/255];
     else if (mode === 'valid') c = PD.viridis(vc[i]/M.cameras.length);
-    else if (mode === 'reason') c = hex(PD.REASON_COLORS[rs[i]]);
-    else if (mode === 'info') c = PD.viridis((inf[i]+2)/10);
-    else if (mode === 'speed') c = PD.viridis(Math.hypot(vel[3*i], vel[3*i+1], vel[3*i+2])/1.0);
-    else c = PD.viridis(Math.log10(Math.max(sg[i], 1e-3))/3+.33);
+    else if (mode === 'speed') c = PD.viridis(Math.hypot(vel[3*i], vel[3*i+1], vel[3*i+2]));
+    else if (mode === 'sigma') c = PD.viridis(Math.log10(Math.max(sg[i], 1e-3))/3+1/3);
+    else c = PD.viridis((inf[i]+2)/10);
     out.set(c, 3*i); }
-  const leg = {rgb: [['#888', 'canonical measured colour']], status: [[STATUS[0], 'anchor'], [STATUS[1], 'measured (>=1 valid row)'], [STATUS[2], 'prediction only']],
-    valid: [['#440154', '0 cameras'], ['#fde725', `${M.cameras.length} cameras`]], reason: Object.entries(M.reasons).map(([k, v]) => [PD.REASON_COLORS[k], v]),
-    info: [['#440154', '<=1e-2 (unobserved direction)'], ['#fde725', '>=1e8']], speed: [['#440154', '0 m/s'], ['#fde725', '>=1 m/s']], sigma: [['#440154', '~0.1 mm'], ['#fde725', '>=100 mm']]}[mode];
-  PD.legend(document.getElementById('legend'), leg);
+  const L = document.getElementById('legend');
+  if (mode === 'single') PD.legend(L, [[PD.C.est, 'estimated position at this frame']]);
+  else if (mode === 'status') PD.legend(L, [[PD.C.start, 'canonical endpoint (no update)'], [PD.C.good, 'measured (≥1 valid row)'], [PD.C.outlier, 'prediction only']]);
+  else if (mode === 'rgb') PD.legend(L, [['#888', 'colour measured at the start frame']]);
+  else PD.colorbar(L, PD.viridis, ...({disp: ['0 m', `${dmax.toFixed(3)} m (98% of final)`], valid: ['0 cameras', `${M.cameras.length}`], speed: ['0 m/s', '≥1 m/s'],
+    sigma: ['0.1 mm', '≥100 mm'], info: ['≤1e-2 (unobserved)', '≥1e8']})[mode]);
   return out;
 }
-function ellipse(P, c, s) {        // 2-sigma principal ellipses of a 3x3 covariance (three great circles)
-  const m = new THREE.Matrix3().set(P[0][0], P[0][1], P[0][2], P[1][0], P[1][1], P[1][2], P[2][0], P[2][1], P[2][2]);
-  // Cholesky-like square root via eigen-free LDL on the small SPD matrix: L L^T = P
+function ellipse(P, c, s) {        // 2-sigma principal circles of a 3x3 covariance (L L^T = P)
   const a = P, L = [[Math.sqrt(Math.max(a[0][0], 0)), 0, 0], [0, 0, 0], [0, 0, 0]];
   L[1][0] = L[0][0] ? a[1][0]/L[0][0] : 0; L[1][1] = Math.sqrt(Math.max(a[1][1]-L[1][0]**2, 0));
   L[2][0] = L[0][0] ? a[2][0]/L[0][0] : 0; L[2][1] = L[1][1] ? (a[2][1]-L[2][0]*L[1][0])/L[1][1] : 0; L[2][2] = Math.sqrt(Math.max(a[2][2]-L[2][0]**2-L[2][1]**2, 0));
   const seg = [];
-  for (const [i, j] of [[0, 1], [1, 2], [0, 2]]) for (let t = 0; t < 36; t++) { const p = [], q = [];
-    for (const [ang, arr] of [[t/36*2*Math.PI, p], [(t+1)/36*2*Math.PI, q]]) { const u = [0, 0, 0]; u[i] = Math.cos(ang)*s; u[j] = Math.sin(ang)*s;
-      for (let r = 0; r < 3; r++) arr.push(c[r]+L[r][0]*u[0]+L[r][1]*u[1]+L[r][2]*u[2]); }
-    seg.push(...p, ...q); }
-  return PD.lines(seg, 0xff00ff);
+  for (const [i, j] of [[0, 1], [1, 2], [0, 2]]) for (let t = 0; t < 36; t++) for (const ang of [t/36*2*Math.PI, (t+1)/36*2*Math.PI]) {
+    const u = [0, 0, 0]; u[i] = Math.cos(ang)*s; u[j] = Math.sin(ang)*s; for (let r = 0; r < 3; r++) seg.push(c[r]+L[r][0]*u[0]+L[r][1]*u[1]+L[r][2]*u[2]); }
+  return seg;
 }
 async function draw() {
-  const k = state.frame, F = await frameData(k), n = M.display_ids.length;
-  document.getElementById('flabel').textContent = `original frame ${M.original_frames[k]} (index ${k}), t=${M.timestamps[k].toFixed(4)} s` + (k === M.canonical_frame ? '  [CANONICAL ENDPOINT]' : '');
-  const col = colors(F, n);
-  ['canon', 'pred', 'post', 'vel', 'traj', 'glyph'].forEach(drop);
-  if (document.getElementById('canon').checked) { const c = new Float32Array(3*n).fill(.82); objs.canon = PD.points(PD.f32(M.canonical_xyz), c, .003); V.scene.add(objs.canon); }
-  if (document.getElementById('pred').checked) { const c = new Float32Array(3*n); for (let i = 0; i < n; i++) c.set([.3, .5, 1], 3*i); objs.pred = PD.points(PD.f32(F.predicted), c, .004); V.scene.add(objs.pred); }
-  if (document.getElementById('post').checked) { objs.post = PD.points(PD.f32(F.posterior), col, .005); V.scene.add(objs.post); }
-  if (document.getElementById('vel').checked) { const p = PD.f32(F.posterior), v = PD.f32(F.velocity), seg = [];
-    for (let i = 0; i < n; i += 25) seg.push(p[3*i], p[3*i+1], p[3*i+2], p[3*i]+.1*v[3*i], p[3*i+1]+.1*v[3*i+1], p[3*i+2]+.1*v[3*i+2]);
-    objs.vel = PD.lines(seg, 0xff7f0e); V.scene.add(objs.vel); }
-  if (document.getElementById('traj').checked) { const seg = [], g = new THREE.Group();
-    for (const [id, t] of Object.entries(M.trajectories)) { const ord = M.processing_order;
-      for (let i = 0; i+1 < ord.length && ord[i+1] !== undefined; i++) { if (ord.indexOf(k) < i+1) break; const a = t.posterior[ord[i]], b = t.posterior[ord[i+1]]; seg.push(...a, ...b); } }
-    objs.traj = PD.lines(seg, 0x000000); V.scene.add(objs.traj); }
-  if (document.getElementById('glyph').checked) { const g = new THREE.Group();
-    for (const [id, t] of Object.entries(M.trajectories)) { const P = (M.glyph_covariance[k] || {})[id] || [[t.var_diag[k][0], 0, 0], [0, t.var_diag[k][1], 0], [0, 0, t.var_diag[k][2]]];
-      g.add(ellipse(P, t.posterior[k], 2)); }
-    objs.glyph = g; V.scene.add(g); }
-  const cnt = M.counts[k]; document.getElementById('counts').innerHTML = cnt.anchor ? 'canonical endpoint: no update' :
-    `<table><tr><td>observed points</td><td>${cnt.observed}</td></tr><tr><td>prediction only</td><td>${cnt.prediction_only}</td></tr><tr><td>accepted rows</td><td>${cnt.rows}</td></tr><tr><td>not converged</td><td>${cnt.not_converged}</td></tr></table>` +
-    '<table><tr><td>camera</td><td>reason counts</td></tr>' + cnt.per_camera.map((r, c) => `<tr><td>${M.cameras[c].name}</td><td>${Object.entries(r).map(([a, b]) => a+':'+b).join(' ')}</td></tr>`).join('') + '</table>';
+  const k = state.frame, F = await frameData(k), n = M.display_ids.length, ord = M.processing_order, step = ord.indexOf(k);
+  document.getElementById('flabel').textContent = `frame ${M.original_frames[k]} · step ${step}/${M.K-1}` + (k === M.canonical_frame ? '  [CANONICAL ENDPOINT]' : '');
+  document.getElementById('hud').innerHTML = `${M.pass} ${DIR} · frame ${M.original_frames[k]} · t ${M.timestamps[k].toFixed(3)} s` + (k === M.canonical_frame ? ' · <b>start (canonical endpoint)</b>' : '');
+  put('start', show.start ? PD.points(PD.f32(M.canonical_xyz), '#565e69', sz(.02)) : null);
+  put('est', show.est ? PD.points(PD.f32(F.posterior), colours(F, n), sz(.011)) : null);
+  put('pred', show.pred ? PD.points(PD.f32(F.predicted), PD.C.pred, sz(.009), .6) : null);
+  if (show.vel) { const p = PD.f32(F.posterior), v = PD.f32(F.velocity), seg = [];
+    for (let i = 0; i < n; i += 20) seg.push(p[3*i], p[3*i+1], p[3*i+2], p[3*i]+.1*v[3*i], p[3*i+1]+.1*v[3*i+1], p[3*i+2]+.1*v[3*i+2]);
+    put('vel', PD.lines(seg, 0x39c5cf, .7)); } else put('vel', null);
+  // tracked points: trail along the processing order up to this frame, marker at this frame (faded when prediction-only)
+  const trail = {}, mk = {}, mkp = {}, gl = [];
+  for (let j = 0; j < NT; j++) { const g = M.tracked.group[j]; if (!show[g]) continue;
+    (trail[g] = trail[g] || []); (mk[g] = mk[g] || []); (mkp[g] = mkp[g] || []);
+    for (let s = 1; s <= step; s++) trail[g].push(...tpos(j, ord[s-1]), ...tpos(j, ord[s]));
+    (TR.status[j*M.K+k] === 2 ? mkp[g] : mk[g]).push(...tpos(j, k));
+    if (show.glyph) { const vd = [0, 1, 2].map(a => TR.var_diag[(j*M.K+k)*3+a]), G = (M.glyph_covariance[k] || {})[M.tracked.ids[j]];
+      gl.push(...ellipse(G || [[vd[0], 0, 0], [0, vd[1], 0], [0, 0, vd[2]]], tpos(j, k), 2)); } }
+  for (const g of Object.keys(GROUP)) { const col = GROUP[g][1];
+    put('trail_'+g, show.trails && trail[g] && trail[g].length ? PD.lines(trail[g], parseInt(col.slice(1), 16), .75) : null);
+    put('mk_'+g, mk[g] && mk[g].length ? PD.points(mk[g], col, sz(.06)) : null);
+    put('mkp_'+g, mkp[g] && mkp[g].length ? PD.points(mkp[g], col, sz(.06), .35) : null); }
+  put('glyph', gl.length ? PD.lines(gl, 0xdb61a2, .8) : null);
+  if (obj.cams) obj.cams.visible = show.cams;
+  const cnt = M.counts[k];
+  PD.rows(document.getElementById('counts'), cnt.anchor ? [['update', 'canonical endpoint: none'], ['points', M.N]] :
+    [['observed points', cnt.observed], ['prediction only', cnt.prediction_only], ['accepted rows', cnt.rows], ['not converged', cnt.not_converged], ['points (exact, all)', M.N]]);
+  document.getElementById('reasons').innerHTML = cnt.anchor ? '' : '<table><tr><th>camera</th><th>valid</th><th>other reasons</th></tr>' + cnt.per_camera.map((r, c) =>
+    `<tr><td>${M.cameras[c].name}</td><td>${r.VALID || 0}</td><td>${Object.entries(r).filter(([a]) => a !== 'VALID').map(([a, b]) => `${a.toLowerCase()} ${b}`).join(', ')}</td></tr>`).join('') + '</table>';
+  document.querySelectorAll('#ttab tbody tr').forEach(tr => { const j = +tr.dataset.j, x = tpos(j, k), x0 = tpos(j, M.canonical_frame);
+    tr.children[2].textContent = Math.hypot(x[0]-x0[0], x[1]-x0[1], x[2]-x0[2]).toFixed(4); const s = TR.status[j*M.K+k];
+    tr.children[3].innerHTML = s === 0 ? 'start' : s === 1 ? '<span class="good">measured</span>' : '<span class="warn">pred. only</span>';
+    tr.classList.toggle('sel', M.tracked.ids[j] === state.selected); });
   state.posterior = PD.f32(F.posterior); state.drawn_frame = k; info();
 }
 function info() {
-  const id = state.selected; if (id === null) return;
-  const t = M.trajectories[id], k = state.frame, el = document.getElementById('info');
-  if (t) { el.innerHTML = `<b>point ${id}</b> (traced) source (frame,camera,pixel) ${t.source}<br>posterior x ${t.posterior[k].map(v => v.toFixed(5))}<br>predicted x ${t.predicted[k].map(v => v.toFixed(5))}<br>v ${t.velocity[k].map(v => v.toFixed(4))} m/s<br>diag P_xx ${t.var_diag[k].map(v => v.toExponential(2))}<br>status ${['anchor', 'measured', 'prediction only'][t.status[k]]}`; return; }
-  const j = M.display_ids.indexOf(id); if (j < 0) { el.textContent = `point ${id} is not in the displayed subset`; return; }
-  frameData(k).then(F => { const p = PD.f32(F.posterior), v = PD.f32(F.velocity), st = PD.u8(F.status), vc = PD.u8(F.valid_cameras), r = PD.u8(F.reason);
-    el.innerHTML = `<b>point ${id}</b><br>posterior x ${[0, 1, 2].map(a => p[3*j+a].toFixed(5))}<br>v ${[0, 1, 2].map(a => v[3*j+a].toFixed(4))} m/s<br>status ${['anchor', 'measured', 'prediction only'][st[j]]}, valid cameras ${vc[j]}, dominant reason ${M.reasons[r[j]]}`; });
+  const id = state.selected, el = document.getElementById('info'); if (id === null) return;
+  const k = state.frame, j = M.tracked.ids.indexOf(id), f = v => v.toFixed(5);
+  if (j >= 0) { const x = tpos(j, k), x0 = tpos(j, M.canonical_frame), pr = [0, 1, 2].map(a => TR.predicted[(j*M.K+k)*3+a]), v = [0, 1, 2].map(a => TR.velocity[(j*M.K+k)*3+a]),
+      sd = [0, 1, 2].map(a => 1e3*Math.sqrt(Math.max(TR.var_diag[(j*M.K+k)*3+a], 0)));
+    PD.rows(el, [['point', `${id} (${GROUP[M.tracked.group[j]][0].replace('tracked: ', '')})`], ['x(start)', x0.map(f).join(', ')], ['x(t) posterior', x.map(f).join(', ')],
+      ['x(t) predicted', pr.map(f).join(', ')], ['|x(t) − x(start)| (m)', Math.hypot(x[0]-x0[0], x[1]-x0[1], x[2]-x0[2]).toFixed(4)], ['v (m/s)', v.map(a => a.toFixed(4)).join(', ')],
+      ['σ x,y,z (mm)', sd.map(a => a.toFixed(2)).join(', ')], ['status', ['start', 'measured', 'prediction only'][TR.status[j*M.K+k]]], ['valid cameras', TR.valid_cameras[j*M.K+k]]]); return; }
+  const i = M.display_ids.indexOf(id); if (i < 0) { el.textContent = `point ${id} is not in the displayed subset`; return; }
+  frameData(k).then(F => { const p = PD.f32(F.posterior), v = PD.f32(F.velocity), st = PD.u8(F.status), vc = PD.u8(F.valid_cameras), r = PD.u8(F.reason), c0 = PD.f32(M.canonical_xyz);
+    PD.rows(el, [['point', id], ['x(start)', [0, 1, 2].map(a => f(c0[3*i+a])).join(', ')], ['x(t) posterior', [0, 1, 2].map(a => f(p[3*i+a])).join(', ')],
+      ['v (m/s)', [0, 1, 2].map(a => v[3*i+a].toFixed(4)).join(', ')], ['status', ['start', 'measured', 'prediction only'][st[i]]], ['valid cameras', vc[i]], ['dominant reason', M.reasons[r[i]]]]); });
 }
 function pick(ev) {
-  if (!state.posterior) return; const rect = V.renderer.domElement.getBoundingClientRect(), p = state.posterior; let best = null, bd = 64;
-  const v = new THREE.Vector3();
+  if (!state.posterior) return; const rect = V.renderer.domElement.getBoundingClientRect(), p = state.posterior, v = new THREE.Vector3(); let best = null, bd = 64;
   for (let i = 0; i < M.display_ids.length; i++) { v.set(p[3*i], p[3*i+1], p[3*i+2]).project(V.camera);
-    const x = (v.x+1)/2*rect.width, y = (1-v.y)/2*rect.height, d = (x-(ev.clientX-rect.left))**2+(y-(ev.clientY-rect.top))**2; if (d < bd) { bd = d; best = M.display_ids[i]; } }
-  if (best !== null) { state.selected = best; document.getElementById('pid').value = best; info(); }
+    const d = ((v.x+1)/2*rect.width-(ev.clientX-rect.left))**2+((1-v.y)/2*rect.height-(ev.clientY-rect.top))**2; if (d < bd) { bd = d; best = M.display_ids[i]; } }
+  if (best !== null) { state.selected = best; document.getElementById('pid').value = best; draw(); }
 }
 (async () => {
   M = await PD.load(`free_${DIR}_meta`); V = PD.viewer(document.getElementById('view'));
+  NT = M.tracked.ids.length; TR = {posterior: PD.f32(M.tracked.posterior), predicted: PD.f32(M.tracked.predicted), velocity: PD.f32(M.tracked.velocity),
+    var_diag: PD.f32(M.tracked.var_diag), status: PD.u8(M.tracked.status), valid_cameras: PD.u8(M.tracked.valid_cameras)};
+  document.getElementById('title').textContent = `Free pass ${M.pass} ${DIR}`;
   document.getElementById('note').textContent = M.note + ` | ${M.N} points, ${M.display_ids.length} displayed (deterministic subset; counts are exact)`;
-  M.cameras.forEach(c => V.scene.add(PD.frustum(c, .2)));
-  V.scene.add(PD.axes([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]], .2));
+  const gc = g => M.tracked.group.filter(x => x === g).length;
+  document.getElementById('tnote').textContent = `${NT} points, chosen from estimates only: ${gc('core')} spread over the coherence moving core, ${gc('spread')} spread over the cloud, ${gc('motion')} among the 2% largest final displacements. Faded marker = prediction only at this frame.`;
+  const tg = document.getElementById('toggles');
+  TOG.forEach(([key, text, col]) => { if (GROUP[key] && !gc(key)) return;
+    tg.insertAdjacentHTML('beforeend', `<label><input type="checkbox" data-k="${key}" ${show[key] ? 'checked' : ''}><span class="sw" style="background:${col}"></span>${text}</label>`); });
+  tg.querySelectorAll('input').forEach(e => e.onchange = () => { show[e.dataset.k] = e.checked; draw(); });
+  document.querySelector('#ttab tbody').innerHTML = M.tracked.ids.map((id, j) => `<tr class="click" data-j="${j}"><td><span class="sw" style="background:${GROUP[M.tracked.group[j]][1]}"></span></td><td>${id}</td><td></td><td></td></tr>`).join('');
+  document.querySelectorAll('#ttab tbody tr').forEach(tr => tr.onclick = () => { state.selected = M.tracked.ids[+tr.dataset.j]; document.getElementById('pid').value = state.selected; draw(); });
+  const cams = new THREE.Group(); M.cameras.forEach(c => cams.add(PD.frustum(c, .2))); cams.visible = show.cams; V.scene.add(cams); obj.cams = cams;
   V.fit(PD.f32(M.canonical_xyz));
+  const vf = document.getElementById('viewfrom'); M.cameras.forEach((c, i) => vf.add(new Option(c.name, i)));
+  vf.onchange = () => { if (+vf.value >= 0) V.lookFrom(M.cameras[+vf.value]); }; vf.value = 0; vf.onchange();
   const fr = document.getElementById('frame'); fr.max = M.K-1;
+  // the slider runs in ORIGINAL chronological frame index; the filter processed the frames in M.processing_order
   const k0 = +PD.param('frame', M.canonical_frame); fr.value = k0; state.frame = k0;
   const sel = PD.param('point', null); if (sel !== null) state.selected = +sel;
   fr.oninput = () => { state.frame = +fr.value; draw(); };
-  document.querySelectorAll('input[type=checkbox],select').forEach(e => e.onchange = draw);
-  document.getElementById('pid').onchange = e => { state.selected = +e.target.value; info(); };
-  let timer = null; document.getElementById('play').onclick = () => { if (timer) { clearInterval(timer); timer = null; return; }
-    timer = setInterval(() => { fr.value = (+fr.value+1) % M.K; fr.oninput(); }, 400); };
+  document.getElementById('mode').onchange = draw; document.getElementById('psize').oninput = draw;
+  document.getElementById('first').onclick = () => { fr.value = M.processing_order[0]; fr.oninput(); };
+  document.getElementById('last').onclick = () => { fr.value = M.processing_order[M.K-1]; fr.oninput(); };
+  document.getElementById('pid').onchange = e => { state.selected = +e.target.value; draw(); };
+  const play = document.getElementById('play');
+  play.onclick = () => { if (timer) { clearInterval(timer); timer = null; play.textContent = 'play'; return; } play.textContent = 'pause';
+    const tick = () => { const o = M.processing_order, s = o.indexOf(state.frame); fr.value = o[(s+1) % M.K]; fr.oninput(); };
+    timer = setInterval(tick, 150/(+document.getElementById('speed').value)); };
   V.renderer.domElement.addEventListener('dblclick', pick);
   window.addEventListener('hashchange', () => { const p = PD.param('point', null), f = PD.param('frame', null); if (f !== null) { fr.value = +f; state.frame = +f; } if (p !== null) state.selected = +p; draw(); });
   await draw(); state.ready = true;

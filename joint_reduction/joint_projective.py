@@ -148,16 +148,17 @@ def q_filter(dataset, config, policy, rig, noise, kind, axis, point, core_p, cor
         Lam = torch.linalg.inv(P_m); Lam = (Lam+Lam.T)/2
         frame = MeasuredFrame(dataset, k, device)
         sj = s_m.clone(); conv = False
+        x_prior = positions(s_m[0])[0]                          # row gate on the prior-linearized innovation
         for j in range(max_iters):
             x, G = positions(sj[0])
-            m = chain_measurement(rig, frame, noise, policy, x, G, P_m[:1, :1], core_rgb, occ_p, occ_cov)
+            m = chain_measurement(rig, frame, noise, policy, x, G, P_m[:1, :1], core_rgb, occ_p, occ_cov, dx=x-x_prior)
             A = Lam.clone(); A[0, 0] += m['I'][0, 0]
             b = -(Lam@(sj-s_m)); b[0] += m['g'][0]
             delta = torch.linalg.solve(A, b); step = float(delta@b)
             sj = sj+delta
             if step < tol: conv = True; break
         x, G = positions(sj[0])
-        m = chain_measurement(rig, frame, noise, policy, x, G, P_m[:1, :1], core_rgb, occ_p, occ_cov)
+        m = chain_measurement(rig, frame, noise, policy, x, G, P_m[:1, :1], core_rgb, occ_p, occ_cov, dx=x-x_prior)
         A = Lam.clone(); A[0, 0] += m['I'][0, 0]
         if m['rows'] > 0: s, P = sj, torch.linalg.inv(A)
         else: s, P = s_m, P_m

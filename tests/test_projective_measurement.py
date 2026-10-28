@@ -1,13 +1,14 @@
 """Gate A (measurement): measured-image sampling against an independent oracle, the complete 4x6 H against finite
 differences, the sign r = -h, and strict validity (mask, invalid depth, FOV, behind camera, depth breaks, duplicate
-pixels, self-occlusion, external occlusion, a missing camera)."""
+pixels, self-occlusion, external occlusion, a missing camera), non-finite neighbours, and the row innovation gate on
+the prior-linearized innovation (audit 2026-10-28 items 4, 5, 7)."""
 import unittest
 import numpy as np
 import torch
 from tests.projective_fixtures import camera, rot, smooth_field, noise, POLICY, DEVICES, FieldDataset
 from estimator.projective_camera import CameraRig
 from estimator.projective_sensor import MeasuredFrame, sample, sample_cpu_oracle, CODE
-from estimator.projective_terms import build_terms, h_value
+from estimator.projective_terms import build_terms, h_value, row_gate_threshold
 from estimator.projective_visibility import visibility, position_sigma_z2
 
 
@@ -67,10 +68,13 @@ class JacobianTest(unittest.TestCase):
             x0 = on_surface(rig, uv, smooth_field())
             x0 = x0+torch.as_tensor(g.normal(0, .003, (40, 3)), device=dev)
             rgb0 = torch.as_tensor(g.uniform(.2, .8, (40, 3)), device=dev)
+            # arbitrary colours give non-zero residuals for r = -h; they are inconsistent with the image by construction,
+            # so this test of H (not of row admission) runs with the occlusion-only rule
+            pol = {**POLICY, 'row_innovation_gate': 'depth_front_only'}
             for c in range(2):
                 cam = torch.full((40,), c, device=dev)
                 t = build_terms(rig, frame, cam, torch.arange(40, device=dev), x0, rgb0, torch.eye(3, dtype=torch.float64, device=dev).expand(40, 3, 3),
-                                noise(dev), POLICY)
+                                noise(dev), pol)
                 h, ok = h_value(rig, frame, cam, x0, rgb0, noise(dev), POLICY)
                 use = t.valid() & ok
                 self.assertGreater(int(use.sum()), 20)
@@ -110,19 +114,78 @@ class VisibilityTest(unittest.TestCase):
         t = build_terms(rig, frame, torch.zeros(5, dtype=torch.long), torch.arange(5), x, torch.full((5, 3), .5, dtype=torch.float64), Sx, noise(), POLICY)
         # point 4 is 7 m behind the measured surface (~2 m): the measured surface is in front -> no update, reported
         self.assertEqual(int(t.reason[4]), CODE['MEASURED_SURFACE_IN_FRONT'])
-        # point 3 floats 1 m in front of the surface: not an occlusion (motion signal), kept
-        self.assertEqual(int(t.reason[3]), CODE['VALID'])
+        # point 3 floats 1 m in front of the surface: not an occlusion, and 1 m is ~1000 sigma of its prior: the sampled
+        # pixel is not its surface (audit item 4: the earlier one-sided rule admitted it as "motion")
+        self.assertEqual(int(t.reason[3]), CODE['INNOVATION_INCONSISTENT'])
+        legacy = build_terms(rig, frame, torch.zeros(5, dtype=torch.long), torch.arange(5), x, torch.full((5, 3), .5, dtype=torch.float64), Sx, noise(),
+                             {**POLICY, 'row_innovation_gate': 'depth_front_only'})
+        self.assertEqual(int(legacy.reason[3]), CODE['VALID'])
+        self.assertEqual(int(legacy.reason[4]), CODE['MEASURED_SURFACE_IN_FRONT'])
 
     def test_missing_camera_gives_no_rows(self):
         rgb, depth, mask = smooth_field()
         cams = [camera('a', np.eye(3), np.zeros(3)), camera('b', np.eye(3), np.zeros(3))]
         ds = FieldDataset(cams, [[(rgb, depth, mask), (rgb, np.zeros_like(depth), np.zeros_like(mask))]])
         rig, frame = CameraRig(cams, 'cpu'), MeasuredFrame(ds, 0, 'cpu', torch.float64)
-        x = on_surface(rig, [[30.2, 30.3], [50.4, 40.1], [60.3, 20.6]], (rgb, depth, mask))
+        uv = [[30.2, 30.3], [50.4, 40.1], [60.3, 20.6]]
+        x = on_surface(rig, uv, (rgb, depth, mask))
+        rgb0 = torch.as_tensor(np.array([sample_cpu_oracle(rgb, depth, mask, u, v)['rgb'] for u, v in uv]))     # the measured colour of the point
         for c, expect in ((0, CODE['VALID']), (1, CODE['MASK_EXCLUDED'])):
-            t = build_terms(rig, frame, torch.full((3,), c), torch.arange(3), x, torch.full((3, 3), .5, dtype=torch.float64),
+            t = build_terms(rig, frame, torch.full((3,), c), torch.arange(3), x, rgb0,
                             torch.eye(3, dtype=torch.float64).expand(3, 3, 3)*1e-6, noise(), POLICY)
             self.assertTrue(bool((t.reason == expect).all()))
+
+
+class RowGateTest(unittest.TestCase):
+    """Row admission on nu = r + H dx, S = H Sigma H^T + R (projective_terms): both depth signs, colour, the iterate."""
+    def rows(self, dz, drgb=0., sig=1e-3, dx=None, gate='rgbd_chi2'):
+        field = smooth_field()
+        _, rig, frame = setup('cpu', field)
+        uv = [[30.3, 30.2], [50.1, 20.7], [60.6, 40.4]]
+        x = on_surface(rig, uv, field)
+        ray = x/x.norm(dim=1, keepdim=True)                     # camera at the origin: moving along the ray changes Z only
+        rgb0 = torch.as_tensor(np.array([sample_cpu_oracle(*field, u, v)['rgb'] for u, v in uv]))+drgb
+        Sx = torch.eye(3, dtype=torch.float64).expand(3, 3, 3)*sig**2
+        return build_terms(rig, frame, torch.zeros(3, dtype=torch.long), torch.arange(3), x+dz*ray, rgb0, Sx, noise(), {**POLICY, 'row_innovation_gate': gate},
+                           dx=None if dx is None else dx*ray)
+
+    def test_consistent_rows_pass_and_both_depth_signs_are_gated(self):
+        self.assertTrue(bool(self.rows(0.).valid().all()))
+        self.assertTrue(bool((self.rows(-.05).reason == CODE['INNOVATION_INCONSISTENT']).all()))      # floats 5 cm in front of its surface
+        self.assertTrue(bool((self.rows(+.05).reason == CODE['MEASURED_SURFACE_IN_FRONT']).all()))    # behind the measured surface
+        self.assertTrue(bool((self.rows(-.05, gate='depth_two_sided').reason == CODE['INNOVATION_INCONSISTENT']).all()))
+        self.assertTrue(bool(self.rows(-.05, gate='depth_front_only').valid().all()))                    # the earlier rule
+
+    def test_colour_identity_and_prior_uncertainty(self):
+        self.assertTrue(bool((self.rows(0., drgb=.3).reason == CODE['INNOVATION_INCONSISTENT']).all()))   # same depth, other colour
+        self.assertTrue(bool(self.rows(0., drgb=.3, gate='depth_two_sided').valid().all()))
+        self.assertTrue(bool(self.rows(-.05, sig=.05).valid().all()))      # 5 cm is 1 sigma of a 5 cm prior: a legitimate motion passes
+        t = self.rows(0.)
+        self.assertTrue(bool((t.nis < row_gate_threshold(POLICY)).all()))
+
+    def test_gate_uses_the_prior_linearized_innovation(self):
+        # an iterate 5 cm off the prior along the ray whose sample matches: r = 0 there, but nu = r + H dx is the 5 cm the
+        # update had to explain, which a 1 mm prior does not allow
+        self.assertTrue(bool(self.rows(0.).valid().all()))
+        self.assertTrue(bool((self.rows(0., dx=.05).reason != CODE['VALID']).all()))
+        self.assertTrue(bool(self.rows(0., dx=.05, sig=.05).valid().all()))
+
+
+class NonFiniteTest(unittest.TestCase):
+    """Audit item 7: NaN / inf pixels (raw invalid or not) never reach a VALID row and never poison the sums."""
+    def test_nan_neighbours_are_invalid_and_rows_are_finite(self):
+        rgb, depth, mask = smooth_field()
+        depth = depth.copy(); rgb = rgb.copy()
+        depth[30, 30] = np.nan; depth[40, 50] = np.inf; rgb[20, 60, 1] = np.nan
+        ds = FieldDataset([camera('a', np.eye(3), np.zeros(3))], [[(rgb, depth, mask)]])
+        rig, frame = CameraRig(ds.cameras, 'cpu'), MeasuredFrame(ds, 0, 'cpu', torch.float64)
+        frame.raw_valid[:] = True                                   # a dataset whose validity map does not flag them
+        uv = torch.tensor([[29.6, 29.7], [49.5, 39.4], [59.5, 19.5], [70.2, 50.3]], dtype=torch.float64)
+        s = sample(frame, torch.zeros(4, dtype=torch.long), uv, noise(), POLICY, rig.K)
+        self.assertEqual([int(r) for r in s.reason[:3]], [CODE['INVALID_DEPTH']]*3)
+        self.assertEqual(int(s.reason[3]), CODE['VALID'])
+        for v in (s.rgb, s.depth, s.grad_rgb, s.grad_depth, s.var_rgb, s.var_depth):
+            self.assertTrue(bool(torch.isfinite(v).all()))
 
 
 if __name__ == '__main__':

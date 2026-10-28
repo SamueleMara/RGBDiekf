@@ -32,9 +32,10 @@ from utils.run_paths import stage_dir
 RESULTS_ROOT = Path('/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf')   # results and debug live here, never in the code tree
 
 INFERENCE = ['free', 'coherence', 'rigid', 'joint', 'support']
+ORDER = INFERENCE+['debug']
 STAGE_SOURCES = {
     'free': ['scene/dataset.py', 'scene/dataloader.py', 'scene/timing.py', 'scene/camera.py', 'scene/config.py', 'scene/noise.py', 'scene/endpoint.py',
-             'scene/canonical_subsample.py', 'estimator/projective_camera.py', 'estimator/projective_sensor.py', 'estimator/projective_visibility.py',
+             'scene/canonical_subsample.py', 'scene/noise_calibration.py', 'estimator/projective_camera.py', 'estimator/projective_sensor.py', 'estimator/projective_visibility.py',
              'estimator/projective_terms.py', 'estimator/point_kalman_cuda.py', 'estimator/free_projective_run.py', 'configs/projective_rgbd.json'],
     'coherence': ['estimator/projective_coherence.py', 'estimator/motion_coherence_support.py', 'estimator/supported_coherence.py',
                   'rigeuler_ref/coherence_extraction.py', 'rigeuler_ref/motion_coherence_support.py'],
@@ -59,9 +60,18 @@ def parse(argv=None):
     io.add_argument('--device', choices=['cuda', 'cpu'], default='cuda')
     io.add_argument('--fps', type=float); io.add_argument('--timestamps-file', type=Path); io.add_argument('--dt-seconds', type=float)
     io.add_argument('--noise-config', type=Path, help='declared RGB/depth/process noise (default configs/example_uncalibrated.json, UNCALIBRATED)')
+    io.add_argument('--sensor-noise', choices=['measured', 'config'], default='measured',
+                    help='measured (default): R (RGB / depth sensor noise and model mismatch) measured from this scene\'s own frames, scene/noise_calibration.py, '
+                         'written to noise_calibration.json; config: the --noise-config values and the policy model variances')
+    io.add_argument('--velocity-prior-speed99', type=float, metavar='M_PER_S',
+                    help='DECLARED physical speed (m/s) enclosing 99%% of the expected point speeds of this acquisition: free-pass initial P_vv = (v99/3.368)^2 I '
+                         '(default: the --noise-config initial_twist_covariance, 1 (m/s)^2 per axis = v99 3.37 m/s). Not inferred from data or ground truth.')
+    io.add_argument('--policy-override', nargs='*', default=[], metavar='KEY=VALUE',
+                    help='override configs/projective_rgbd.json keys for an ablation, e.g. update_acceptance=final_iterate row_innovation_gate=depth_front_only')
     st = ap.add_argument_group('stages')
     st.add_argument('--direction', choices=['forward', 'backward', 'both'], default='both')
-    st.add_argument('--stage', choices=INFERENCE+['all'], default='all', help='first stage to compute (earlier ones from --resume-from)')
+    st.add_argument('--stage', choices=INFERENCE+['debug', 'all'], default='all',
+                    help='first stage to compute (earlier ones from --resume-from); debug = reuse every inference stage, rebuild debug pages, evaluation and QA')
     st.add_argument('--stop-after', choices=INFERENCE, default='support')
     st.add_argument('--resume-from', type=Path, help='completed earlier run: stages before --stage are reused read-only after hash checks')
     st.add_argument('--no-evaluate', action='store_true', help='skip the ground-truth evaluation (separate process)')
@@ -97,7 +107,7 @@ def parse(argv=None):
     if a.cuda_backend == 'triton': ap.error('--cuda-backend triton is not implemented; the verified implementation is the PyTorch CUDA reference')
     if a.pcd_subsample_factor < 1: ap.error('--pcd-subsample-factor must be >= 1')
     if a.stage != 'all' and a.stage != 'free' and a.resume_from is None: ap.error('--stage after free needs --resume-from')
-    if a.stage not in ('all',) and INFERENCE.index(a.stage) > INFERENCE.index(a.stop_after): ap.error('--stage is after --stop-after')
+    if a.stage not in ('all', 'debug') and INFERENCE.index(a.stage) > INFERENCE.index(a.stop_after): ap.error('--stage is after --stop-after')
     return ap, a
 
 
@@ -113,6 +123,8 @@ def run_root(a, argv):
     scenes = sorted(p for p in a.scene.iterdir() if p.is_dir() and is_scene(p))
     if not scenes: raise SystemExit(f'{a.scene}: neither a scene (rgb/ + metadata/) nor a folder of scenes')
     a.output.mkdir(parents=True, exist_ok=True)
+    sel = [sc.name for sc in scenes if not ((a.only and sc.name not in a.only) or sc.name in a.exclude)]
+    (a.output/'batch.json').write_text(json.dumps({'dataset_root': str(a.scene), 'scenes': sel, 'started': time.strftime('%Y-%m-%d %H:%M:%S')}, indent=1))   # read by tools/run_status.py
     keep, drop = [], False
     for x in argv:
         if x.startswith('--'): drop = x.split('=')[0] in ('--scene', '--input', '--output', '--only', '--exclude')
@@ -161,10 +173,30 @@ def run_scene(ap, a):
         from scene.config import load_config
         from utils.io import json_write, serial
         policy = json.loads((REPO/'configs/projective_rgbd.json').read_text())
+        for kv in a.policy_override:
+            key, _, val = kv.partition('=')
+            if key not in policy: ap.error(f'--policy-override: unknown key {key!r} (configs/projective_rgbd.json)')
+            try: policy[key] = json.loads(val)
+            except json.JSONDecodeError: policy[key] = val
         alpha = float(json.loads((REPO/'configs/image_joint_policy.json').read_text())['tail_probability'])
         max_iters = a.max_iekf_iters or int(policy['max_iekf_iters'])
         data = Dataset(a.scene, a.frame_limit, None, fps=a.fps, dt_seconds=a.dt_seconds, timestamps_file=a.timestamps_file)
         config = load_config(a.noise_config)
+        if a.velocity_prior_speed99 is not None:
+            from scene.noise_calibration import velocity_prior
+            config.velocity_covariance, sv = velocity_prior(a.velocity_prior_speed99)
+            config.provenance['velocity_covariance'] = {'source_file': '--velocity-prior-speed99', 'units': 'm^2/s^2', 'value': config.velocity_covariance.tolist(),
+                                                        'class': 'explicit-user-assumption', 'declared_speed99_m_s': a.velocity_prior_speed99, 'sigma_v_m_s': sv,
+                                                        'derivation': 'sigma_v = v99 / sqrt(chi2_3(0.99))'}
+        if a.sensor_noise == 'measured':
+            from scene.noise_calibration import calibrate
+            t0 = time.time()
+            config, policy, calib = calibrate(data, config, policy, a.device)
+            calib['seconds'] = time.time()-t0
+            json_write(root/'noise_calibration.json', serial(calib))
+            print(f"[noise] measured R: rgb var {[f'{v:.2e}' for v in calib['result']['rgb_variance']]} + model {calib['result']['rgb_model_variance']:.2e}, "
+                  f"depth var {calib['result']['depth_variance_m2']:.2e} + {calib['result']['depth_squared_variance']:.2e} z^2 + model {calib['result']['depth_model_variance_m2']:.2e} "
+                  f"({calib['seconds']:.0f} s)", flush=True)
         K = len(data.times)
         debug_frames = sorted(set(a.debug_frames if a.debug_frames is not None else [0, 1, 2, 5, 10, K-1]) & set(range(K)))
         directions = ['forward', 'backward'] if a.direction == 'both' else [a.direction]
@@ -176,6 +208,7 @@ def run_scene(ap, a):
                     'contract': 'CODEX_RGBD_FOUR_PASS_PROJECTIVE_IEKF_CUDA_SUBSAMPLING_2026-10-27.md',
                     'arguments': {k: (str(v) if isinstance(v, Path) else v) for k, v in vars(a).items()},
                     'dataset': data.manifest(), 'cameras': rig.manifest(), 'noise': config.manifest(), 'policy': policy, 'alpha': alpha,
+                    'noise_calibration': 'noise_calibration.json' if a.sensor_noise == 'measured' else None,
                     'subsample': sub, 'source_hashes': source_hashes(), 'git_commit': git_commit(), 'debug_frames': debug_frames,
                     'ground_truth_used_in_inference': False, 'correspondences_used': False, 'renderer_used': False,
                     'hardware': {'torch': torch.__version__, 'cuda': torch.version.cuda,
@@ -184,7 +217,7 @@ def run_scene(ap, a):
         reused, folders = check_resume(a, manifest, first, directions) if a.resume_from else ([], [])
         manifest['reused_stages'] = {'from': str(a.resume_from.resolve()) if a.resume_from else None, 'stages': reused, 'folders': folders}
         json_write(root/'run_manifest.json', serial(manifest))
-        want = lambda s: INFERENCE.index(s) >= INFERENCE.index(first) and INFERENCE.index(s) <= INFERENCE.index(a.stop_after)
+        want = lambda s: ORDER.index(s) >= ORDER.index(first) and INFERENCE.index(s) <= INFERENCE.index(a.stop_after)
         report = progress_line
         # ---- F1 / B1
         from estimator.free_projective_run import run_free
@@ -238,9 +271,11 @@ def run_scene(ap, a):
         if INFERENCE.index(a.stop_after) >= 4:
             from joint_reduction.support_projective import run_support
             for d in directions:
-                t0 = time.time()
-                stages[f'support_{d}'] = run_support(data, config, policy, stage_dir(root, f'free_{d}'), stage_dir(root, f'rigid_{d}'), joints.get(d, {}), root/'joint'/d/'support', alpha, a.device)
-                timings[f'support_{d}'] = time.time()-t0
+                if want('support'):
+                    t0 = time.time()
+                    stages[f'support_{d}'] = run_support(data, config, policy, stage_dir(root, f'free_{d}'), stage_dir(root, f'rigid_{d}'), joints.get(d, {}), root/'joint'/d/'support', alpha, a.device)
+                    timings[f'support_{d}'] = time.time()-t0
+                else: stages[f'support_{d}'] = json.loads((a.resume_from.resolve()/'result.json').read_text())['stages'].get(f'support_{d}')
                 print(f'[support {d}] {stages[f"support_{d}"]["status"]}', flush=True)
         # ---- performance summary, debug, evaluation, QA
         write_performance(root, directions, timings)
@@ -318,14 +353,15 @@ def check_resume(a, manifest, first, directions):
     norm = lambda v: json.loads(json.dumps(v, default=str))
     for key in ('dataset', 'cameras', 'noise', 'policy', 'subsample'):
         if norm(old.get(key)) != norm(manifest[key]): raise ValueError(f'Rejected resume: {key} differs')
-    stages = INFERENCE[:INFERENCE.index(first)]
+    stages = ORDER[:ORDER.index(first)]
     for s in stages:
         for f in STAGE_SOURCES[s]:
             if old['source_hashes'].get(f) != manifest['source_hashes'][f]: raise ValueError(f'Rejected resume: {f} changed since stage {s} ran')
     reused = []
     for s in stages:
         folders = {'free': [f'free_{d}' for d in directions], 'coherence': [f'coherence_{d}' for d in directions],
-                   'rigid': [f'rigid_{d}' for d in directions], 'joint': [f'joint/{d}' for d in directions], 'support': []}[s]
+                   'rigid': [f'rigid_{d}' for d in directions], 'joint': [f'joint/{d}' for d in directions],
+                   'support': [f'joint/{d}/support' for d in directions if (src/'joint'/d/'support').exists()]}[s]   # support is skipped without an accepted joint
         for f in folders:
             if not (src/f).exists(): raise ValueError(f'Rejected resume: {src/f} missing')
             reused.append(f)

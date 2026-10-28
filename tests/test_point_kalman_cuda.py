@@ -1,5 +1,6 @@
 """Gate B: the free 6D IEKF is a Kalman filter. Dense textbook K / information-form / Joseph equality, signed-time
-F and Q, prediction-only points, textureless unobservability, independence of points, CPU vs CUDA."""
+F and Q, prediction-only points, textureless unobservability, independence of points, CPU vs CUDA, non-finite pixels,
+and the posterior-cost acceptance of the iterate (audit 2026-10-28 items 1-3, 7)."""
 import unittest
 import numpy as np
 import torch
@@ -7,7 +8,7 @@ from tests.projective_fixtures import camera, rot, smooth_field, noise, POLICY, 
 from tests.test_projective_measurement import on_surface
 from estimator.projective_camera import CameraRig
 from estimator.projective_sensor import MeasuredFrame
-from estimator.point_kalman_cuda import transition, process_noise, predict, update_points
+from estimator.point_kalman_cuda import transition, process_noise, predict, update_points, ACCEPTANCE
 
 
 class DenseKalmanEquivalenceTest(unittest.TestCase):
@@ -118,6 +119,52 @@ class PointUpdateTest(unittest.TestCase):
         self.assertLess(f['joseph_vs_information_max_abs'], 1e-12)
         self.assertLess(f['H_fd_rel_error'], 1e-4)
         self.assertTrue(np.isfinite(rep['nis'].numpy()).all())
+
+    def test_nan_pixels_next_to_a_point_do_not_poison_its_update(self):
+        rig, frame, x, rgb0 = plane_problem('cpu')
+        s, P = self.prior(x+torch.tensor([.0015, -.001, .004], dtype=torch.float64), 'cpu', .02)
+        uv = rig.project(x[:1], jacobian=False).uv[:, 0]                  # point 0 in every camera
+        for c in range(2):                                                # NaN depth + invalid flag on its 2x2 support in cameras 0, 1
+            u0, v0 = int(uv[c, 0].floor()), int(uv[c, 1].floor())
+            frame.depth[c, v0:v0+2, u0:u0+2] = float('nan'); frame.raw_valid[c, v0:v0+2, u0:u0+2] = False
+            frame.valid = frame.mask & frame.raw_valid
+        sp, Pp, rep, _ = update_points(s, P, frame, rig, rgb0, noise(), POLICY, 10, 1e-8)
+        self.assertTrue(bool(torch.isfinite(sp).all()) and bool(torch.isfinite(Pp).all()))
+        self.assertTrue(bool(rep['observed'][0]))                          # the other cameras still measure it
+        self.assertLess(float((sp[0, :3]-x[0]).norm()), .002)
+
+    def test_acceptance_rejects_an_update_its_prior_does_not_allow(self):
+        rig, frame, x, rgb0 = plane_problem('cpu')
+        s, P = self.prior(x+torch.tensor([.05, 0., 0.], dtype=torch.float64), 'cpu', .004)   # 5 cm lateral offset, 4 mm prior
+        pol = {**POLICY, 'row_innovation_gate': 'depth_front_only'}      # isolate the acceptance rule (rows stay admitted)
+        sp, Pp, rep, _ = update_points(s, P, frame, rig, rgb0, noise(), {**pol, 'update_acceptance': 'last_consistent_iterate'}, 10, 1e-8)
+        bad = rep['acceptance'] == 3
+        self.assertGreater(int(bad.sum()), len(x)//2)
+        self.assertTrue(torch.equal(sp[bad], s[bad])); self.assertTrue(torch.equal(Pp[bad], P[bad]))    # prediction only, exactly
+        self.assertTrue(bool((rep['posterior_cost'][bad] > 0).all()))
+        old = update_points(s, P, frame, rig, rgb0, noise(), {**pol, 'update_acceptance': 'final_iterate'}, 10, 1e-8)
+        rows = rep['acceptance'] != 4
+        self.assertTrue(bool(old[2]['observed'][rows].all()))             # the earlier rule accepted every point with a row
+        err = lambda st: (st[:, :3]-x).norm(dim=1)
+        self.assertGreater(float(err(old[0])[bad].median()), float(err(s)[bad].median()))     # ... and moved them further from the truth
+
+    def test_acceptance_keeps_consistent_non_converged_iterates(self):
+        rig, frame, x, rgb0 = plane_problem('cpu')
+        s, P = self.prior(x+torch.tensor([.0015, -.001, .004], dtype=torch.float64), 'cpu', .02)
+        sp, Pp, rep, _ = update_points(s, P, frame, rig, rgb0, noise(), POLICY, 1, 1e-30)    # one iteration: nothing converges
+        self.assertFalse(bool(rep['converged'].any()))
+        self.assertTrue(bool(rep['observed'].all()))
+        self.assertTrue(bool((rep['acceptance'] == 1).all()), [ACCEPTANCE[int(a)] for a in rep['acceptance']])
+        self.assertLess(float((sp[:, :3]-x).norm(dim=1).median()), .5*float((s[:, :3]-x).norm(dim=1).median()))
+
+    def test_final_iterate_rule_reproduces_the_earlier_filter(self):
+        rig, frame, x, rgb0 = plane_problem('cpu')
+        s, P = self.prior(x+torch.tensor([.0015, -.001, .004], dtype=torch.float64), 'cpu', .02)
+        pol = {**POLICY, 'update_acceptance': 'final_iterate', 'final_visibility': 'frozen'}
+        a = update_points(s, P, frame, rig, rgb0, noise(), pol, 10, 1e-8)
+        b = update_points(s, P, frame, rig, rgb0, noise(), POLICY, 10, 1e-8)
+        self.assertTrue(bool((b[2]['acceptance'] == 1).all()))            # consistent update: both rules give the same state
+        np.testing.assert_allclose(a[0].numpy(), b[0].numpy(), atol=1e-12)
 
     @unittest.skipUnless(torch.cuda.is_available(), 'CUDA not available')
     def test_cpu_and_cuda_agree(self):

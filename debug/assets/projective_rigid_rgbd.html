@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Rigid RGB-D overlays</title>
-<style>body{margin:0;font:12px sans-serif}#top{padding:6px;border-bottom:1px solid #ccc}.panel{position:relative;display:inline-block;margin:4px;vertical-align:top}
-.panel img,.panel canvas{position:absolute;left:0;top:0}#errors{color:#c00}</style><script src="projective_common.js"></script></head>
+<link rel="stylesheet" href="projective_theme.css"><style>#top{padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel)}#top select{margin-right:8px}.panel{display:inline-block;margin:6px;position:relative}.panel img{display:none}</style><script src="projective_common.js"></script></head>
 <body><div id="top"><b>Rigid passes: rigidly moved core projected onto MEASURED RGB-D</b> <span id="errors"></span><br>
 direction <select id="dir"></select> frame <select id="frame"></select> camera <select id="cam"></select> colour <select id="mode"><option value="reason">validity reason</option><option value="dz">Z − D_meas</option></select>
-<div id="src" style="color:#555"></div><div id="legend"></div></div><div id="panels"></div>
+<div id="src" class="note"></div><div id="legend"></div></div><div id="panels"></div>
 <script>
 const DIRS = __DIRECTIONS__, state = {}; window.__state = state; let D;
 const hexrgb = h => { const v = parseInt(h.slice(1), 16); return `rgb(${v>>16 & 255},${v>>8 & 255},${v & 255})`; };

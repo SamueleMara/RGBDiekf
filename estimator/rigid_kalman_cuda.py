@@ -44,11 +44,12 @@ def rigid_predict(T, xi, P, dt, Qc):
     return E@T, xi.clone(), (Pm+Pm.T)/2, F, Q
 
 
-def chain_measurement(rig, frame, noise, policy, x, G, P_block, rgb, occ_p, occ_cov, dtype=torch.float64, chunk=400_000, keep_rows=False, memo=None):
+def chain_measurement(rig, frame, noise, policy, x, G, P_block, rgb, occ_p, occ_cov, dtype=torch.float64, chunk=400_000, keep_rows=False, memo=None, dx=None):
     """Projective RGB-D information of measured points x [m,3] whose positions depend on a small state through
     G = dx/dstate [m,3,d]: H = H_x G per valid row (projective_terms, identical to the free filter), prior position
-    covariance Sigma_x = G P_block G^T, occluders occ_p (point table only). Returns I = sum H^T R^-1 H [d,d],
-    g = sum H^T R^-1 r [d] and diagnostics."""
+    covariance Sigma_x = G P_block G^T, occluders occ_p (point table only), dx = x - x(prior) for the row gate on the
+    prior-linearized innovation. Returns I = sum H^T R^-1 H [d,d], g = sum H^T R^-1 r [d] and diagnostics. Invalid
+    rows enter through torch.where, never as 0 * value (IEEE 0 * NaN = NaN)."""
     m, C, d = len(x), rig.count, G.shape[-1]
     Sx = (G[:, :, :, None]*(P_block@G.transpose(1, 2))[:, None, :, :]).sum(2)
     allx = torch.cat([x, occ_p]); allS = torch.cat([Sx, occ_cov])
@@ -66,13 +67,13 @@ def chain_measurement(rig, frame, noise, policy, x, G, P_block, rgb, occ_p, occ_
     rv, cv, kept, nvalid = [], [], [], torch.zeros(m, dtype=torch.long, device=x.device)
     for a in range(0, len(rows), chunk):
         p, c = rows[a:a+chunk, 0], rows[a:a+chunk, 1]
-        t = build_terms(rig, frame, c, p, x[p], rgb[p], Sx[p], noise, policy, dtype)
+        t = build_terms(rig, frame, c, p, x[p], rgb[p], Sx[p], noise, policy, dtype, None if dx is None else dx[p])
         reason[c, p] = t.reason
         ok = t.valid()
-        w = torch.where(ok[:, None], 1/t.var, torch.zeros_like(t.var))
-        H = (t.Hx[:, :, :, None]*G[p][:, None, :, :]).sum(2)                                   # [k,4,d] = H_x G
+        w = torch.where(ok[:, None], 1/t.var, torch.zeros_like(t.var)); tr_ = torch.where(ok[:, None], t.r, torch.zeros_like(t.r))
+        H = (torch.where(ok[:, None, None], t.Hx, torch.zeros_like(t.Hx))[:, :, :, None]*G[p][:, None, :, :]).sum(2)   # [k,4,d] = H_x G
         I = I+(H[:, :, :, None]*w[:, :, None, None]*H[:, :, None, :]).sum((0, 1))
-        g = g+(H*(w*t.r)[:, :, None]).sum((0, 1)); q = q+(w*t.r*t.r).sum()
+        g = g+(H*(w*tr_)[:, :, None]).sum((0, 1)); q = q+(w*tr_*tr_).sum()
         nvalid.index_add_(0, p[ok], torch.ones(int(ok.sum()), dtype=torch.long, device=x.device))
         rv.append(t.r[ok]); cv.append(c[ok])
         if keep_rows: kept.append((t.select(ok), H[ok]))
@@ -87,11 +88,13 @@ class RigidMeasurement:
         self.rig, self.frame, self.noise, self.policy = rig, frame, noise, policy
         self.core_p, self.core_rgb, self.occ_p, self.occ_cov, self.dtype, self.chunk = core_p, core_rgb, occ_p, occ_cov, dtype, chunk
         self.memo = {} if assignment == 'per-frame' else None
+        self.x_prior = None
 
     def __call__(self, T, P_pose, keep_rows=False):
         x = self.core_p@T[:3, :3].T+T[:3, 3]
+        if self.x_prior is None: self.x_prior = x          # first call = the prior pose T- (rigid_update)
         return chain_measurement(self.rig, self.frame, self.noise, self.policy, x, se3.point_jacobian(x), P_pose, self.core_rgb,
-                                 self.occ_p, self.occ_cov, self.dtype, self.chunk, keep_rows, self.memo)
+                                 self.occ_p, self.occ_cov, self.dtype, self.chunk, keep_rows, self.memo, x-self.x_prior)
 
 
 def rigid_update(T_m, xi_m, P_m, meas, max_iters, tol, trace=False):

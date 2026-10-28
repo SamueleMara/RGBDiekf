@@ -7,15 +7,32 @@ For a point x (world) seen by camera c at frame k, with fixed canonical colour a
     dh/dx = [ dI/d(u,v) J_u ;  dD/d(u,v) J_u - J_Z ]                       (H_x, 4 x 3; velocity columns are zero)
     R = diag(var_rgb (3), var_depth)                                        (projective_sensor variances)
 
-External-occlusion rule (configs/projective_rgbd.json, visibility_n_sigma): with Sigma_x the PRIOR covariance of x,
-the predicted depth-innovation variance is S_zz = H_D Sigma_x H_D^T + R_D. A row whose measured surface lies in front
-of the prediction by more than n_sigma sqrt(S_zz), i.e. (Z - D) > n_sigma sqrt(S_zz), is MEASURED_SURFACE_IN_FRONT
-(occluded OR mispredicted: it is reported, not used, not deleted). The opposite sign cannot be an occlusion; it is the
-motion signal and is kept.
+Row admission (configs/projective_rgbd.json visibility_n_sigma and row_innovation_gate). With Sigma_x the PRIOR
+covariance of x and dx = x_j - x- the iterate's offset from the prior mean, the innovation of the row linearized back to
+the prior (the quantity a Kalman gate tests; identical to r at the prior iterate dx = 0) and its predicted covariance are
+    nu = r + H_x dx,      S = H_x Sigma_x H_x^T + R          (4 x 4, RGB and depth jointly, cross terms kept)
+    MEASURED_SURFACE_IN_FRONT  nu_D > n_sigma sqrt(S_DD): the measured surface lies in front of the prediction (external
+                               occlusion OR misprediction; reported, not used, not deleted)
+    INNOVATION_INCONSISTENT    otherwise nu^T S^-1 nu > chi2_4(1 - alpha_row), alpha_row = 2 (1 - Phi(n_sigma)), the
+                               two-sided tail of the same n-sigma rule: the sampled pixel is not the transported point's
+                               surface within the prior uncertainty (a surface far behind the point, a different colour),
+                               which the 2x2 interpolant-validity test cannot tell (it only checks one surface per cell).
+row_innovation_gate selects the rule: 'rgbd_chi2' (above, default), 'depth_two_sided' (|nu_D| > n_sigma sqrt(S_DD) only,
+sign -> reason) or 'depth_front_only' (the earlier rule: only nu_D > n_sigma sqrt(S_DD), the other sign kept as motion).
+A row moving within its prior uncertainty passes every rule; the prior covariance (velocity prior and q_c included)
+is what decides how far a legitimate motion may go in one frame.
 """
 from dataclasses import dataclass
 import torch
+from scipy.stats import chi2, norm
 from estimator.projective_sensor import sample, CODE
+
+GATES = ('rgbd_chi2', 'depth_two_sided', 'depth_front_only')
+
+
+def row_gate_threshold(policy, dof=4):
+    """chi2_dof(1 - alpha_row) with alpha_row = 2 (1 - Phi(visibility_n_sigma)): one declared n-sigma, no new number."""
+    return float(chi2.isf(2*norm.sf(policy['visibility_n_sigma']), dof))
 
 
 @dataclass
@@ -32,6 +49,7 @@ class Terms:
     meas_depth: torch.Tensor  # [M]
     pixel00: torch.Tensor  # [M,2]
     S_zz: torch.Tensor     # [M]
+    nis: torch.Tensor      # [M] nu^T S^-1 nu of the prior-linearized innovation (4 dof)
 
     def valid(self):
         return self.reason == CODE['VALID']
@@ -40,9 +58,10 @@ class Terms:
         return Terms(*[getattr(self, f)[m] for f in self.__dataclass_fields__])
 
 
-def build_terms(rig, frame, cam, point, x, rgb0, Sigma_x, noise, policy, dtype=torch.float64):
-    """Rows (cam [M], point [M]) at world positions x [M,3] with canonical colours rgb0 [M,3] and prior position
-    covariance Sigma_x [M,3,3]. Returns Terms (invalid rows carry their reason; their r, H are not used)."""
+def build_terms(rig, frame, cam, point, x, rgb0, Sigma_x, noise, policy, dtype=torch.float64, dx=None):
+    """Rows (cam [M], point [M]) at world positions x [M,3] with canonical colours rgb0 [M,3], prior position
+    covariance Sigma_x [M,3,3] and offset dx [M,3] of x from the prior mean (None = 0, x is the prior).
+    Returns Terms (invalid rows carry their reason; their r, H are not used)."""
     uv, Z, Ju, Jz = rig.project_rows(x, cam)
     s = sample(frame, cam, uv, noise, policy, rig.K, rig.dtype)          # sampling precision = rig precision (mixed mode)
     if rig.dtype != dtype:
@@ -55,11 +74,24 @@ def build_terms(rig, frame, cam, point, x, rgb0, Sigma_x, noise, policy, dtype=t
     Hx[:, 3] = (s.grad_depth[:, :, None]*Ju).sum(1)-Jz
     r = torch.cat([rgb0.to(dtype)-s.rgb, (Z-s.depth)[:, None]], 1)
     var = torch.cat([s.var_rgb, s.var_depth[:, None]], 1)
-    hd = Hx[:, 3]
-    S_zz = torch.einsum('mi,mij,mj->m', hd, Sigma_x.to(dtype), hd)+s.var_depth
-    front = (r[:, 3] > policy['visibility_n_sigma']*torch.sqrt(S_zz.clamp_min(0)))
-    reason[(reason == 0) & front] = CODE['MEASURED_SURFACE_IN_FRONT']
-    return Terms(cam, point, uv, Z, r, Hx, var, reason, s.rgb, s.depth, s.pixel00, S_zz)
+    Sx = Sigma_x.to(dtype)
+    S = Hx@Sx@Hx.transpose(1, 2)+torch.diag_embed(var)                                  # [M,4,4] predicted innovation covariance
+    nu = r if dx is None else r+(Hx@dx.to(dtype)[:, :, None])[..., 0]
+    S_zz = S[:, 3, 3]
+    gate = policy.get('row_innovation_gate', 'depth_front_only')
+    if gate not in GATES: raise ValueError(f'row_innovation_gate {gate!r} not in {GATES}')
+    ok = reason == 0
+    n_sig = policy['visibility_n_sigma']
+    front = ok & (nu[:, 3] > n_sig*torch.sqrt(S_zz.clamp_min(0)))
+    reason[front] = CODE['MEASURED_SURFACE_IN_FRONT']
+    L, info = torch.linalg.cholesky_ex(torch.where(ok[:, None, None], S, torch.eye(4, dtype=dtype, device=S.device)))
+    nis = (torch.linalg.solve_triangular(L, nu[:, :, None], upper=False)[..., 0]**2).sum(1)
+    nis = torch.where(ok & (info == 0), nis, torch.full_like(nis, float('nan')))
+    if gate == 'depth_two_sided':
+        reason[ok & ~front & (nu[:, 3] < -n_sig*torch.sqrt(S_zz.clamp_min(0)))] = CODE['INNOVATION_INCONSISTENT']
+    elif gate == 'rgbd_chi2':
+        reason[ok & ~front & ~(nis <= row_gate_threshold(policy))] = CODE['INNOVATION_INCONSISTENT']     # NaN (S not PD) fails too
+    return Terms(cam, point, uv, Z, r, Hx, var, reason, s.rgb, s.depth, s.pixel00, S_zz, nis)
 
 
 def h_value(rig, frame, cam, x, rgb0, noise, policy, dtype=torch.float64):

@@ -1,21 +1,20 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Joint __DIRECTION__</title>
-<style>body{margin:0;font:12px sans-serif;display:flex;height:100vh}#view{flex:1}#side{width:480px;overflow:auto;padding:8px;border-left:1px solid #ccc}#errors{color:#c00}
-table{border-collapse:collapse}td{padding:1px 4px;border-bottom:1px solid #eee}</style>
+<link rel="stylesheet" href="projective_theme.css">
 <script src="three.min.js"></script><script src="projective_common.js"></script></head>
-<body><div id="view"></div><div id="side"><h3>Joint __DIRECTION__ (downstream of the rigid pass)</h3><div id="errors"></div><div id="status"></div>
+<body class="app"><div id="app"><div id="view"></div><div id="side" class="wide"><h1>Joint __DIRECTION__ (downstream of the rigid pass)</h1><div id="errors"></div><div id="status"></div>
 <div>colour <select id="mode"><option value="support">support labels</option><option value="core">rigid core</option><option value="rgb">canonical RGB</option></select></div><div id="legend"></div>
-<canvas id="q" width="460" height="170"></canvas><canvas id="qd" width="460" height="150"></canvas><canvas id="ax" width="460" height="150"></canvas><div id="tests"></div></div>
+<canvas id="q" width="460" height="170"></canvas><canvas id="qd" width="460" height="150"></canvas><canvas id="ax" width="460" height="150"></canvas><div id="tests"></div></div></div>
 <script>
 const DIR = '__DIRECTION__', state = {}; window.__state = state; let D, V, obj = null;
-const SUP = ['#d62728', '#ff7f0e', '#1f77b4', '#aaaaaa', '#000000'];
+const SUP = ['#f06595', '#e3b341', '#4a515c', '#f0883e', '#30363d'];
 const hex = c => { const v = parseInt(c.slice(1), 16); return [(v>>16 & 255)/255, (v>>8 & 255)/255, (v & 255)/255]; };
 function cloud() {
   if (!D.xyz) return; if (obj) V.scene.remove(obj); const p = PD.f32(D.xyz), n = p.length/3, col = new Float32Array(3*n), mode = document.getElementById('mode').value;
   const rgb = PD.u8(D.rgb), core = D.core_mask ? PD.u8(D.core_mask) : null, sup = D.support ? PD.u8(D.support) : null;
-  for (let i = 0; i < n; i++) col.set(mode === 'rgb' ? [rgb[3*i]/255, rgb[3*i+1]/255, rgb[3*i+2]/255] : mode === 'core' ? (core && core[i] ? [.84, .15, .16] : [.75, .75, .75]) : (sup ? hex(SUP[sup[i]]) : [.75, .75, .75]), 3*i);
-  obj = PD.points(p, col, .004); V.scene.add(obj);
-  PD.legend(document.getElementById('legend'), mode === 'support' && D.support_codes ? D.support_codes.map((c, i) => [SUP[i], `${c} (${(D.support_counts || {})[c] || 0})`]) : mode === 'core' ? [['#d62728', 'rigid core'], ['#bbbbbb', 'other']] : []);
+  for (let i = 0; i < n; i++) col.set(mode === 'rgb' ? [rgb[3*i]/255, rgb[3*i+1]/255, rgb[3*i+2]/255] : mode === 'core' ? (core && core[i] ? hex('#f06595') : hex('#4a515c')) : (sup ? hex(SUP[sup[i]]) : hex('#4a515c')), 3*i);
+  obj = PD.points(p, col, V.state.radius*.009); V.scene.add(obj);
+  PD.legend(document.getElementById('legend'), mode === 'support' && D.support_codes ? D.support_codes.map((c, i) => [SUP[i], `${c} (${(D.support_counts || {})[c] || 0})`]) : mode === 'core' ? [['#f06595', 'rigid core'], ['#4a515c', 'other']] : []);
 }
 (async () => {
   D = await PD.load(`joint_${DIR}`); const j = D.joint;
@@ -23,9 +22,9 @@ function cloud() {
   if (!D.xyz) { state.ready = true; return; }
   V = PD.viewer(document.getElementById('view')); V.fit(PD.f32(D.xyz)); cloud(); document.getElementById('mode').onchange = cloud;
   const cand = j.candidates || {};
-  for (const [kind, colr] of [['PRISMATIC', 0x2ca02c], ['REVOLUTE', 0x9467bd]]) { const c = cand[kind]; if (!c) continue;
+  for (const [kind, colr] of [['PRISMATIC', 0x3fb950], ['REVOLUTE', 0xa371f7]]) { const c = cand[kind]; if (!c) continue;
     const e = c.axis, a = c.axis_point || (() => { const p = PD.f32(D.xyz); let s = [0, 0, 0]; for (let i = 0; i < p.length; i += 3) { s[0] += p[i]; s[1] += p[i+1]; s[2] += p[i+2]; } return s.map(v => v/(p.length/3)); })();
-    const L = .6; V.scene.add(PD.lines([a[0]-L*e[0], a[1]-L*e[1], a[2]-L*e[2], a[0]+L*e[0], a[1]+L*e[1], a[2]+L*e[2]], kind === j.status ? 0xd62728 : colr)); }
+    const L = .6; V.scene.add(PD.lines([a[0]-L*e[0], a[1]-L*e[1], a[2]-L*e[2], a[0]+L*e[0], a[1]+L*e[1], a[2]+L*e[2]], kind === j.status ? 0xf85149 : colr)); }
   const K = (cand.PRISMATIC || cand.REVOLUTE || {q: []}).q.length, ks = [...Array(K).keys()];
   const series = []; if (cand.PRISMATIC) series.push({x: ks, y: cand.PRISMATIC.q, color: '#2ca02c', label: 'prismatic s (m), reduction'});
   if (cand.REVOLUTE) series.push({x: ks, y: cand.REVOLUTE.q, color: '#9467bd', label: 'revolute theta (rad), reduction'});
@@ -35,7 +34,7 @@ function cloud() {
   PD.chart(document.getElementById('qd'), qs, {title: 'qdot(t)'});
   if (D.increments) { const inc = D.increments; PD.chart(document.getElementById('ax'), [{x: inc.REVOLUTE.map(r => r.k), y: inc.REVOLUTE.map(r => r.axis_angle_deg ?? NaN), color: '#9467bd', label: 'instant screw vs revolute axis (deg)'},
     {x: inc.PRISMATIC.map(r => r.k), y: inc.PRISMATIC.map(r => r.direction_angle_deg), color: '#2ca02c', label: 'translation vs prismatic dir (deg)'}], {title: 'axis constancy per increment'}); }
-  document.getElementById('tests').innerHTML = '<pre style="white-space:pre-wrap">'+JSON.stringify({tests: j.tests, gamma_1dof: j.gamma_1dof, far_axis_ratio: j.revolute_axis_radius_over_part_scale, axis_constancy: j.axis_constancy_summary, q_filter: j.q_filter ? {not_converged_frames: j.q_filter.not_converged_frames, approximation: j.q_filter.approximation} : null}, null, 1)+'</pre>';
+  document.getElementById('tests').innerHTML = '<pre>'+JSON.stringify({tests: j.tests, gamma_1dof: j.gamma_1dof, far_axis_ratio: j.revolute_axis_radius_over_part_scale, axis_constancy: j.axis_constancy_summary, q_filter: j.q_filter ? {not_converged_frames: j.q_filter.not_converged_frames, approximation: j.q_filter.approximation} : null}, null, 1)+'</pre>';
   state.ready = true;
 })();
 </script></body></html>

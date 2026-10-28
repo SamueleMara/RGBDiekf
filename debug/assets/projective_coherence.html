@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Coherence __DIRECTION__</title>
-<style>body{margin:0;font:12px sans-serif;display:flex;height:100vh}#view{flex:1}#side{width:460px;overflow:auto;padding:8px;border-left:1px solid #ccc}
-table{border-collapse:collapse;font-size:11px}td{padding:1px 4px;border-bottom:1px solid #eee}#errors{color:#c00}</style>
+<link rel="stylesheet" href="projective_theme.css">
 <script src="three.min.js"></script><script src="projective_common.js"></script></head>
-<body><div id="view"></div><div id="side"><h3>Coherence __DIRECTION__ (pinned RigEuler graph)</h3><div id="errors"></div>
+<body class="app"><div id="app"><div id="view"></div><div id="side" class="wide"><h1>Coherence __DIRECTION__ (pinned RigEuler graph)</h1><div id="errors"></div>
 <div>policy <select id="pol"><option value="pinned_raw">pinned_raw (uniform weights)</option><option value="measurement_supported">measurement_supported (RGB-D adaptation)</option></select></div>
 <div>frame <input id="frame" type="range" min="0" value="0" style="width:240px"> <b id="flabel"></b></div>
 <div>edges coloured by <select id="emode"><option value="C">edge strain C (whole sequence)</option><option value="z">|log strain| at this frame</option></select>
 <label><input type="checkbox" id="pts" checked>canonical points (by node role)</label></div>
-<div id="legend"></div><div id="verdict"></div><h4>policy agreement</h4><div id="agree"></div><h4>candidates (pinned hierarchy)</h4><div id="cands"></div></div>
+<div id="legend"></div><div id="verdict"></div><h2>policy agreement</h2><div id="agree"></div><h2>candidates (pinned hierarchy)</h2><div id="cands"></div></div></div>
 <script>
 const DIR = '__DIRECTION__', state = {}; window.__state = state; let D, V, objs = {};
-const ROLE = {SEED_CORE: '#d62728', RECRUITED: '#ff7f0e', MOVING_RIGID: '#d62728', STATIC_COMPATIBLE: '#1f77b4', INCOHERENT_OR_AMBIGUOUS: '#aaaaaa'};
+const ROLE = {SEED_CORE: '#f06595', RECRUITED: '#e3b341', MOVING_RIGID: '#f06595', STATIC_COMPATIBLE: '#4a515c', INCOHERENT_OR_AMBIGUOUS: '#f0883e'};
 const hex = c => { const v = parseInt(c.slice(1), 16); return [(v>>16 & 255)/255, (v>>8 & 255)/255, (v & 255)/255]; };
 function draw() {
   const P = D.policies[document.getElementById('pol').value], k = +document.getElementById('frame').value, n = P.n, K = P.K;
@@ -19,25 +18,25 @@ function draw() {
   for (const o of Object.values(objs)) if (o) V.scene.remove(o);
   const T = PD.f32(P.trajectory), S = PD.f32(P.node_support), Z = PD.f32(P.log_strain), E = P.edges.length;
   const pos = new Float32Array(3*n), col = new Float32Array(3*n);
-  for (let i = 0; i < n; i++) { pos.set([T[(k*n+i)*3], T[(k*n+i)*3+1], T[(k*n+i)*3+2]], 3*i); const c = hex(ROLE[P.role[i]] || '#aaaaaa'); const s = .35+.65*S[k*n+i]; col.set(c.map(v => v*s+(1-s)), 3*i); }
-  objs.nodes = PD.points(pos, col, .02); V.scene.add(objs.nodes);
+  for (let i = 0; i < n; i++) { pos.set([T[(k*n+i)*3], T[(k*n+i)*3+1], T[(k*n+i)*3+2]], 3*i); const c = hex(ROLE[P.role[i]] || '#aaaaaa'); const s = .35+.65*S[k*n+i]; col.set(c.map(v => v*s), 3*i); }
+  objs.nodes = PD.points(pos, col, V.state.radius*.03); V.scene.add(objs.nodes);
   const emode = document.getElementById('emode').value, seg = [], ecol = [], Cmax = Math.max(...P.C.filter(Number.isFinite), 1e-9);
   P.edges.forEach(([a, b], e) => { seg.push(...pos.slice(3*a, 3*a+3), ...pos.slice(3*b, 3*b+3));
     const kz = D.summary.canonical_frame === 0 ? k : K-1-k;      // log strain is stored in PROCESSING order (index 0 = canonical gauge)
     const t = emode === 'C' ? (Number.isFinite(P.C[e]) ? P.C[e]/Cmax : 0) : Math.min(1, Math.abs(Z[kz*E+e])/.2); const c = PD.viridis(t); ecol.push(...c, ...c); });
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(seg), 3)); g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(ecol), 3));
-  objs.edges = new THREE.LineSegments(g, new THREE.LineBasicMaterial({vertexColors: true})); V.scene.add(objs.edges);
+  objs.edges = new THREE.LineSegments(g, new THREE.LineBasicMaterial({vertexColors: true, transparent: true, opacity: .8})); V.scene.add(objs.edges);
   if (document.getElementById('pts').checked) { const px = PD.f32(P.point_xyz), pn = PD.i32(P.point_node), m = P.point_ids.length, pc = new Float32Array(3*m);
     const idx = {}; P.node_ids.forEach((nid, i) => idx[nid] = i);
-    for (let i = 0; i < m; i++) { const r = P.role[idx[pn[i]]]; pc.set(hex(ROLE[r] || '#aaaaaa').map(v => .5*v+.5), 3*i); }
-    objs.pts = PD.points(px, pc, .003); V.scene.add(objs.pts); }
-  PD.legend(document.getElementById('legend'), [['#d62728', 'seed core'], ['#ff7f0e', 'recruited'], ['#1f77b4', 'static compatible'], ['#aaaaaa', 'incoherent / ambiguous'], ['#440154', 'low strain'], ['#fde725', 'high strain']]);
+    for (let i = 0; i < m; i++) { const r = P.role[idx[pn[i]]]; pc.set(hex(ROLE[r] || '#aaaaaa').map(v => .6*v), 3*i); }
+    objs.pts = PD.points(px, pc, V.state.radius*.007, .7); V.scene.add(objs.pts); }
+  PD.legend(document.getElementById('legend'), [['#f06595', 'seed core'], ['#e3b341', 'recruited'], ['#4a515c', 'static compatible'], ['#f0883e', 'incoherent / ambiguous'], ['#440154', 'edge: low strain'], ['#fde725', 'edge: high strain']]);
   const pol = D.summary.policies[document.getElementById('pol').value];
   document.getElementById('verdict').innerHTML = `<b>${pol.verdict}</b> (pinned status ${pol.pinned_status}); seed core nodes ${pol.seed_core_nodes.length}, recruited ${pol.recruited_nodes.length}, final core nodes ${pol.final_core_nodes} of ${pol.representative_nodes}; core points ${pol.core_points} of ${pol.points}<br>driving policy for the rigid pass: <b>${D.summary.driving_policy}</b>`;
   document.getElementById('agree').textContent = JSON.stringify(D.summary.policy_agreement);
   document.getElementById('cands').innerHTML = '<table><tr><td>id</td><td>nodes</td><td>persistence</td><td>boundary edges</td><td>world dRSS</td><td>relative dRSS</td><td>degenerate</td></tr>' +
     P.candidates.map(c => `<tr><td>${c.candidate_id}</td><td>${c.num_nodes}</td><td>${(c.persistence ?? 0).toFixed(3)}</td><td>${c.edges ? c.edges.num_boundary_edges : ''}</td><td>${c.rigidity_world && c.rigidity_world.delta_rss_cv != null ? c.rigidity_world.delta_rss_cv.toExponential(2) : '—'}</td><td>${c.rigidity && c.rigidity.delta_rss_cv != null ? c.rigidity.delta_rss_cv.toExponential(2) : '—'}</td><td>${c.rigidity ? c.rigidity.degenerate : ''}</td></tr>`).join('') + '</table>' +
-    `<h4>selection</h4><pre style="white-space:pre-wrap">${JSON.stringify(P.selection, null, 1)}</pre><h4>refinement</h4><pre style="white-space:pre-wrap">${JSON.stringify(P.refinement, null, 1)}</pre>`;
+    `<h2>selection</h2><pre>${JSON.stringify(P.selection, null, 1)}</pre><h2>refinement</h2><pre>${JSON.stringify(P.refinement, null, 1)}</pre>`;
   state.frame = k; state.policy = document.getElementById('pol').value; state.ready = true;
 }
 (async () => {

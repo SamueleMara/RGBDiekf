@@ -88,7 +88,7 @@ def main():
                 g = q-q[k0]; s = 1. if (qq@g) >= 0 else -1.
                 jr['q_rmse_sign_aligned'] = float(np.sqrt(np.mean((s*qq-g)**2))); jr['q_source'] = 'q_filter' if 'q_filter' in j else 'reduction'
             r['joint'] = jr
-        sp = run/'joint'/d/'support'/'support.npz'
+        sp = stage_dir(run, f'joint/{d}/support')/'support.npz'
         if sp.exists():
             lb = np.load(sp, allow_pickle=True)['labels'].astype(str)
             mv = lb == 'MOVING_JOINT_COMPATIBLE'; st = lb == 'STATIC_COMPATIBLE'

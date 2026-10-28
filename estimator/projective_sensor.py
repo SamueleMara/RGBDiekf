@@ -10,7 +10,10 @@ at frame k, and every gradient is the exact derivative of that bilinear interpol
 The interpolant is piecewise bilinear, so its derivative is exact inside a pixel cell and jumps across cell borders.
 A sample exists only when all four neighbours are inside the image, inside the hard foreground mask and have valid
 metric depth, and lie on one surface (configs/projective_rgbd.json same-surface rule); otherwise a reason code is
-returned and no value, gradient or variance is used. Invalid neighbours are never interpolated as zero.
+returned and no value, gradient or variance is used. Invalid neighbours are never interpolated as zero, and a non-finite
+RGB or depth neighbour (NaN / inf, whatever raw_valid says) makes the sample INVALID_DEPTH. Every returned value,
+gradient and variance of an invalid row is a finite 0 (variance 1): downstream weights are zeroed with torch.where, and
+IEEE 0*NaN = NaN would otherwise poison the per-point information sums.
 
 Variance (contract 2.1): independent pixel noise through the interpolation weights, sum_j w_j^2 sigma_j^2, plus the
 declared model-mismatch variances (0 unless declared).
@@ -22,7 +25,7 @@ import torch
 
 REASONS = {0: 'VALID', 1: 'BEHIND_CAMERA', 2: 'OUTSIDE_IMAGE_FOOTPRINT', 3: 'MASK_EXCLUDED', 4: 'INVALID_DEPTH',
            5: 'DEPTH_DISCONTINUITY', 6: 'SELF_OCCLUDED', 7: 'DUPLICATE_PIXEL_SUPPRESSED', 8: 'MEASURED_SURFACE_IN_FRONT',
-           9: 'NOT_PROCESSED'}
+           9: 'NOT_PROCESSED', 10: 'INNOVATION_INCONSISTENT'}
 CODE = {v: k for k, v in REASONS.items()}
 
 
@@ -98,11 +101,13 @@ def sample(frame, cam, uv, noise, policy, K, dtype=torch.float64):
     D = torch.stack([frame.depth[c, y, x] for y, x in idx], 1).to(dtype)        # [M,4]
     I = torch.stack([frame.rgb[c, y, x] for y, x in idx], 1).to(dtype)          # [M,4,3]
     mk = torch.stack([frame.mask[c, y, x] for y, x in idx], 1).all(1)
-    dok = torch.stack([frame.raw_valid[c, y, x] for y, x in idx], 1).all(1)
+    dok = torch.stack([frame.raw_valid[c, y, x] for y, x in idx], 1).all(1) & torch.isfinite(D).all(1) & torch.isfinite(I).all((1, 2))
     reason = torch.full((M,), CODE['VALID'], dtype=torch.uint8, device=dev)
     reason[~dok] = CODE['INVALID_DEPTH']
     reason[~mk] = CODE['MASK_EXCLUDED']
     reason[~inside] = CODE['OUTSIDE_IMAGE_FOOTPRINT']
+    bad = reason != CODE['VALID']
+    D = torch.where(bad[:, None], torch.ones_like(D), D); I = torch.where(bad[:, None, None], torch.zeros_like(I), I)   # finite placeholders
     zbar = D.mean(1)
     f = torch.minimum(K[c, 0], K[c, 1]).to(dtype)
     allow = policy['same_surface_n_sigma']*math.sqrt(2.)*noise.depth_sigma2(zbar).sqrt() + \
@@ -123,6 +128,7 @@ def sample(frame, cam, uv, noise, policy, K, dtype=torch.float64):
     else:
         raise ValueError(noise.interpolation_variance)
     var_rgb = var_rgb+noise.rgb_model_variance; var_depth = var_depth+noise.depth_model_variance
+    var_rgb = torch.where(bad[:, None], torch.ones_like(var_rgb), var_rgb); var_depth = torch.where(bad, torch.ones_like(var_depth), var_depth)
     return Samples(rgb, depth, gI, gD, var_rgb, var_depth, reason, torch.stack((u0, v0), 1))
 
 

@@ -64,13 +64,18 @@ def position_sigma_z2(R, Sigma_x):
     return torch.einsum('ci,nij,cj->cn', r3.to(Sigma_x.dtype), Sigma_x, r3.to(Sigma_x.dtype)).clamp_min(0)
 
 
-def apply_frozen_assignment(reason, frozen):
+def apply_frozen_assignment(reason, frozen, recheck_occlusion=False):
     """Pixel-reuse assignment fixed for the whole frame (--pixel-reuse-assignment per-frame): the SELF_OCCLUDED /
     DUPLICATE_PIXEL_SUPPRESSED decisions of the first call (the prior prediction) are kept for every IEKF iteration;
     geometric reasons of the current iterate (behind camera, outside the image) still apply. A point allowed at the
     prediction stays allowed even if an iterate moves it next to another; the same pixel is still never assigned to two
-    points at the prediction (contract 2.2 item 5)."""
+    points at the prediction (contract 2.2 item 5).
+    recheck_occlusion (the acceptance linearization, configs/projective_rgbd.json final_visibility): a point that the
+    current states put BEHIND the front-most point of its pixel (SELF_OCCLUDED now) loses that row as well, so the rows
+    of an accepted state are never samples of another surface in front of it. A fresh DUPLICATE (same surface, same
+    pixel) is reuse control, not a visibility conflict, and is not added; suppressed points stay suppressed."""
     if frozen is None: return reason
     sup = (frozen == CODE['SELF_OCCLUDED']) | (frozen == CODE['DUPLICATE_PIXEL_SUPPRESSED'])
     now = (reason == CODE['SELF_OCCLUDED']) | (reason == CODE['DUPLICATE_PIXEL_SUPPRESSED'])
+    if recheck_occlusion: now = reason == CODE['DUPLICATE_PIXEL_SUPPRESSED']
     return torch.where(sup, frozen, torch.where(now, torch.zeros_like(reason), reason))

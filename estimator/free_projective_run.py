@@ -17,7 +17,7 @@ from scene.endpoint import endpoint_samples
 from scene.canonical_subsample import subsample, boundary_priority, ids_hash
 from estimator.projective_camera import CameraRig
 from estimator.projective_sensor import MeasuredFrame, SensorNoise, REASONS
-from estimator.point_kalman_cuda import predict, update_points, Timers, eigvalsh3, spd_extreme_eigs
+from estimator.point_kalman_cuda import predict, update_points, Timers, eigvalsh3, spd_extreme_eigs, ACCEPTANCE
 from utils.io import json_write, serial
 
 QUANT = (0., .05, .25, .5, .75, .95, 1.)
@@ -68,7 +68,8 @@ def run_free(dataset, config, policy, direction, root, device, sub, precision='f
                             ('position_variance_diag', (K, n, 3), 'float32'), ('velocity_variance_diag', (K, n, 3), 'float32'),
                             ('valid_cameras', (K, n), 'uint8'), ('point_status', (K, n), 'uint8'), ('camera_reason', (K, C, n), 'uint8'),
                             ('converged', (K, n), 'bool'), ('iekf_iterations', (K, n), 'uint8'), ('nis', (K, n), 'float32'), ('nis_dof', (K, n), 'uint8'),
-                            ('information_min_eig', (K, n), 'float32'), ('information_max_eig', (K, n), 'float32')]:
+                            ('information_min_eig', (K, n), 'float32'), ('information_max_eig', (K, n), 'float32'),
+                            ('update_acceptance', (K, n), 'uint8'), ('posterior_cost', (K, n), 'float32'), ('posterior_cost_dof', (K, n), 'uint8')]:
         mm[name] = np.lib.format.open_memmap(root/f'{name}.npy', mode='w+', dtype=dt, shape=shape)
     dev = torch.device(device)
     s = torch.zeros((n, 6), dtype=kal_dtype, device=dev); s[:, :3] = torch.as_tensor(xyz[sel], dtype=kal_dtype, device=dev)
@@ -91,7 +92,9 @@ def run_free(dataset, config, policy, direction, root, device, sub, precision='f
                 'measurement': 'projective sampling of the ACTUAL masked RGB-D frames, r = [a - I(u,v); Z - D(u,v)], bilinear, exact interpolant gradient',
                 'precision': precision, 'pixel_reuse_assignment': assignment, 'max_iekf_iters': max_iters, 'step_tolerance': tol, 'point_chunk_size': chunk,
                 'debug_point_ids': debug_point_ids, 'debug_frames': list(debug_frames), 'arrays_indexing': 'original chronological frame index',
-                'full_covariance_saved': bool(save_full_covariance), 'save_state_interval': save_state_interval, 'reason_codes': REASONS, 'status_codes': STATUS}
+                'full_covariance_saved': bool(save_full_covariance), 'save_state_interval': save_state_interval, 'reason_codes': REASONS, 'status_codes': STATUS,
+                'acceptance_codes': ACCEPTANCE, 'update_acceptance': policy.get('update_acceptance', 'final_iterate'),
+                'row_innovation_gate': policy.get('row_innovation_gate', 'depth_front_only'), 'final_visibility': policy.get('final_visibility', 'frozen')}
     json_write(root/'run_manifest.json', serial(manifest))
     timeline = []
     total_t0 = time.perf_counter()
@@ -123,6 +126,8 @@ def run_free(dataset, config, policy, direction, root, device, sub, precision='f
     _write_timeline(root/'numeric'/'timeline.csv', timeline)
     status = {'pass': manifest['pass'], 'status': 'COMPLETE', 'frames_processed': K-1, 'points': n, 'seconds': time.perf_counter()-total_t0,
               'not_converged_point_frames': int(sum(r['not_converged_points'] for r in timeline)),
+              'rejected_inconsistent_point_frames': int(sum(r['rejected_inconsistent'] for r in timeline)),
+              'accepted_earlier_iterate_point_frames': int(sum(r['accepted_earlier_iterate'] for r in timeline)),
               'prediction_only_point_frames': int(sum(r['prediction_only_points'] for r in timeline))}
     json_write(root/'status.json', status)
     return status
@@ -144,6 +149,8 @@ def _store(mm, k, s, s_m, P, rep, C):
     mm['iekf_iterations'][k] = rep['point_iterations'].clamp_max(255).to(torch.uint8).cpu().numpy()
     mm['nis'][k] = rep['nis'].float().cpu().numpy(); mm['nis_dof'][k] = rep['nis_dof'].clamp_max(255).to(torch.uint8).cpu().numpy()
     mm['information_min_eig'][k] = rep['info_eig'][:, 0].float().cpu().numpy(); mm['information_max_eig'][k] = rep['info_eig'][:, 2].float().cpu().numpy()
+    mm['update_acceptance'][k] = rep['acceptance'].cpu().numpy()
+    mm['posterior_cost'][k] = rep['posterior_cost'].float().cpu().numpy(); mm['posterior_cost_dof'][k] = rep['posterior_cost_dof'].clamp_max(255).to(torch.uint8).cpu().numpy()
 
 
 def _frame_numeric(k, step, dt, frame, rep, s, s_m, P, P_m, times, wall, dev, dataset):
@@ -154,6 +161,10 @@ def _frame_numeric(k, step, dt, frame, rep, s, s_m, P, P_m, times, wall, dev, da
     obs = rep['observed']
     nisn = rep['nis']/rep['nis_dof'].clamp_min(1)
     disp = (s[:, :3]-s_m[:, :3]).norm(dim=1)
+    dv = (s[:, 3:]-s_m[:, 3:]).norm(dim=1)
+    acc = rep['acceptance']; acc_counts = torch.bincount(acc.long(), minlength=len(ACCEPTANCE)).cpu().numpy()
+    cost_dof = rep['posterior_cost']/rep['posterior_cost_dof'].clamp_min(1)
+    top = torch.argsort(torch.where(obs, disp, torch.zeros_like(disp)), descending=True)[:20]
     ev_pos_post, ev_vel_post = eigvalsh3(P[:, :3, :3].double()), eigvalsh3(P[:, 3:, 3:].double())
     ev_pos_prior = eigvalsh3(P_m[:, :3, :3].double())
     pd, lmin, lmax = spd_extreme_eigs(P.double())
@@ -179,12 +190,20 @@ def _frame_numeric(k, step, dt, frame, rep, s, s_m, P, P_m, times, wall, dev, da
                            'history': [{kk: (float(v) if torch.is_tensor(v) else v) for kk, v in h.items()} for h in rep['history']]},
             'sensor': {'points': int(len(s)), 'unique_points_observed': int(obs.sum()), 'prediction_only_points': int((~obs).sum()),
                        'rows_accepted_final': int(counts[:, 0].sum()), 'per_camera': per_cam},
+            'acceptance': {'rule': rep['acceptance_rule'], 'counts': {ACCEPTANCE[i]: int(acc_counts[i]) for i in range(len(ACCEPTANCE)) if acc_counts[i]},
+                           'posterior_cost_per_dof_quantiles_accepted': quantiles(cost_dof[obs]) if bool(obs.any()) else None,
+                           'posterior_cost_per_dof_quantiles_rejected': quantiles(cost_dof[acc == 3]) if bool((acc == 3).any()) else None,
+                           'accepted_not_converged_points': int((obs & ~rep['converged']).sum()),
+                           'largest_accepted_corrections': [{'point_id': int(i), 'correction_m': float(disp[i]), 'velocity_change_m_s': float(dv[i]),
+                                                             'acceptance': ACCEPTANCE[int(acc[i])], 'rows': int(rep['nrows'][i]), 'converged': bool(rep['converged'][i]),
+                                                             'posterior_cost_per_dof': float(cost_dof[i])} for i in top.tolist() if bool(obs[i])],
+                           'note': 'trace any of these ids with --debug-point-ids ID,.. --debug-frames FRAME (numeric/trace_frame_*.json: rows, S_zz, row NIS, gain, cost, acceptance)'},
             'innovation': {'nis_per_dof_quantiles_prior_observed': quantiles(nisn[rep['nis_dof'] > 0]),
                            'nis_note': 'NIS = r^T (H P- H^T + R)^-1 r at the prior, per point over its valid rows, divided by 4 x rows (expected 1 if consistent)'},
             'filter_update': {'not_converged_points': int((~rep['converged']).sum()),
                               'posterior_minus_prior_position_m_quantiles': quantiles(disp[obs]) if bool(obs.any()) else None,
                               'speed_m_s_quantiles': quantiles(s[:, 3:].norm(dim=1)),
-                              'velocity_correction_m_s_quantiles': quantiles((s[:, 3:]-s_m[:, 3:]).norm(dim=1)[obs]) if bool(obs.any()) else None,
+                              'velocity_correction_m_s_quantiles': quantiles(dv[obs]) if bool(obs.any()) else None,
                               'prior_position_eig_m2_quantiles': quantiles(ev_pos_prior), 'posterior_position_eig_m2_quantiles': quantiles(ev_pos_post),
                               'posterior_velocity_eig_m2s2_quantiles': quantiles(ev_vel_post),
                               'posterior_positive_definite_failures': int((~pd).sum()), 'posterior_positive_definite_failure_ids': torch.nonzero(~pd).flatten()[:50].tolist(),
@@ -199,6 +218,8 @@ def _timeline_row(n):
     return {'frame': n['frame'], 'processing_step': n['processing_step'], 'timestamp_s': n['timestamp_s'], 'dt_s': n['dt_s'], 'wall_ms': p['wall_ms'],
             'cuda_ms_total': sum(p['cuda_ms'].values()) if p['cuda_ms'] else None, 'gpu_peak_allocated_MB': p['gpu_peak_allocated_MB'],
             'iekf_iterations': p['iekf_iterations'], 'not_converged_points': f['not_converged_points'],
+            'accepted_earlier_iterate': n['acceptance']['counts'].get('ACCEPTED_EARLIER_CONSISTENT_ITERATE', 0),
+            'rejected_inconsistent': n['acceptance']['counts'].get('REJECTED_INCONSISTENT', 0),
             'observed_points': sen['unique_points_observed'], 'prediction_only_points': sen['prediction_only_points'], 'rows_accepted': sen['rows_accepted_final'],
             'nis_per_dof_median': q(n['innovation']['nis_per_dof_quantiles_prior_observed'], 3),
             'correction_m_median': q(f['posterior_minus_prior_position_m_quantiles'], 3), 'speed_m_s_median': q(f['speed_m_s_quantiles'], 3),

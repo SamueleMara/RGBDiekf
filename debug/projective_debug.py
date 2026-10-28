@@ -38,6 +38,40 @@ def display_ids(n, cap, keep=()):
     return np.union1d(ids, np.asarray([k for k in keep if 0 <= k < n], int))
 
 
+def fps(P, m):
+    """Deterministic farthest-point sampling (first pick: the point nearest the centroid); returns indices into P."""
+    P = np.asarray(P, float); n = len(P)
+    if n == 0 or m <= 0: return np.zeros(0, int)
+    i = int(np.argmin(((P-P.mean(0))**2).sum(1))); out = [i]; d = ((P-P[i])**2).sum(1)
+    for _ in range(min(m, n)-1):
+        i = int(np.argmax(d)); out.append(i); d = np.minimum(d, ((P-P[i])**2).sum(1))
+    return np.asarray(out, int)
+
+
+def tracked_points(root, d, P0, X, k0, k_end, requested, n_core=16, n_spread=24, n_motion=8):
+    """Points whose whole trajectory is drawn, chosen from inference outputs only (no ground truth):
+    'core'   spread over the coherence moving core of this direction (driving policy), when coherence ran;
+    'spread' spread over the canonical cloud (98% radius around the centroid, so isolated far points are not preferred),
+             plus the --debug-point-ids;
+    'motion' spread over the 2% largest estimated net displacements |x(k_end) - x(k0)| (shows drift as well as motion)."""
+    groups = {}
+    cs = stage_dir(root, f'coherence_{d}')/'coherence_summary.json'
+    if cs.exists():
+        summ = json.loads(cs.read_text()); pol = summ['policies'].get(summ.get('driving_policy'), {})
+        f = pol.get('moving_core_point_ids_file')
+        if f and Path(f).exists() and pol.get('verdict') == 'RESOLVED':
+            core = np.load(f); groups['core'] = core[fps(P0[core], n_core)]
+    r = np.linalg.norm(P0-P0.mean(0), axis=1); inl = np.flatnonzero(r <= np.quantile(r, .98))
+    groups['spread'] = np.union1d(inl[fps(P0[inl], n_spread)], np.asarray(requested, int))
+    disp = np.linalg.norm(np.asarray(X[k_end], float)-P0, axis=1); top = np.flatnonzero(disp >= np.quantile(disp, .98))
+    groups['motion'] = top[fps(P0[top], n_motion)]
+    ids, grp, seen = [], [], set()
+    for g in ('core', 'spread', 'motion'):
+        for i in groups.get(g, []):
+            if int(i) not in seen: seen.add(int(i)); ids.append(int(i)); grp.append(g)
+    return np.asarray(ids, int), grp, disp
+
+
 def cameras_js(rig):
     return [{'name': n, 'T_wc': rig.T_wc[i].tolist(), 'K': rig.K[i].tolist(), 'width': rig.width[i], 'height': rig.height[i]} for i, n in enumerate(rig.names)]
 
@@ -90,8 +124,10 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
     CR = np.load(fd/'camera_reason.npy', mmap_mode='r'); IM = np.load(fd/'information_min_eig.npy', mmap_mode='r'); PV = np.load(fd/'position_variance_diag.npy', mmap_mode='r')
     K, N = X.shape[:2]
     traced = man['debug_point_ids']
-    ids = display_ids(N, caps['points3d'], traced)
-    k0 = int(can['canonical_frame'])
+    k0 = int(can['canonical_frame']); k_end = man['processing_order'][-1]
+    tids, tgroup, disp = tracked_points(root, d, can['canonical_xyz'], X, k0, k_end, traced)
+    ids = display_ids(N, caps['points3d'], np.union1d(traced, tids))
+    T = lambda A, dt: b64(np.stack([np.asarray(A[:, i]) for i in tids], 0) if len(tids) else np.zeros((0, K)), dt)
     traces = {}
     for k in debug_frames:
         p = fd/'numeric'/f'trace_frame_{k:04d}.json'
@@ -115,7 +151,10 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
                                                             'status': np.asarray(S[:, i]).tolist(), 'source': can['original_source_ids'][i].tolist()} for i in traced},
             'glyph_covariance': {int(k): {int(i): (np.asarray(v['P_plus'])[:3, :3].tolist()) for i, v in t.items()} for k, t in traces.items()},
             'cameras': cameras_js(rig), 'reasons': REASONS, 'status_codes': {0: 'ANCHOR_CANONICAL', 1: 'MEASURED', 2: 'PREDICTION_ONLY'},
-            'counts': counts, 'debug_frames': debug_frames,
+            'counts': counts, 'debug_frames': debug_frames, 'k_end': int(k_end),
+            'tracked': {'ids': tids.tolist(), 'group': tgroup, 'posterior': T(X, np.float32), 'predicted': T(Xp, np.float32), 'velocity': T(V, np.float32),
+                        'var_diag': T(PV, np.float32), 'status': T(S, np.uint8), 'valid_cameras': T(NV, np.uint8)},
+            'displacement_m_quantiles_final': np.quantile(disp, [.5, .9, .98, .99]).tolist(),
             'note': f'canonical cloud = measured frame-{k0} endpoint ({"P_0" if k0 == 0 else "P_T"}); arrays indexed by ORIGINAL chronological frame'}
     write_js(dbg/'data'/f'free_{d}_meta.js', f'free_{d}_meta', meta)
     for k in range(K):
@@ -141,7 +180,7 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
             if k == k0: vis = np.ones(N, bool)
             cand = np.flatnonzero(vis)
             pick = cand[np.unique(np.linspace(0, len(cand)-1, min(caps['markers'], len(cand))).round().astype(int))] if len(cand) else cand
-            pick = np.union1d(pick, np.asarray([i for i in traced if vis[i]], int))
+            pick = np.union1d(pick, np.asarray([i for i in np.union1d(traced, tids) if vis[i]], int))
             t = lambda a: torch.as_tensor(np.asarray(a), dtype=torch.float64, device=dev)
             cam = torch.full((len(pick),), c, dtype=torch.long, device=dev)
             uv0, _, _, _ = rig.project_rows(t(can['canonical_xyz'][pick]), cam)
@@ -199,7 +238,8 @@ def export_rigid(root, dbg, d, data, rig, noise, policy, debug_frames, caps, dev
                    twist_sigma=np.sqrt(np.maximum(np.diagonal(cov[:, 6:, 6:], axis1=1, axis2=2), 0)).tolist(),
                    core_xyz=b64(can['canonical_xyz'][ci], np.float32), core_rgb=b64(np.round(can['canonical_rgb'][ci]*255), np.uint8),
                    static_xyz=b64(can['canonical_xyz'][si], np.float32), core_count=int(len(core)), static_count=int(len(static)),
-                   timeline=tl, cameras=cameras_js(rig), canonical_frame=int(can['canonical_frame']),
+                   timeline=tl, cameras=cameras_js(rig), canonical_frame=int(can['canonical_frame']), tracked=fps(can['canonical_xyz'][ci], 12).tolist(),
+                   processing_order=json.loads((stage_dir(root, f'free_{d}')/'run_manifest.json').read_text())['processing_order'],
                    timestamps=np.asarray(data.times).tolist())
         # overlays of the rigidly moved core on measured RGB-D at the debug frames
         out['rgbd'] = {}
@@ -240,12 +280,12 @@ def export_joint(root, dbg, d, caps):
                    canonical_frame=int(can['canonical_frame']))
         cp = stage_dir(root, f'rigid_{d}')/'core_point_ids.npy'
         if cp.exists(): out['core_mask'] = b64(np.isin(ids, np.load(cp)), np.uint8)
-        sp = root/'joint'/d/'support'/'support.npz'
+        sp = stage_dir(root, f'joint/{d}/support')/'support.npz'
         if sp.exists():
             lab = np.load(sp, allow_pickle=True)['labels'].astype(str)
             names = ['MOVING_CORE', 'MOVING_JOINT_COMPATIBLE', 'STATIC_COMPATIBLE', 'AMBIGUOUS', 'OCCLUDED_OR_UNOBSERVED']
             out['support_codes'] = names; out['support'] = b64([names.index(l) if l in names else 3 for l in lab[ids]], np.uint8)
-            out['support_counts'] = json.loads((root/'joint'/d/'support'/'result.json').read_text()).get('counts')
+            out['support_counts'] = json.loads((stage_dir(root, f'joint/{d}/support')/'result.json').read_text()).get('counts')
     rp = stage_dir(root, f'rigid_{d}')/'poses.npy'
     if rp.exists(): out['poses'] = np.load(rp).tolist()
     write_js(dbg/'data'/f'joint_{d}.js', f'joint_{d}', out)
@@ -277,7 +317,7 @@ def write_debug(root, data, config, policy, directions, debug_frames, level, dev
     caps = CAPS[level]
     rig = CameraRig(data.cameras, device); noise = SensorNoise.from_config(config, policy, device)
     shutil.copyfile(ASSETS/'three-0.160.0.min.js', dbg/'three.min.js'); shutil.copyfile(ASSETS/'THREE_LICENSE.txt', dbg/'THREE_LICENSE.txt')
-    shutil.copyfile(ASSETS/'projective_common.js', dbg/'projective_common.js')
+    shutil.copyfile(ASSETS/'projective_common.js', dbg/'projective_common.js'); shutil.copyfile(ASSETS/'projective_theme.css', dbg/'projective_theme.css')
     pages = {}
     with torch.no_grad():
         for d in directions:

@@ -6,7 +6,7 @@ from pathlib import Path
 
 def stage_dir(root, name):
     """Folder of `name` (e.g. 'free_forward', 'joint/backward') for run `root`: the source run's when that folder was
-    reused, otherwise the run's own. Support (joint/<d>/support) is never reused and is always read from the run itself."""
+    reused (exact folder name, e.g. joint/<d> or joint/<d>/support), otherwise the run's own."""
     root = Path(root); manifest = root/'run_manifest.json'
     if manifest.exists():
         reused = json.loads(manifest.read_text()).get('reused_stages') or {}

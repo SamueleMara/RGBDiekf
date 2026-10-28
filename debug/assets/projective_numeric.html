@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Numerical diagnostics</title>
-<style>body{font:12px sans-serif;margin:8px}table{border-collapse:collapse;font-size:11px}td,th{padding:1px 5px;border-bottom:1px solid #eee}#errors{color:#c00}canvas{border:0}</style>
+<link rel="stylesheet" href="projective_theme.css"><style>body{padding:12px}canvas{margin:4px}</style>
 <script src="projective_common.js"></script></head>
-<body><h3>Numerical diagnostics (exact per-frame values; CSV/JSON in each pass's numeric/ folder)</h3><div id="errors"></div><div id="charts"></div>
-<h4>frame scrubber</h4>direction <select id="dir"></select> frame <select id="frame"></select><div id="frame_detail"></div><h4>suspect frames</h4><div id="suspects"></div>
+<body><h1>Numerical diagnostics (exact per-frame values; CSV/JSON in each pass's numeric/ folder)</h1><div id="errors"></div><div id="charts"></div>
+<h2>frame scrubber</h2>direction <select id="dir"></select> frame <select id="frame"></select><div id="frame_detail"></div><h2>suspect frames</h2><div id="suspects"></div>
 <script>
 const DIRS = __DIRECTIONS__, state = {}; window.__state = state; let N;
 (async () => {
@@ -11,12 +11,12 @@ const DIRS = __DIRECTIONS__, state = {}; window.__state = state; let N;
   for (const d of DIRS) { const f = N['free_'+d] || [], r = N['rigid_'+d] || [];
     const add = (title, rows, keys) => { if (!rows.length) return; const c = document.createElement('canvas'); c.width = 620; c.height = 170; ch.appendChild(c);
       PD.chart(c, keys.map(([k, col]) => ({x: rows.map(x => +x.frame), y: rows.map(x => x[k] === '' || x[k] === 'None' ? NaN : +x[k]), color: col, label: k})), {title: `${title} (${d})`}); };
-    add('free: wall ms', f, [['wall_ms', '#000'], ['cuda_ms_total', '#1f77b4']]);
-    add('free: points', f, [['observed_points', '#2ca02c'], ['prediction_only_points', '#d62728'], ['not_converged_points', '#ff7f0e']]);
-    add('free: NIS per dof (median, prior)', f, [['nis_per_dof_median', '#9467bd']]);
-    add('free: correction / speed', f, [['correction_m_median', '#1f77b4'], ['speed_m_s_median', '#2ca02c'], ['speed_m_s_p95', '#d62728']]);
-    add('rigid: translation / rotation', r, [['translation_m', '#1f77b4'], ['rotation_rad', '#d62728']]);
-    add('rigid: rows, NIS per dof', r, [['rows', '#000']]); }
+    add('free: wall ms', f, [['wall_ms', '#e6edf3'], ['cuda_ms_total', '#58a6ff']]);
+    add('free: points', f, [['observed_points', '#3fb950'], ['prediction_only_points', '#f85149'], ['not_converged_points', '#f0883e']]);
+    add('free: NIS per dof (median, prior)', f, [['nis_per_dof_median', '#a371f7']]);
+    add('free: correction / speed', f, [['correction_m_median', '#58a6ff'], ['speed_m_s_median', '#3fb950'], ['speed_m_s_p95', '#f85149']]);
+    add('rigid: translation / rotation', r, [['translation_m', '#58a6ff'], ['rotation_rad', '#f85149']]);
+    add('rigid: rows, NIS per dof', r, [['rows', '#e6edf3']]); }
   const ds = document.getElementById('dir'), fs = document.getElementById('frame'); DIRS.forEach(d => ds.add(new Option(d, d)));
   const fill = () => { fs.innerHTML = ''; (N[`free_${ds.value}_frames`] || []).forEach(r => fs.add(new Option(r.frame, r.frame))); show(); };
   const show = () => { const r = (N[`free_${ds.value}_frames`] || []).find(x => x.frame === +fs.value); if (!r) return;
