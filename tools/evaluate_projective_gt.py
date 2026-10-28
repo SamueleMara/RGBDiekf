@@ -11,6 +11,9 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.transform import Rotation
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from utils.run_paths import stage_dir
 
 
 def ply(path):
@@ -40,7 +43,7 @@ def main():
     report = {'gt': {'type': kind, 'axis': axis.tolist(), 'point': point.tolist(), 'q_range': float(np.ptp(q)), 'moving_label': int(moving)},
               'frames_evaluated': K, 'note': 'ground truth used ONLY here, after inference', 'directions': {}}
     for d, cloud in (('forward', (x0, l0)), ('backward', (xf, lf))):
-        fd = run/f'free_{d}'
+        fd = stage_dir(run, f'free_{d}')
         if not (fd/'canonical.npz').exists(): continue
         can = np.load(fd/'canonical.npz'); k0 = int(can['canonical_frame']); P0 = can['canonical_xyz']
         dist, nn = cKDTree(cloud[0]).query(P0); lab = cloud[1][nn] == moving
@@ -58,14 +61,14 @@ def main():
         r['free_per_frame'] = per
         last = 0 if d == 'backward' else K-1
         r['free_final'] = per[last]
-        cs = run/f'coherence_{d}'/'coherence_summary.json'
+        cs = stage_dir(run, f'coherence_{d}')/'coherence_summary.json'
         if cs.exists():
             summ = json.loads(cs.read_text()); r['coherence'] = {}
             for pol, v in summ['policies'].items():
                 core = np.load(v['moving_core_point_ids_file'])
                 r['coherence'][pol] = {'verdict': v['verdict'], 'core_points': int(len(core)),
                                        'precision': float(lab[core].mean()) if len(core) else None, 'recall': float(np.isin(np.flatnonzero(lab), core).mean()) if lab.any() else None}
-        rp = run/f'rigid_{d}'/'poses.npy'
+        rp = stage_dir(run, f'rigid_{d}')/'poses.npy'
         if rp.exists():
             Pz = np.load(rp); errs = []
             for k in range(K):
@@ -73,7 +76,7 @@ def main():
                 errs.append({'frame': k, 'translation_error_m': float(np.linalg.norm(dT[:3, 3])), 'rotation_error_deg': float(np.degrees(np.linalg.norm(Rotation.from_matrix(dT[:3, :3]).as_rotvec()))),
                              'true_translation_m': float(np.linalg.norm(T[:3, 3])), 'true_rotation_deg': float(np.degrees(abs(q[k]-q[k0]))) if kind == 'REVOLUTE' else 0.})
             r['rigid'] = {'per_frame': errs, 'final': errs[last], 'max_translation_error_m': max(e['translation_error_m'] for e in errs)}
-        jp = run/'joint'/d/'result.json'
+        jp = stage_dir(run, f'joint/{d}')/'result.json'
         if jp.exists():
             j = json.loads(jp.read_text()); jr = {'status': j.get('status'), 'gt_type': kind, 'type_correct': j.get('status') == kind}
             c = (j.get('candidates') or {}).get(kind)

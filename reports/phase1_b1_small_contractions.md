@@ -39,7 +39,7 @@ Over 10 frames of the full forward Phase 1 (`reports/diagnostics/phase1_roundoff
 
 A round-off-sized perturbation of the **unchanged** production path diverges as much as B1 does, and from frame 1 more. The sequence sensitivity is a property of the current Phase 1, not an error introduced by B1.
 
-**Full 60-frame forward run with the flag on.** Output is in `RGBDekf_local_runs/b1_small_contractions_blade_first_20261025` on local disk, with `--stop-after coherence`; comparison in `reports/diagnostics/b1_full_run_vs_v2.json`.
+**Full 60-frame forward run with the flag on.** Output is in `/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/b1_small_contractions_blade_first_20261025`, with `--stop-after coherence`; comparison in `reports/diagnostics/b1_full_run_vs_v2.json`.
 
 | | v2 production (off) | B1 (on) |
 |---|---|---|

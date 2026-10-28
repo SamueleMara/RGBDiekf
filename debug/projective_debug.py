@@ -18,6 +18,7 @@ from PIL import Image
 from estimator.projective_camera import CameraRig
 from estimator.projective_sensor import MeasuredFrame, SensorNoise, sample, REASONS
 from utils.io import serial
+from utils.run_paths import stage_dir
 
 ASSETS = Path(__file__).with_name('assets')
 CAPS = {'light': {'points3d': 15000, 'markers': 3000}, 'full': {'points3d': 40000, 'markers': 12000}}
@@ -81,7 +82,7 @@ def _turbo(t):
 
 # ---------------------------------------------------------------------------------------------------------------------
 def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, device):
-    fd = root/f'free_{d}'
+    fd = stage_dir(root, f'free_{d}')
     if not (fd/'canonical.npz').exists(): return None
     can = np.load(fd/'canonical.npz'); man = json.loads((fd/'run_manifest.json').read_text())
     X = np.load(fd/'posterior_xyz.npy', mmap_mode='r'); Xp = np.load(fd/'predicted_xyz.npy', mmap_mode='r')
@@ -160,10 +161,10 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
 
 
 def export_coherence(root, dbg, d):
-    cd = root/f'coherence_{d}'
+    cd = stage_dir(root, f'coherence_{d}')
     if not (cd/'coherence_summary.json').exists(): return None
     summ = json.loads((cd/'coherence_summary.json').read_text())
-    can = np.load(root/f'free_{d}'/'canonical.npz')
+    can = np.load(stage_dir(root, f'free_{d}')/'canonical.npz')
     out = {'direction': d, 'summary': summ, 'policies': {}}
     for pol in ('pinned_raw', 'measurement_supported'):
         z = np.load(cd/pol/'representatives.npz', allow_pickle=True); res = json.loads((cd/pol/'result.json').read_text())
@@ -184,12 +185,12 @@ def export_coherence(root, dbg, d):
 
 
 def export_rigid(root, dbg, d, data, rig, noise, policy, debug_frames, caps, device):
-    rd = root/f'rigid_{d}'
+    rd = stage_dir(root, f'rigid_{d}')
     st = json.loads((rd/'status.json').read_text()) if (rd/'status.json').exists() else None
     if st is None: return None
     out = {'direction': d, 'status': st}
     if st['status'] == 'COMPLETE':
-        can = np.load(root/f'free_{d}'/'canonical.npz')
+        can = np.load(stage_dir(root, f'free_{d}')/'canonical.npz')
         poses, tw, cov = np.load(rd/'poses.npy'), np.load(rd/'twists.npy'), np.load(rd/'covariance.npy')
         core, static = np.load(rd/'core_point_ids.npy'), np.load(rd/'static_occluder_point_ids.npy')
         ci, si = core[display_ids(len(core), caps['points3d'])], static[display_ids(len(static), caps['points3d'])]
@@ -227,17 +228,17 @@ def export_rigid(root, dbg, d, data, rig, noise, policy, debug_frames, caps, dev
 
 
 def export_joint(root, dbg, d, caps):
-    jp = root/'joint'/d/'result.json'
+    jp = stage_dir(root, f'joint/{d}')/'result.json'
     if not jp.exists(): return None
     j = json.loads(jp.read_text()); out = {'direction': d, 'joint': j}
-    ip = root/'joint'/d/'reduction_increments.json'
+    ip = stage_dir(root, f'joint/{d}')/'reduction_increments.json'
     if ip.exists(): out['increments'] = json.loads(ip.read_text())
-    fd = root/f'free_{d}'
+    fd = stage_dir(root, f'free_{d}')
     if (fd/'canonical.npz').exists():
         can = np.load(fd/'canonical.npz'); ids = display_ids(len(can['canonical_xyz']), caps['points3d'])
         out.update(xyz=b64(can['canonical_xyz'][ids], np.float32), rgb=b64(np.round(can['canonical_rgb'][ids]*255), np.uint8),
                    canonical_frame=int(can['canonical_frame']))
-        cp = root/f'rigid_{d}'/'core_point_ids.npy'
+        cp = stage_dir(root, f'rigid_{d}')/'core_point_ids.npy'
         if cp.exists(): out['core_mask'] = b64(np.isin(ids, np.load(cp)), np.uint8)
         sp = root/'joint'/d/'support'/'support.npz'
         if sp.exists():
@@ -245,7 +246,7 @@ def export_joint(root, dbg, d, caps):
             names = ['MOVING_CORE', 'MOVING_JOINT_COMPATIBLE', 'STATIC_COMPATIBLE', 'AMBIGUOUS', 'OCCLUDED_OR_UNOBSERVED']
             out['support_codes'] = names; out['support'] = b64([names.index(l) if l in names else 3 for l in lab[ids]], np.uint8)
             out['support_counts'] = json.loads((root/'joint'/d/'support'/'result.json').read_text()).get('counts')
-    rp = root/f'rigid_{d}'/'poses.npy'
+    rp = stage_dir(root, f'rigid_{d}')/'poses.npy'
     if rp.exists(): out['poses'] = np.load(rp).tolist()
     write_js(dbg/'data'/f'joint_{d}.js', f'joint_{d}', out)
     return f'joint_{d}'
@@ -259,7 +260,7 @@ def export_numeric(root, dbg, directions):
             p = root/f'{kind}_{d}'/'numeric'/'timeline.csv'
             if p.exists(): out[f'{kind}_{d}'] = list(csv.DictReader(open(p)))
         per = []
-        fd = root/f'free_{d}'/'numeric'
+        fd = stage_dir(root, f'free_{d}')/'numeric'
         for f in sorted(fd.glob('frame_*.json')) if fd.exists() else []:
             n = json.loads(f.read_text())
             per.append({'frame': n['frame'], 'cameras': [{'camera': c['camera'], 'reason_counts': c['reason_counts'], 'rows': c['rows_accepted_final'],

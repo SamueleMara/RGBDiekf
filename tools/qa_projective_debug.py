@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tools.qa_free_viewer import Pipe
+from utils.run_paths import stage_dir
 
 CHROME = '/usr/bin/google-chrome'
 
@@ -89,7 +90,7 @@ def main():
             png = qa/f'{page[:-5]}.png'; B.shot(s, png); report['screenshots'].append(str(png))
         for d in dirs:
             meta = json.loads((dbg/'data'/f'free_{d}_meta.js').read_text().split('=', 2)[2].rstrip(';\n'))
-            X = np.load(run/f'free_{d}'/'posterior_xyz.npy', mmap_mode='r')
+            X = np.load(stage_dir(run, f'free_{d}')/'posterior_xyz.npy', mmap_mode='r')
             want = [k for k in (0, 1, 5, 10, K-1) if k in meta['debug_frames']]
             for k in want:
                 for c in (0, len(cams)//2):

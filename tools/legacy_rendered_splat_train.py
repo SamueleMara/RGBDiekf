@@ -180,8 +180,6 @@ def run_scene(ap, a):
         reused = check_reuse(a, manifest, anchors, root) if a.reuse else []
         manifest['reused_stages'] = {'from': str(a.reuse.resolve()) if a.reuse else None, 'stages': reused}
         json_write(root/'manifest.json', serial(manifest))
-        for f in manifest['source_hashes']:
-            target = root/'source_snapshot'/f; target.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(REPO/f, target)
         print(json.dumps({'frames': len(data.times), 'cameras': len(data.cameras), 'device': str(backend.device), 'output': str(root),
                           'stages': manifest['stages_requested'], 'reused': reused}), flush=True)
 

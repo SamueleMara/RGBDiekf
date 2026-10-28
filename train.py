@@ -28,6 +28,8 @@ os.environ.setdefault('PYTORCH_CUDA_ALLOC_CONF', 'expandable_segments:True')
 from pathlib import Path
 REPO = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO))
+from utils.run_paths import stage_dir
+RESULTS_ROOT = Path('/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf')   # results and debug live here, never in the code tree
 
 INFERENCE = ['free', 'coherence', 'rigid', 'joint', 'support']
 STAGE_SOURCES = {
@@ -52,7 +54,8 @@ def parse(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     io = ap.add_argument_group('input / output')
     io.add_argument('--scene', '--input', dest='scene', type=Path, required=True, help='calibrated RGB-D scene folder, or a dataset root of scene folders')
-    io.add_argument('--output', type=Path, required=True, help='new, non-existing (or empty) output folder; never overwritten')
+    io.add_argument('--output', type=Path, default=None, help='new, non-existing (or empty) output folder outside the code tree; never overwritten '
+                    '(default: RESULTS_ROOT/projective_<scene>_<YYYYmmdd_HHMM>)')
     io.add_argument('--device', choices=['cuda', 'cpu'], default='cuda')
     io.add_argument('--fps', type=float); io.add_argument('--timestamps-file', type=Path); io.add_argument('--dt-seconds', type=float)
     io.add_argument('--noise-config', type=Path, help='declared RGB/depth/process noise (default configs/example_uncalibrated.json, UNCALIBRATED)')
@@ -100,6 +103,8 @@ def parse(argv=None):
 
 def main(argv=None):
     ap, a = parse(argv)
+    if a.output is None: a.output = RESULTS_ROOT/f"projective_{a.scene.resolve().name}_{time.strftime('%Y%m%d_%H%M')}"
+    if a.output.expanduser().resolve().is_relative_to(REPO): ap.error(f'{a.output} is inside the code tree {REPO}: results go to a separate output folder')
     if not is_scene(a.scene): return run_root(a, list(sys.argv[1:] if argv is None else argv))
     return run_scene(ap, a)
 
@@ -176,11 +181,9 @@ def run_scene(ap, a):
                     'hardware': {'torch': torch.__version__, 'cuda': torch.version.cuda,
                                  'gpu': torch.cuda.get_device_name(0) if torch.cuda.is_available() else None}}
         first = 'free' if a.stage == 'all' else a.stage
-        reused = check_resume(a, manifest, root, first, directions) if a.resume_from else []
-        manifest['reused_stages'] = {'from': str(a.resume_from) if a.resume_from else None, 'stages': reused}
+        reused, folders = check_resume(a, manifest, first, directions) if a.resume_from else ([], [])
+        manifest['reused_stages'] = {'from': str(a.resume_from.resolve()) if a.resume_from else None, 'stages': reused, 'folders': folders}
         json_write(root/'run_manifest.json', serial(manifest))
-        for f in manifest['source_hashes']:
-            tgt = root/'source_snapshot'/f; tgt.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(REPO/f, tgt)
         want = lambda s: INFERENCE.index(s) >= INFERENCE.index(first) and INFERENCE.index(s) <= INFERENCE.index(a.stop_after)
         report = progress_line
         # ---- F1 / B1
@@ -192,16 +195,16 @@ def run_scene(ap, a):
                                                float(policy['iekf_step_tolerance']), a.point_chunk_size, debug_frames, a.debug_point_ids,
                                                a.save_full_covariance or a.debug == 'full', a.save_state_interval, report, a.pixel_reuse_assignment)
                 timings[f'free_{d}'] = time.time()-t0
-            elif 'free' in reused: stages[f'free_{d}'] = json.loads((root/f'free_{d}'/'status.json').read_text())
+            elif 'free' in reused: stages[f'free_{d}'] = json.loads((stage_dir(root, f'free_{d}')/'status.json').read_text())
         # ---- coherence
         if INFERENCE.index(a.stop_after) >= 1:
             from estimator.projective_coherence import run_coherence
             for d in directions:
                 if want('coherence'):
                     t0 = time.time()
-                    stages[f'coherence_{d}'] = run_coherence(root/f'free_{d}', root/f'coherence_{d}', a.coherence_count, a.coherence_knn, a.coherence_folds, a.coherence_weighting)
+                    stages[f'coherence_{d}'] = run_coherence(stage_dir(root, f'free_{d}'), root/f'coherence_{d}', a.coherence_count, a.coherence_knn, a.coherence_folds, a.coherence_weighting)
                     timings[f'coherence_{d}'] = time.time()-t0
-                else: stages[f'coherence_{d}'] = json.loads((root/f'coherence_{d}'/'coherence_summary.json').read_text())
+                else: stages[f'coherence_{d}'] = json.loads((stage_dir(root, f'coherence_{d}')/'coherence_summary.json').read_text())
                 print(f'[coherence {d}] {stages[f"coherence_{d}"]["status"]}', flush=True)
         # ---- F2 / B2
         if INFERENCE.index(a.stop_after) >= 2:
@@ -209,10 +212,10 @@ def run_scene(ap, a):
             for d in directions:
                 if want('rigid'):
                     t0 = time.time()
-                    stages[f'rigid_{d}'] = run_rigid(data, config, policy, d, root/f'free_{d}', root/f'coherence_{d}', root/f'rigid_{d}', a.device,
+                    stages[f'rigid_{d}'] = run_rigid(data, config, policy, d, stage_dir(root, f'free_{d}'), stage_dir(root, f'coherence_{d}'), root/f'rigid_{d}', a.device,
                                                      max_iters, 1e-10, debug_frames, a.covariance_precision, report, a.noise_config, a.pixel_reuse_assignment)
                     timings[f'rigid_{d}'] = time.time()-t0
-                else: stages[f'rigid_{d}'] = json.loads((root/f'rigid_{d}'/'status.json').read_text())
+                else: stages[f'rigid_{d}'] = json.loads((stage_dir(root, f'rigid_{d}')/'status.json').read_text())
                 print(f'[rigid {d}] {stages[f"rigid_{d}"]["status"]}', flush=True)
         # ---- joint (+ forward/backward comparison)
         joints = {}
@@ -221,10 +224,10 @@ def run_scene(ap, a):
             for d in directions:
                 if want('joint'):
                     t0 = time.time()
-                    joints[d] = run_joint(data, config, policy, d, root/f'free_{d}', root/f'coherence_{d}', root/f'rigid_{d}', root/'joint'/d, alpha,
+                    joints[d] = run_joint(data, config, policy, d, stage_dir(root, f'free_{d}'), stage_dir(root, f'coherence_{d}'), stage_dir(root, f'rigid_{d}'), root/'joint'/d, alpha,
                                           a.device, a.joint_q_filter, a.noise_config)
                     timings[f'joint_{d}'] = time.time()-t0
-                else: joints[d] = json.loads((root/'joint'/d/'result.json').read_text())
+                else: joints[d] = json.loads((stage_dir(root, f'joint/{d}')/'result.json').read_text())
                 stages[f'joint_{d}'] = {'status': joints[d]['status']}
                 print(f'[joint {d}] {joints[d]["status"]}', flush=True)
             if len(joints) == 2 and all('candidates' in j for j in joints.values()):
@@ -236,7 +239,7 @@ def run_scene(ap, a):
             from joint_reduction.support_projective import run_support
             for d in directions:
                 t0 = time.time()
-                stages[f'support_{d}'] = run_support(data, config, policy, root/f'free_{d}', root/f'rigid_{d}', joints.get(d, {}), root/'joint'/d/'support', alpha, a.device)
+                stages[f'support_{d}'] = run_support(data, config, policy, stage_dir(root, f'free_{d}'), stage_dir(root, f'rigid_{d}'), joints.get(d, {}), root/'joint'/d/'support', alpha, a.device)
                 timings[f'support_{d}'] = time.time()-t0
                 print(f'[support {d}] {stages[f"support_{d}"]["status"]}', flush=True)
         # ---- performance summary, debug, evaluation, QA
@@ -267,7 +270,7 @@ def run_scene(ap, a):
         (root/'failure.json').write_text(json.dumps({'status': 'FAILED', 'reason': str(err), 'stages': {k: (v.get('status') if isinstance(v, dict) else v) for k, v in stages.items()}}, indent=1, default=str))
         raise
     finally:
-        fcntl.flock(lock, fcntl.LOCK_UN); lock.close()
+        fcntl.flock(lock, fcntl.LOCK_UN); lock.close(); (root/'run.lock').unlink(missing_ok=True)
 
 
 def progress_line(direction, i, n, info):
@@ -296,7 +299,7 @@ def write_performance(root, directions, timings):
     (root/'performance').mkdir(exist_ok=True)
     perf = {'stage_wall_seconds': timings}
     for d in directions:
-        f = root/f'free_{d}'/'numeric'/'timeline.csv'
+        f = stage_dir(root, f'free_{d}')/'numeric'/'timeline.csv'
         if f.exists():
             rows = list(csv.DictReader(open(f)))
             col = lambda k: np.array([float(r[k]) for r in rows if r[k] not in ('', 'None')])
@@ -306,8 +309,8 @@ def write_performance(root, directions, timings):
     json_write(root/'performance'/'summary.json', perf)
 
 
-def check_resume(a, manifest, root, first, directions):
-    """Stages before `first` come from --resume-from, read-only (symlinks), after exact checks of point-id subsample
+def check_resume(a, manifest, first, directions):
+    """Stages before `first` come from --resume-from, read in place (utils.run_paths.stage_dir), after exact checks of point-id subsample
     mapping, calibration, timestamps, cameras, noise, policy and the implementation hashes of every reused stage."""
     src = a.resume_from.resolve()
     old = json.loads((src/'run_manifest.json').read_text())
@@ -319,13 +322,14 @@ def check_resume(a, manifest, root, first, directions):
     for s in stages:
         for f in STAGE_SOURCES[s]:
             if old['source_hashes'].get(f) != manifest['source_hashes'][f]: raise ValueError(f'Rejected resume: {f} changed since stage {s} ran')
+    reused = []
     for s in stages:
         folders = {'free': [f'free_{d}' for d in directions], 'coherence': [f'coherence_{d}' for d in directions],
-                   'rigid': [f'rigid_{d}' for d in directions], 'joint': ['joint'], 'support': []}[s]
+                   'rigid': [f'rigid_{d}' for d in directions], 'joint': [f'joint/{d}' for d in directions], 'support': []}[s]
         for f in folders:
             if not (src/f).exists(): raise ValueError(f'Rejected resume: {src/f} missing')
-            (root/f).symlink_to(src/f, target_is_directory=True)
-    return stages
+            reused.append(f)
+    return stages, reused
 
 
 if __name__ == '__main__':

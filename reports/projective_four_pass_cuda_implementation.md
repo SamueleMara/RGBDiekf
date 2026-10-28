@@ -174,7 +174,7 @@ Notes:
 
 ## 5. Results
 
-Ground truth is post hoc, in `evaluation_gt/`. Runs are in `/home/samuelemara/Joint3DGS/RGBDekf_local_runs/projective_20261028/`.
+Ground truth is post hoc, in `evaluation_gt/`. Runs are in `/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/projective_20261028_batch/`.
 
 | Run | Dir | Free moving error / true motion (m) | Free static error (m) | Coherence pinned_raw precision / recall | Rigid final error (m, °) | Joint |
 |---|---|---|---|---|---|---|
@@ -235,4 +235,4 @@ Numeric logs per pass: `numeric/frame_XXXX.json`, `trace_frame_XXXX.json` (per-p
 | Debug pages, QA, GT evaluation, profiling | yes | Gate H | yes |
 | Triton / custom CUDA kernels | **no** | — | — |
 | Image-coordinate uncertainty, colour–depth correlated noise, interpolation-correlated rows | **no** (documented approximations) | — | — |
-| `--stage S --resume-from RUN` stage reuse | yes | blade 6-frame run resumed at coherence: free stages symlinked, coherence summary identical, rigid poses bitwise identical | yes |
+| `--stage S --resume-from RUN` stage reuse | yes | blade 6-frame run resumed at coherence: coherence summary identical, rigid poses bitwise identical. Reused stages are now read in place from the source run (`utils/run_paths.py`), with no symlinks, because the results SSD is exFAT. Re-tested on the SSD: blade, factor 8, 10 frames, resumed at rigid, debug, GT evaluation and page checks PASS | yes |

@@ -23,8 +23,10 @@ Coherence (the pinned RigEuler 192-node extractor), joint reduction and decision
 Everything, with debug pages, ground-truth evaluation (separate process) and page QA:
 
 ```bash
-python train.py --scene <scene folder | dataset root> --output <new folder>
+python train.py --scene <scene folder | dataset root> [--output <new folder>]
 ```
+
+Results and debug pages go to a new folder on the external SSD, by default `/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/projective_<scene>_<YYYYmmdd_HHMM>` (`RESULTS_ROOT` in `train.py`). An output folder inside the code tree is refused. No code is copied into outputs: `run_manifest.json` records the git commit and the sha256 of every source file.
 
 Common options:
 - `--pcd-subsample-factor 4`: deterministic endpoint subsampling; images, cameras and frames are never reduced.
