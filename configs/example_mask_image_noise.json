@@ -1,0 +1,7 @@
+{
+  "mask_image_variance": 0.08333333333333333,
+  "units": "(white intensity in [0,1])^2, per camera (list) or one value for every camera",
+  "class": "UNCALIBRATED",
+  "derivation": "modelling choice, not a measured sensor variance: a binary pixel is the thresholded coverage of a boundary pixel; if that coverage is unknown and uniform in [0,1], its variance about the 0/1 value is 1/12. The masks carry no segmentation-uncertainty estimate.",
+  "correlation_note": "the masks are segmentations of the same RGB images as the RGB-D rows; R = blockdiag(R_rgbd, R_mask) is a composite-likelihood approximation that ignores that correlation"
+}

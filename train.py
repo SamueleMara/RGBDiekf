@@ -36,7 +36,8 @@ ORDER = INFERENCE+['debug']
 STAGE_SOURCES = {
     'free': ['scene/dataset.py', 'scene/dataloader.py', 'scene/timing.py', 'scene/camera.py', 'scene/config.py', 'scene/noise.py', 'scene/endpoint.py',
              'scene/canonical_subsample.py', 'scene/noise_calibration.py', 'estimator/projective_camera.py', 'estimator/projective_sensor.py', 'estimator/projective_visibility.py',
-             'estimator/projective_terms.py', 'estimator/point_kalman_cuda.py', 'estimator/free_projective_run.py', 'configs/projective_rgbd.json'],
+             'estimator/projective_terms.py', 'estimator/point_kalman_cuda.py', 'estimator/free_projective_run.py', 'configs/projective_rgbd.json',
+             'estimator/rendered_mask_measurement.py', 'estimator/rendered_mask_iekf.py'],
     'coherence': ['estimator/projective_coherence.py', 'estimator/motion_coherence_support.py', 'estimator/supported_coherence.py',
                   'rigeuler_ref/coherence_extraction.py', 'rigeuler_ref/motion_coherence_support.py'],
     'rigid': ['estimator/rigid_kalman_cuda.py', 'estimator/se3.py'],
@@ -68,6 +69,15 @@ def parse(argv=None):
                          '(default: the --noise-config initial_twist_covariance, 1 (m/s)^2 per axis = v99 3.37 m/s). Not inferred from data or ground truth.')
     io.add_argument('--policy-override', nargs='*', default=[], metavar='KEY=VALUE',
                     help='override configs/projective_rgbd.json keys for an ablation, e.g. update_acceptance=final_iterate row_innovation_gate=depth_front_only')
+    io.add_argument('--rendered-mask-measurement', choices=['off', 'diagnostic', 'on'],
+                    help='the measured binary mask against the rendered white-point pseudomask of ALL transported points as a second IEKF image '
+                         'measurement in F1/B1 (estimator/rendered_mask_iekf.py; default configs/projective_rgbd.json rendered_mask_measurement.mode = off). '
+                         'diagnostic renders and reports without changing any state; on assimilates the one-sided image innovation (needs --mask-image-noise-config)')
+    io.add_argument('--mask-image-noise-config', type=Path,
+                    help='DECLARED mask-intensity variance R_mask ((white intensity in [0,1])^2, per camera or one value) with its provenance, e.g. '
+                         'configs/example_mask_image_noise.json (UNCALIBRATED)')
+    for old in ('--geometry-constraints', '--geometry-depth-mode', '--geometry-posterior-mean'):    # removed, never aliased
+        io.add_argument(old, dest=old.strip('-').replace('-', '_'), help=argparse.SUPPRESS)
     st = ap.add_argument_group('stages')
     st.add_argument('--direction', choices=['forward', 'backward', 'both'], default='both')
     st.add_argument('--stage', choices=INFERENCE+['debug', 'all'], default='all',
@@ -106,6 +116,12 @@ def parse(argv=None):
     a = ap.parse_args(argv)
     if a.cuda_backend == 'triton': ap.error('--cuda-backend triton is not implemented; the verified implementation is the PyTorch CUDA reference')
     if a.pcd_subsample_factor < 1: ap.error('--pcd-subsample-factor must be >= 1')
+    for old in ('geometry_constraints', 'geometry_depth_mode', 'geometry_posterior_mean'):
+        if getattr(a, old) is not None:
+            ap.error(f'--{old.replace("_", "-")} was REMOVED: the hard visual-hull QP/EP mode was replaced by --rendered-mask-measurement '
+                     '(RGBDiekf_Codex_Rendered_Binary_Mask_IEKF_Replacement.md); it is not aliased to the new measurement')
+    if a.rendered_mask_measurement == 'on' and a.mask_image_noise_config is None:
+        ap.error('--rendered-mask-measurement on needs a DECLARED mask variance: --mask-image-noise-config (no default weight is chosen for you)')
     if a.stage != 'all' and a.stage != 'free' and a.resume_from is None: ap.error('--stage after free needs --resume-from')
     if a.stage not in ('all', 'debug') and INFERENCE.index(a.stage) > INFERENCE.index(a.stop_after): ap.error('--stage is after --stop-after')
     return ap, a
@@ -178,6 +194,15 @@ def run_scene(ap, a):
             if key not in policy: ap.error(f'--policy-override: unknown key {key!r} (configs/projective_rgbd.json)')
             try: policy[key] = json.loads(val)
             except json.JSONDecodeError: policy[key] = val
+        mcfg = policy['rendered_mask_measurement']
+        if a.rendered_mask_measurement is not None: mcfg['mode'] = a.rendered_mask_measurement
+        mask_noise = None
+        if a.mask_image_noise_config is not None:
+            mask_noise = json.loads(a.mask_image_noise_config.read_text()); mask_noise['source_file'] = str(a.mask_image_noise_config.resolve())
+            v = np.atleast_1d(np.asarray(mask_noise['mask_image_variance'], float))
+            if not (np.isfinite(v).all() and (v > 0).all()): ap.error('mask_image_variance must be positive and finite')
+        if mcfg['mode'] == 'on' and mask_noise is None:
+            ap.error('--rendered-mask-measurement on needs a DECLARED mask variance: --mask-image-noise-config (no default weight is chosen for you)')
         alpha = float(json.loads((REPO/'configs/image_joint_policy.json').read_text())['tail_probability'])
         max_iters = a.max_iekf_iters or int(policy['max_iekf_iters'])
         data = Dataset(a.scene, a.frame_limit, None, fps=a.fps, dt_seconds=a.dt_seconds, timestamps_file=a.timestamps_file)
@@ -207,7 +232,7 @@ def run_scene(ap, a):
         manifest = {'pipeline': 'four-pass projective RGB-D IEKF (F1/B1 free, F2/B2 rigid)', 'entry': 'train.py',
                     'contract': 'CODEX_RGBD_FOUR_PASS_PROJECTIVE_IEKF_CUDA_SUBSAMPLING_2026-10-27.md',
                     'arguments': {k: (str(v) if isinstance(v, Path) else v) for k, v in vars(a).items()},
-                    'dataset': data.manifest(), 'cameras': rig.manifest(), 'noise': config.manifest(), 'policy': policy, 'alpha': alpha,
+                    'dataset': data.manifest(), 'cameras': rig.manifest(), 'noise': config.manifest(), 'policy': policy, 'alpha': alpha, 'mask_noise': mask_noise,
                     'noise_calibration': 'noise_calibration.json' if a.sensor_noise == 'measured' else None,
                     'subsample': sub, 'source_hashes': source_hashes(), 'git_commit': git_commit(), 'debug_frames': debug_frames,
                     'ground_truth_used_in_inference': False, 'correspondences_used': False, 'renderer_used': False,
@@ -226,7 +251,7 @@ def run_scene(ap, a):
                 t0 = time.time()
                 stages[f'free_{d}'] = run_free(data, config, policy, d, root/f'free_{d}', a.device, sub, a.covariance_precision, max_iters,
                                                float(policy['iekf_step_tolerance']), a.point_chunk_size, debug_frames, a.debug_point_ids,
-                                               a.save_full_covariance or a.debug == 'full', a.save_state_interval, report, a.pixel_reuse_assignment)
+                                               a.save_full_covariance or a.debug == 'full', a.save_state_interval, report, a.pixel_reuse_assignment, mask_noise)
                 timings[f'free_{d}'] = time.time()-t0
             elif 'free' in reused: stages[f'free_{d}'] = json.loads((stage_dir(root, f'free_{d}')/'status.json').read_text())
         # ---- coherence
@@ -351,7 +376,7 @@ def check_resume(a, manifest, first, directions):
     old = json.loads((src/'run_manifest.json').read_text())
     if old.get('entry') != 'train.py' or 'four-pass' not in old.get('pipeline', ''): raise ValueError('Rejected resume: not a four-pass projective run')
     norm = lambda v: json.loads(json.dumps(v, default=str))
-    for key in ('dataset', 'cameras', 'noise', 'policy', 'subsample'):
+    for key in ('dataset', 'cameras', 'noise', 'policy', 'subsample', 'mask_noise'):
         if norm(old.get(key)) != norm(manifest[key]): raise ValueError(f'Rejected resume: {key} differs')
     stages = ORDER[:ORDER.index(first)]
     for s in stages:

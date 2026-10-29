@@ -17,8 +17,10 @@ from scene.endpoint import endpoint_samples
 from scene.canonical_subsample import subsample, boundary_priority, ids_hash
 from estimator.projective_camera import CameraRig
 from estimator.projective_sensor import MeasuredFrame, SensorNoise, REASONS
-from estimator.point_kalman_cuda import predict, update_points, Timers, eigvalsh3, spd_extreme_eigs, ACCEPTANCE
+from estimator.point_kalman_cuda import predict, update_points, Timers, eigvalsh3, spd_extreme_eigs, ACCEPTANCE, transition, process_noise
 from utils.io import json_write, serial
+from estimator.rendered_mask_measurement import footprints, mask_rows, hard_pseudomask, frame_statistics
+from estimator.rendered_mask_iekf import update_points_rendered_mask, MASK_STATUS, MCODE
 
 QUANT = (0., .05, .25, .5, .75, .95, 1.)
 STATUS = {0: 'ANCHOR_CANONICAL', 1: 'MEASURED', 2: 'PREDICTION_ONLY'}
@@ -46,7 +48,8 @@ def build_catalogue(dataset, config, direction, sub, policy, noise):
 
 
 def run_free(dataset, config, policy, direction, root, device, sub, precision='float64', max_iters=10, tol=1e-8, chunk=200_000,
-             debug_frames=(), debug_point_ids=None, save_full_covariance=False, save_state_interval=0, progress=None, assignment='per-frame'):
+             debug_frames=(), debug_point_ids=None, save_full_covariance=False, save_state_interval=0, progress=None, assignment='per-frame',
+             mask_noise=None):
     root = Path(root); (root/'numeric').mkdir(parents=True, exist_ok=True)
     kal_dtype = torch.float32 if precision == 'float32' else torch.float64
     rig = CameraRig(dataset.cameras, device, torch.float64 if precision == 'float64' else torch.float32)
@@ -71,6 +74,19 @@ def run_free(dataset, config, policy, direction, root, device, sub, precision='f
                             ('information_min_eig', (K, n), 'float32'), ('information_max_eig', (K, n), 'float32'),
                             ('update_acceptance', (K, n), 'uint8'), ('posterior_cost', (K, n), 'float32'), ('posterior_cost_dof', (K, n), 'uint8')]:
         mm[name] = np.lib.format.open_memmap(root/f'{name}.npy', mode='w+', dtype=dt, shape=shape)
+    mcfg = policy.get('rendered_mask_measurement', {'mode': 'off'})
+    mmode = mcfg['mode']
+    if mmode not in ('off', 'diagnostic', 'on'): raise ValueError(f'rendered_mask_measurement.mode {mmode!r}')
+    mvar = None
+    if mask_noise is not None:
+        mvar = np.broadcast_to(np.asarray(mask_noise['mask_image_variance'], float), (C,)).copy()
+    if mmode == 'on' and mvar is None: raise ValueError('rendered_mask_measurement on needs a declared mask_image_variance (--mask-image-noise-config)')
+    if mmode != 'off':                                   # new arrays only when the mask channel is evaluated: 'off' writes exactly the old outputs
+        for name, shape, dt in [('rendered_mask_status', (K, n), 'uint8'), ('rendered_mask_rows', (K, n), 'uint16'),
+                                ('rendered_mask_gradient_norm', (K, n), 'float32'), ('rendered_mask_outside_cameras_prior', (K, n), 'uint8'),
+                                ('rendered_mask_outside_cameras_post', (K, n), 'uint8'), ('rendered_mask_rgbd_consistent', (K, n), 'bool')]:
+            mm[name] = np.lib.format.open_memmap(root/f'{name}.npy', mode='w+', dtype=dt, shape=shape)
+        mm['rendered_mask_status'][k0] = MCODE['NOT_EVALUATED']
     dev = torch.device(device)
     s = torch.zeros((n, 6), dtype=kal_dtype, device=dev); s[:, :3] = torch.as_tensor(xyz[sel], dtype=kal_dtype, device=dev)
     P = torch.zeros((n, 6, 6), dtype=kal_dtype, device=dev)
@@ -94,9 +110,13 @@ def run_free(dataset, config, policy, direction, root, device, sub, precision='f
                 'debug_point_ids': debug_point_ids, 'debug_frames': list(debug_frames), 'arrays_indexing': 'original chronological frame index',
                 'full_covariance_saved': bool(save_full_covariance), 'save_state_interval': save_state_interval, 'reason_codes': REASONS, 'status_codes': STATUS,
                 'acceptance_codes': ACCEPTANCE, 'update_acceptance': policy.get('update_acceptance', 'final_iterate'),
-                'row_innovation_gate': policy.get('row_innovation_gate', 'depth_front_only'), 'final_visibility': policy.get('final_visibility', 'frozen')}
+                'row_innovation_gate': policy.get('row_innovation_gate', 'depth_front_only'), 'final_visibility': policy.get('final_visibility', 'frozen'),
+                'rendered_mask_measurement': {**mcfg, 'status_codes': MASK_STATUS, 'mask_noise': mask_noise,
+                                              'observation': 'y_obs = the measured binary mask of the frame; y_hat = the rendered white-point pseudomask of ALL '
+                                                             'transported points; r = y_obs - y_hat on measured-background pixels only',
+                                              'acceptance': 'rendered_mask_joint_monotone_line_search' if mmode == 'on' else policy.get('update_acceptance', 'final_iterate')}}
     json_write(root/'run_manifest.json', serial(manifest))
-    timeline = []
+    timeline = []; gtot = {}
     total_t0 = time.perf_counter()
     for i, (prev, k) in enumerate(zip(order, order[1:])):
         t_wall = time.perf_counter()
@@ -108,13 +128,31 @@ def run_free(dataset, config, policy, direction, root, device, sub, precision='f
         with timers('predict'):
             s_m, P_m = predict(s, P, dt, qc)
         trace_ids = debug_point_ids if k in debug_frames else None
-        s, P, rep, trace = update_points(s_m, P_m, frame, rig, rgb0, noise, policy, max_iters, tol, chunk, kal_dtype, trace_ids, timers, assignment)
+        pre = None if trace_ids is None else {'previous_frame': prev, 't_previous_s': float(dataset.times[prev]), 't_s': float(dataset.times[k]), 'dt_s': dt,
+                                              'F': transition(dt).tolist(), 'Q': process_noise(dt, qc.double().cpu()).tolist(), 'q_c': qc.double().cpu().tolist(),
+                                              'points': {pid: {'s_previous': s[pid].tolist(), 'P_previous': P[pid].tolist(), 's_minus': s_m[pid].tolist(),
+                                                               'P_minus': P_m[pid].tolist()} for pid in trace_ids}}
+        if mmode == 'on':
+            s, P, rep, trace = update_points_rendered_mask(s_m, P_m, frame, rig, rgb0, noise, policy, max_iters, tol, chunk, kal_dtype, trace_ids, timers,
+                                                           assignment, mvar)
+        else:
+            s, P, rep, trace = update_points(s_m, P_m, frame, rig, rgb0, noise, policy, max_iters, tol, chunk, kal_dtype, trace_ids, timers, assignment)
+        if trace is not None: trace['prediction'] = pre
+        msum = None
+        if mmode != 'off':
+            with timers('mask_diagnostics'):
+                msum = _store_mask(mm, k, s_m, s, rep, frame, rig, mvar, mmode, kal_dtype, root if k in debug_frames else None)
         with timers('store'):
             _store(mm, k, s, s_m, P, rep, C)
             if save_full_covariance and (k in debug_frames or (save_state_interval and i % save_state_interval == 0) or k == order[-1]):
                 (root/'covariance').mkdir(exist_ok=True); np.save(root/'covariance'/f'frame_{k:04d}.npy', P.double().cpu().numpy())
         times = timers.resolve()
         num = _frame_numeric(k, i+1, dt, frame, rep, s, s_m, P, P_m, times, time.perf_counter()-t_wall, dev, dataset)
+        if msum is not None:
+            num['rendered_mask'] = msum
+            for kk, v in msum['status_counts'].items(): gtot[kk] = gtot.get(kk, 0)+v
+            for kk in ('hard_white_outside_measured_mask_prior', 'hard_white_outside_measured_mask_post'):
+                gtot[kk] = gtot.get(kk, 0)+msum[kk]
         json_write(root/'numeric'/f'frame_{k:04d}.json', serial(num))
         if trace is not None: json_write(root/'numeric'/f'trace_frame_{k:04d}.json', serial({'frame': k, 'points': trace}))
         timeline.append(_timeline_row(num))
@@ -128,9 +166,83 @@ def run_free(dataset, config, policy, direction, root, device, sub, precision='f
               'not_converged_point_frames': int(sum(r['not_converged_points'] for r in timeline)),
               'rejected_inconsistent_point_frames': int(sum(r['rejected_inconsistent'] for r in timeline)),
               'accepted_earlier_iterate_point_frames': int(sum(r['accepted_earlier_iterate'] for r in timeline)),
-              'prediction_only_point_frames': int(sum(r['prediction_only_points'] for r in timeline))}
+              'prediction_only_point_frames': int(sum(r['prediction_only_points'] for r in timeline)),
+              'rendered_mask': None if mmode == 'off' else {'mode': mmode, 'point_frame_totals': gtot}}
     json_write(root/'status.json', status)
     return status
+
+
+def _store_mask(mm, k, s_m, s, rep, frame, rig, mvar, mmode, dtype, debug_root):
+    """Mask-channel arrays and summary of frame k: the hard pseudomask outside the measured mask at s- and at the
+    published s+ (all points, white once), per-point status / rows / gradient (on) and debug images on debug frames.
+    The direct RGB-D fields (observed, nrows, camera_reason) are untouched."""
+    C, H, W, N = rig.count, frame.H, frame.W, len(s)
+    background = ~frame.mask
+    var = torch.as_tensor(mvar if mvar is not None else np.ones(C), dtype=dtype, device=s.device)
+    out = {'mode': mmode}
+    per = {}
+    for tag, X in (('prior', s_m[:, :3].to(dtype)), ('post', s[:, :3].to(dtype))):
+        if tag == 'post' and mmode == 'on':                          # the IEKF's own final rendering of the published state
+            fp, rows, B = rep['mask']['footprints'], rep['mask']['rows'], rep['mask']['hard_pseudomask']
+        else:
+            fp = footprints(X, rig, H, W, background); rows = mask_rows(fp, background, var, H, W, N); B = hard_pseudomask(fp, C, H, W)
+        st = frame_statistics(fp, rows, background, B, H, W)
+        if mvar is None: st['mask_objective'] = None
+        cam_bg = background.reshape(C, -1).gather(1, fp.nearest) & fp.in_image          # [C,N] nearest pixel white in B and black in M_obs
+        mm[f'rendered_mask_outside_cameras_{tag}'][k] = cam_bg.sum(0).clamp_max(255).to(torch.uint8).cpu().numpy()
+        out[f'hard_white_outside_measured_mask_{tag}'] = st['hard_white_outside_measured_mask']
+        per[tag] = (fp, rows, B, st)
+        out[f'statistics_{tag}'] = st
+    if mmode == 'on':
+        mk = rep['mask']
+        status = mk['status']
+        mm['rendered_mask_rows'][k] = mk['rows_per_point'].clamp_max(65535).to(torch.int32).cpu().numpy().astype(np.uint16)
+        mm['rendered_mask_gradient_norm'][k] = mk['gradient_norm'].float().cpu().numpy()
+        mm['rendered_mask_rgbd_consistent'][k] = mk['rgbd_consistent'].cpu().numpy()
+        out['iekf'] = {kk: v for kk, v in mk['statistics'].items()}
+        out['history'] = rep['history']
+    else:
+        fp, rows, B, st = per['post']
+        rp = torch.zeros(N, dtype=torch.long, device=s.device)
+        if rows.n_rows: rp[rows.point_ids] = rows.point_len
+        status = torch.where(rp > 0, MCODE['DIAGNOSTIC_ONLY'], MCODE['NO_MASK_ROWS'])
+        mm['rendered_mask_rows'][k] = rp.clamp_max(65535).to(torch.int32).cpu().numpy().astype(np.uint16)
+        mm['rendered_mask_gradient_norm'][k] = (rows.jtw(rows.r/rows.var, N).norm(dim=1) if rows.n_rows else torch.zeros(N, dtype=dtype, device=s.device)).float().cpu().numpy()
+        mm['rendered_mask_rgbd_consistent'][k] = False
+    mm['rendered_mask_status'][k] = status.to(torch.uint8).cpu().numpy()
+    counts = torch.bincount(status.long(), minlength=len(MASK_STATUS)).cpu().numpy()
+    out['status_counts'] = {MASK_STATUS[i]: int(counts[i]) for i in range(len(MASK_STATUS)) if counts[i]}
+    if debug_root is not None:
+        out['debug_images'] = _mask_debug_images(debug_root, k, frame, per)
+    return out
+
+
+def _mask_debug_images(root, k, frame, per):
+    """mask_debug/frame_KKKK_camC.png per camera, panels left to right: measured mask M_obs | hard pseudomask B of ALL
+    points (prior s-) | red B & ~M_obs on gray M_obs (prior) | the same at the published s+ | anti-aliased m_hat (s+) |
+    selected residual -(1 - M_obs) m_hat (s+, blue = more negative) | contributor count per pixel (s+, all pixels)."""
+    from PIL import Image
+    out = root/'mask_debug'; out.mkdir(exist_ok=True)
+    C, H, W = frame.mask.shape
+    M = frame.mask.cpu().numpy()
+    fp0, rows0, B0, _ = per['prior']; fp1, rows1, B1, _ = per['post']
+    B0, B1 = B0.cpu().numpy(), B1.cpu().numpy()
+    mh = np.zeros(C*H*W); cnt = np.zeros(C*H*W)
+    if rows1.n_rows: mh[(rows1.row_cam*H*W+rows1.row_pix).cpu().numpy()] = rows1.m_hat.cpu().numpy()
+    c_idx = torch.arange(C, device=fp1.nearest.device)[:, None].expand_as(fp1.nearest)
+    np.add.at(cnt, (c_idx*H*W+fp1.nearest)[fp1.in_image].cpu().numpy(), 1)          # points per pixel (nearest centre, all points)
+    mh, cnt = mh.reshape(C, H, W), cnt.reshape(C, H, W)
+    names = []
+    for c in range(C):
+        gray = lambda a: np.repeat((a*255).astype(np.uint8)[..., None], 3, -1)
+        def over(B):
+            img = gray(M[c]*.5); img[B[c] & ~M[c]] = (255, 0, 0); return img
+        res = np.zeros((H, W, 3), np.uint8); res[..., 2] = (np.clip(mh[c]*(~M[c]), 0, 1)*255).astype(np.uint8)
+        cn = gray(np.clip(cnt[c]/max(cnt[c].max(), 1), 0, 1))
+        panel = np.concatenate([gray(M[c]), gray(B0[c]), over(B0), over(B1), gray(np.clip(mh[c], 0, 1)), res, cn], 1)
+        name = f'frame_{k:04d}_cam{c}.png'; Image.fromarray(panel).save(out/name); names.append(f'mask_debug/{name}')
+    return {'files': names, 'panels': ['M_obs', 'B(s-) all points white', 'B(s-) & ~M_obs red', 'B(s+) & ~M_obs red', 'm_hat(s+)',
+                                       '-(1-M_obs) m_hat(s+)', 'points per pixel (nearest centre, s+)']}
 
 
 def _store(mm, k, s, s_m, P, rep, C):

@@ -18,7 +18,8 @@ the prior (the quantity a Kalman gate tests; identical to r at the prior iterate
                                surface within the prior uncertainty (a surface far behind the point, a different colour),
                                which the 2x2 interpolant-validity test cannot tell (it only checks one surface per cell).
 row_innovation_gate selects the rule: 'rgbd_chi2' (above, default), 'depth_two_sided' (|nu_D| > n_sigma sqrt(S_DD) only,
-sign -> reason) or 'depth_front_only' (the earlier rule: only nu_D > n_sigma sqrt(S_DD), the other sign kept as motion).
+sign -> reason) or 'depth_front_only' (the earlier rule exactly: only r_D > n_sigma sqrt(S_DD) on the ITERATE's own
+residual, not the prior-linearized nu_D; the other sign kept as motion).
 A row moving within its prior uncertainty passes every rule; the prior covariance (velocity prior and q_c included)
 is what decides how far a legitimate motion may go in one frame.
 """
@@ -82,7 +83,8 @@ def build_terms(rig, frame, cam, point, x, rgb0, Sigma_x, noise, policy, dtype=t
     if gate not in GATES: raise ValueError(f'row_innovation_gate {gate!r} not in {GATES}')
     ok = reason == 0
     n_sig = policy['visibility_n_sigma']
-    front = ok & (nu[:, 3] > n_sig*torch.sqrt(S_zz.clamp_min(0)))
+    # 'depth_front_only' is the audited rule exactly (29a23a7): the iterate's own depth residual r_D, not nu_D
+    front = ok & ((r[:, 3] if gate == 'depth_front_only' else nu[:, 3]) > n_sig*torch.sqrt(S_zz.clamp_min(0)))
     reason[front] = CODE['MEASURED_SURFACE_IN_FRONT']
     L, info = torch.linalg.cholesky_ex(torch.where(ok[:, None, None], S, torch.eye(4, dtype=dtype, device=S.device)))
     nis = (torch.linalg.solve_triangular(L, nu[:, :, None], upper=False)[..., 0]**2).sum(1)

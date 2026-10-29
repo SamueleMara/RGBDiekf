@@ -44,7 +44,7 @@ import math
 import time
 import numpy as np
 import torch
-from estimator.projective_sensor import CODE, REASONS
+from estimator.projective_sensor import CODE, REASONS, sample
 from scipy.stats import chi2, norm
 from estimator.projective_terms import build_terms, h_value
 from estimator.projective_visibility import visibility, position_sigma_z2, apply_frozen_assignment
@@ -181,6 +181,7 @@ class PointMeasurement:
             proj = self.rig.project(x, jacobian=False)
         with T('visibility'):
             vreason, front = visibility(proj, self.sigma_z2, self.frame.H, self.frame.W, self.rig.near, self.policy['visibility_n_sigma'], self.measured)
+            fresh = vreason
             if self.assignment == 'per-frame':
                 if self.frozen is None: self.frozen = vreason.clone()          # first call = the prior prediction s-
                 vreason = apply_frozen_assignment(vreason, self.frozen, recheck)
@@ -220,9 +221,50 @@ class PointMeasurement:
                 sel = torch.isin(p, keep_terms)
                 if bool(sel.any()): kept.append(t.select(sel))
         e = torch.zeros((0, 4), dtype=self.dtype, device=x.device)
+        probe = None if keep_terms is None else {pid: self.probe(x, pid, proj, fresh, reason, dx) for pid in keep_terms.tolist()}
         return {'Ixx': Ixx, 'gx': gx, 'rTWr': rTWr, 'nrows': nrows, 'reason': reason, 'front': front, 'proj': proj, 'rows_considered': M,
                 'kept': kept, 'r_valid': torch.cat(rv) if rv else e, 'cam_valid': torch.cat(cv) if cv else torch.zeros(0, dtype=torch.long, device=x.device),
-                'cam_information_trace': cam_info}
+                'cam_information_trace': cam_info, 'probe': probe}
+
+    def probe(self, x, pid, proj, fresh, reason, dx, occupants=8):
+        """Trace only (debug point ids; nothing here reaches the solver): every camera of point pid at this linearization.
+        Visibility before / after the frozen assignment, the owner and occupants of its nearest pixel, and the sampled row
+        evaluated for EVERY camera (also cameras the visibility excluded) with its raw 2x2 neighbours, bilinear weights,
+        interpolant gradients, projection Jacobians, r, H_x, R and the row-gate statistics."""
+        C, dev = self.rig.count, x.device
+        cam = torch.arange(C, device=dev); p = torch.full((C,), pid, dtype=torch.long, device=dev)
+        dxp = None if dx is None else dx[p]
+        t = build_terms(self.rig, self.frame, cam, p, x[p], self.rgb0[p], self.Sigma_prior[p], self.noise, self.policy, self.dtype, dxp)
+        uv, Z, Ju, Jz = self.rig.project_rows(x[p], cam)
+        s = sample(self.frame, cam, uv, self.noise, self.policy, self.rig.K, self.rig.dtype)
+        u0, v0 = s.pixel00[:, 0], s.pixel00[:, 1]
+        nb = [(v0, u0), (v0, u0+1), (v0+1, u0), (v0+1, u0+1)]
+        du, dv = (uv[:, 0]-torch.floor(uv[:, 0])).clamp(0, 1), (uv[:, 1]-torch.floor(uv[:, 1])).clamp(0, 1)
+        out = []
+        finite = torch.isfinite(proj.uv).all(-1) & torch.isfinite(proj.z)
+        pu, pv = torch.round(torch.where(finite, proj.uv[..., 0], torch.zeros_like(proj.z))), torch.round(torch.where(finite, proj.uv[..., 1], torch.zeros_like(proj.z)))
+        for c in range(C):
+            same = finite[c] & (proj.z[c] > self.rig.near[c]) & (pu[c] == pu[c, pid]) & (pv[c] == pv[c, pid])
+            ids = torch.nonzero(same).flatten()
+            occ = ids[torch.argsort(ids, stable=True)]; occ = occ[torch.argsort(proj.z[c, occ], stable=True)][:occupants]
+            out.append({'camera': c, 'u': float(uv[c, 0]), 'v': float(uv[c, 1]), 'Z': float(Z[c]), 'nearest_pixel_u_v': [int(pu[c, pid]), int(pv[c, pid])],
+                        'visibility_fresh': REASONS[int(fresh[c, pid])], 'visibility_frozen': None if self.frozen is None else REASONS[int(self.frozen[c, pid])],
+                        'reason_used': REASONS[int(reason[c, pid])], 'reason_if_sampled': REASONS[int(t.reason[c])],
+                        'sigma_z2_prior': float(self.sigma_z2[c, pid]),
+                        'pixel_occupants_front_to_back': [{'point': int(i), 'z': float(proj.z[c, i]), 'sigma_z2_prior': float(self.sigma_z2[c, i])} for i in occ],
+                        'pixel_occupants_total': int(len(ids)),
+                        'pixel00_u_v': [int(u0[c]), int(v0[c])], 'du_dv': [float(du[c]), float(dv[c])],
+                        'neighbours_order': '00 (u0,v0), 10 (u0+1,v0), 01 (u0,v0+1), 11 (u0+1,v0+1)',
+                        'neighbour_rgb': [self.frame.rgb[c, y[c], xx[c]].double().tolist() for y, xx in nb],
+                        'neighbour_depth_m': [float(self.frame.depth[c, y[c], xx[c]]) for y, xx in nb],
+                        'neighbour_mask': [bool(self.frame.mask[c, y[c], xx[c]]) for y, xx in nb],
+                        'neighbour_raw_valid': [bool(self.frame.raw_valid[c, y[c], xx[c]]) for y, xx in nb],
+                        'sampled_rgb': t.meas_rgb[c].tolist(), 'sampled_depth_m': float(t.meas_depth[c]),
+                        'grad_rgb_uv': s.grad_rgb[c].double().tolist(), 'grad_depth_uv': s.grad_depth[c].double().tolist(),
+                        'J_uv_x': Ju[c].double().tolist(), 'J_Z_x': Jz[c].double().tolist(),
+                        'r': t.r[c].tolist(), 'H_x': t.Hx[c].tolist(), 'R_diag': t.var[c].tolist(), 'S_zz': float(t.S_zz[c]),
+                        'row_nis_prior_linearized': None if not math.isfinite(float(t.nis[c])) else float(t.nis[c])})
+        return out
 
 
 def update_points(s_minus, P_minus, frame, rig, rgb0, noise, policy, max_iters, tol, chunk=200_000, dtype=torch.float64,
@@ -275,7 +317,7 @@ def update_points(s_minus, P_minus, frame, rig, rgb0, noise, policy, max_iters, 
         if trace is not None:
             Afull = Lam.clone(); Afull[:, :3, :3] += m['Ixx']
             Jfull = torch.full((N,), float('nan'), dtype=sj.dtype, device=sj.device); Jfull[ia] = J
-            trace['iterations'].append(_trace_iteration(j, sj, m, Afull, b, delta, keep, Jfull, thr, rig.count))
+            trace['iterations'].append(_trace_iteration(j, sj, m, Afull, b, delta, keep, Jfull, thr, rig.count, step, act))
         # per-point stopping: a point whose step met the criterion keeps its iterate and is not iterated again, so its
         # result never depends on how long OTHER points iterate (independent filters)
         sj = torch.where(converged[:, None], sj, sj+delta)
@@ -303,7 +345,7 @@ def update_points(s_minus, P_minus, frame, rig, rgb0, noise, policy, max_iters, 
                 J2 = prior_cost(allp, state)+m2['rTWr']
                 ok_e = fb & (m2['nrows'] > 0) & (J2 <= thr[m2['nrows'].clamp_max(rig.count)])
                 Ixx[fb] = m2['Ixx'][fb]; nrows[fb] = m2['nrows'][fb]; reason[:, fb] = m2['reason'][:, fb]; cost[fb] = J2[fb]
-                if keep is not None: final = {**final, 'kept_fallback': m2['kept'], 'fallback': fb}
+                if keep is not None: final = {**final, 'kept_fallback': m2['kept'], 'fallback': fb, 'probe_fallback': m2['probe']}
         observed = ok_f | ok_e
         acceptance = torch.where(ok_f, 1, torch.where(ok_e, 2, torch.where(had_rows, 3, 4))).to(torch.uint8)
     with timers('covariance'):
@@ -325,7 +367,7 @@ def update_points(s_minus, P_minus, frame, rig, rgb0, noise, policy, max_iters, 
     return s_plus, P_plus, report, trace
 
 
-def _trace_iteration(j, sj, m, A, b, delta, keep, J, thr, C):
+def _trace_iteration(j, sj, m, A, b, delta, keep, J, thr, C, step, active):
     out = {'iteration': j, 'points': {}}
     for pid in keep.tolist():
         rows = [t.select(t.point == pid) for t in m['kept']]
@@ -333,7 +375,9 @@ def _trace_iteration(j, sj, m, A, b, delta, keep, J, thr, C):
         n = int(m['nrows'][pid])
         out['points'][pid] = {'state': sj[pid].tolist(), 'A': A[pid].tolist(), 'b': b[pid].tolist(), 'delta': delta[pid].tolist(),
                               'posterior_cost': float(J[pid]), 'posterior_cost_dof': 4*n, 'cost_threshold': float(thr[min(n, C)]),
-                              'rows': [_row_dict(r, i) for r in rows for i in range(len(r.point))]}
+                              'rows': [_row_dict(r, i) for r in rows for i in range(len(r.point))],
+                              'active': bool(active[pid]), 'step_delta_A_delta': float(step[pid]), 'Ixx': m['Ixx'][pid].tolist(), 'gx': m['gx'][pid].tolist(),
+                              'rTWr': float(m['rTWr'][pid]), 'nrows': n, 'cameras': m['probe'][pid]}
     return out
 
 
@@ -358,7 +402,9 @@ def _trace_final(state, s_plus, s_minus, P_minus, P_plus, final, Lam, keep, rig,
              'P_minus': P_minus[pid].tolist(), 'P_plus': P_plus[pid].tolist(), 'valid_rows': n,
              'acceptance': ACCEPTANCE[int(acc['acceptance'][pid])], 'posterior_cost': float(acc['cost'][pid]), 'posterior_cost_dof': 4*n,
              'cost_threshold': float(acc['thr'][min(n, rig.count)]), 'converged': bool(acc['converged'][pid]),
-             'last_consistent_iteration': int(acc['acc_iter'][pid])}
+             'last_consistent_iteration': int(acc['acc_iter'][pid]), 'Lambda_minus': Lam[pid].tolist(),
+             'cameras_final_iterate': final['probe'][pid], 'final_iterate_state_sampled': bool(fb is None or not bool(fb[pid]))}
+        if fb is not None and bool(fb[pid]): d['cameras_fallback_state'] = final['probe_fallback'][pid]
         if rows:
             Hx = torch.cat([r.Hx for r in rows]).reshape(-1, 3).double(); Rv = torch.cat([r.var for r in rows]).reshape(-1).double()
             H = torch.zeros((len(Hx), 6), dtype=torch.float64, device=Hx.device); H[:, :3] = Hx

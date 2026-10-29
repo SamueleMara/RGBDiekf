@@ -2,7 +2,7 @@
 
 This report answers `RGBDiekf_static_point_explosion_code_audit_2026-10-28.md` (audited commit 29a23a7).
 
-Each fix has a policy switch, so the one-variable ablation the audit asks for (validation step 3) is available. `--policy-override update_acceptance=final_iterate row_innovation_gate=depth_front_only final_visibility=frozen --sensor-noise config` reproduces the filter as audited.
+Each fix has a policy switch, so the one-variable ablation the audit asks for (validation step 3) is available. Correction (same day, found by the root-cause trace, reports/free_point_runaway_root_cause.md): the first version of this fix also moved the `depth_front_only` front test onto the prior-linearized nu_D, so that switch did not reproduce the audited filter exactly. It again tests the iterate's own r_D, and the switches below now reproduce 29a23a7 bit for bit (storage F1, all points and frames). The default `rgbd_chi2` is unchanged. `--policy-override update_acceptance=final_iterate row_innovation_gate=depth_front_only final_visibility=frozen --sensor-noise config` reproduces the filter as audited.
 
 ## Reproduction (validation step 1)
 

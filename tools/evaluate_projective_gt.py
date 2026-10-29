@@ -22,6 +22,41 @@ def ply(path):
     return a[:, :3], a[:, 6].astype(int)
 
 
+def gt_joint(scene):
+    """(kind, axis, point, declared_type): a 'continuous' joint is a revolute joint without limits (REVOLUTE here, the
+    declared type is reported)."""
+    meta = json.loads((scene/'pointcloud/joint_metadata.json').read_text())
+    declared = meta['type'].upper(); kind = 'REVOLUTE' if declared == 'CONTINUOUS' else declared
+    axis = np.asarray(meta['axis_vector'], float); axis /= np.linalg.norm(axis)
+    return kind, axis, np.asarray(meta['point_of_application'], float), declared
+
+
+def labelled_endpoints(scene, kind, axis, point, dq_total):
+    """Labelled part clouds of both endpoints and the moving label. An endpoint cloud that lacks the moving label
+    (washer_103776: its frame-0 cloud is a single label) is rebuilt from the other endpoint with the GT joint
+    transform (static labels kept in place, moving points mapped by the GT transform), and the fact is reported."""
+    (x0, l0), (xf, lf) = ply(scene/'pointcloud/points3D_parts.ply'), ply(scene/'pointcloud/points3D_parts_final.ply')
+    common = sorted(set(l0) & set(lf))
+    shift = {l: np.linalg.norm(x0[l0 == l].mean(0)-xf[lf == l].mean(0)) for l in common}
+    candidates = sorted(set(l0) | set(lf))
+    note = None
+    if len(common) >= 2: moving = max(common, key=shift.get)
+    else:
+        only = [l for l in candidates if l not in common]
+        if not only: raise ValueError(f'{scene}: one part label at both endpoints, no moving part identifiable')
+        moving = only[0]
+        T = gt_transform(kind, axis, point, dq_total)
+        if moving in set(lf):                                                 # rebuild frame 0 from the final cloud
+            Ti = np.linalg.inv(T); mv = xf[lf == moving]@Ti[:3, :3].T+Ti[:3, 3]
+            x0, l0 = np.r_[xf[lf != moving], mv], np.r_[lf[lf != moving], np.full(len(mv), moving)]
+            note = 'frame-0 part cloud has no moving label: rebuilt from the final cloud by the inverse GT joint transform'
+        else:
+            mv = x0[l0 == moving]@T[:3, :3].T+T[:3, 3]
+            xf, lf = np.r_[x0[l0 != moving], mv], np.r_[l0[l0 != moving], np.full(len(mv), moving)]
+            note = 'final part cloud has no moving label: rebuilt from the frame-0 cloud by the GT joint transform'
+    return (x0, l0), (xf, lf), int(moving), note
+
+
 def gt_transform(kind, axis, point, dq):
     T = np.eye(4)
     if kind == 'PRISMATIC': T[:3, 3] = dq*axis
@@ -32,15 +67,17 @@ def gt_transform(kind, axis, point, dq):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__); ap.add_argument('--run', type=Path, required=True); ap.add_argument('--scene', type=Path, required=True)
-    a = ap.parse_args(); run = a.run; out_dir = run/'evaluation_gt'; out_dir.mkdir(exist_ok=True)
-    meta = json.loads((a.scene/'pointcloud/joint_metadata.json').read_text())
-    kind = meta['type'].upper(); axis = np.asarray(meta['axis_vector'], float); axis /= np.linalg.norm(axis); point = np.asarray(meta['point_of_application'], float)
+    ap.add_argument('--out', type=Path, help='output folder (default RUN/evaluation_gt); a post-hoc re-evaluation goes elsewhere, never over an existing one')
+    a = ap.parse_args(); run = a.run; out_dir = a.out or run/'evaluation_gt'
+    if a.out is not None and out_dir.exists() and any(out_dir.iterdir()): raise SystemExit(f'{out_dir} exists: never overwritten')
+    out_dir.mkdir(parents=True, exist_ok=True)
+    kind, axis, point, declared = gt_joint(a.scene)
     vals = np.genfromtxt(a.scene/'metadata/frame_values.csv', delimiter=',', names=True); q = np.asarray(vals[vals.dtype.names[1]], float)
     man = json.loads((run/'run_manifest.json').read_text()); frames = man['dataset']['original_frame_ids']; q = q[frames] if len(q) > max(frames) else q
     K = len(frames)
-    (x0, l0), (xf, lf) = ply(a.scene/'pointcloud/points3D_parts.ply'), ply(a.scene/'pointcloud/points3D_parts_final.ply')
-    moving = max(set(l0) & set(lf), key=lambda l: np.linalg.norm(x0[l0 == l].mean(0)-xf[lf == l].mean(0)))
-    report = {'gt': {'type': kind, 'axis': axis.tolist(), 'point': point.tolist(), 'q_range': float(np.ptp(q)), 'moving_label': int(moving)},
+    (x0, l0), (xf, lf), moving, label_note = labelled_endpoints(a.scene, kind, axis, point, q[-1]-q[0])
+    report = {'gt': {'type': kind, 'declared_type': declared, 'axis': axis.tolist(), 'point': point.tolist(), 'q_range': float(np.ptp(q)), 'moving_label': int(moving),
+                     'label_note': label_note},
               'frames_evaluated': K, 'note': 'ground truth used ONLY here, after inference', 'directions': {}}
     for d, cloud in (('forward', (x0, l0)), ('backward', (xf, lf))):
         fd = stage_dir(run, f'free_{d}')
@@ -57,7 +94,12 @@ def main():
                         'error_m_median_moving': float(np.median(e[lab])) if lab.any() else None,
                         'error_m_median_moving_measured': float(np.median(e[lab & (np.asarray(S[k]) == 1)])) if (lab & (np.asarray(S[k]) == 1)).any() else None,
                         'within_5mm_fraction_moving': float((e[lab] < .005).mean()) if lab.any() else None,
-                        'error_m_median_static': float(np.median(e[~lab])) if (~lab).any() else None})
+                        'error_m_median_static': float(np.median(e[~lab])) if (~lab).any() else None,
+                        # tails (run-away points), static and moving populations separately
+                        **{f'error_m_{q}_{nm}': (float(np.quantile(e[m], .99)) if q == 'p99' else float(e[m].max())) if m.any() else None
+                           for nm, m in (('static', ~lab), ('moving', lab)) for q in ('p99', 'max')},
+                        **{f'fraction_over_{t}_{nm}': float((e[m] > v).mean()) if m.any() else None
+                           for nm, m in (('static', ~lab), ('moving', lab)) for t, v in (('1cm', .01), ('10cm', .1))}})
         r['free_per_frame'] = per
         last = 0 if d == 'backward' else K-1
         r['free_final'] = per[last]

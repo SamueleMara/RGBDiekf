@@ -46,6 +46,10 @@ Free-filter safeguards (audit `RGBDiekf_static_point_explosion_code_audit_2026-1
 - NaN-safe information sums.
 - The per-point arrays `update_acceptance`, `posterior_cost` and `posterior_cost_dof` record each decision. The numeric JSON of every frame lists the largest accepted corrections with their ids, ready for `--debug-point-ids`.
 
+Rendered binary mask as an IEKF image measurement (contract `RGBDiekf_Codex_Rendered_Binary_Mask_IEKF_Replacement.md`, report [reports/rendered_binary_mask_iekf.md](reports/rendered_binary_mask_iekf.md)): `--rendered-mask-measurement off|diagnostic|on` (default `off`, configs/projective_rgbd.json `rendered_mask_measurement`) with `--mask-image-noise-config` (a DECLARED mask variance; `configs/example_mask_image_noise.json` is labelled UNCALIBRATED). Every transported point, visible or occluded, is rendered white; the measured binary mask is the observation; the one-sided innovation r = y_obs − y_hat on measured-background pixels joins the same fixed-prior IEKF (`estimator/rendered_mask_measurement.py`, `estimator/rendered_mask_iekf.py`: exact 3D reduction, matrix-free PCG over points sharing pixels, monotone line search, named covariance approximation `pixel_marginal_adf`). `diagnostic` reports without changing any state (`rendered_mask_*.npy`, frame JSON `rendered_mask`, `mask_debug/*.png` on debug frames). The earlier hard visual-hull QP/EP mode was removed (snapshot in `attic/hard_geometry_snapshot_20261029/`); its `--geometry-*` flags now fail with an explanation.
+
+Root-cause tracing of free-point run-aways ([reports/free_point_runaway_root_cause.md](reports/free_point_runaway_root_cause.md)): run with `--debug-point-ids ID,.. --debug-frames <every frame>` (the trace then holds every camera's raw 2x2 pixels, rows, A, b, delta and the prediction F, Q), then `tools/root_cause_trace.py find|analyze|population RUN`. `analyze` checks the run against an independent NumPy oracle (`tools/root_cause_oracle.py`) and writes one hash-reproducible report per failure.
+
 Debug pages follow the RigEuler3DGS style (dark scene, side panel). The free 3D page shows the fixed start cloud (grey), the estimated cloud at the slider frame (blue) and tracked points with trails. Tracked points are chosen from estimates only: the coherence moving core, a spread over the cloud, and the largest displacements (off by default).
 
 `python train.py --help` lists everything. `tools/run_rgbd_projective_pipeline.py` is the contract's name for the same entry point.
@@ -61,7 +65,7 @@ Outputs of one run:
 |---|---|
 | `train.py` | four-pass driver (stages, resume, dataset roots) |
 | `scene/` | dataset loading, timing, calibration, noise configuration, `noise_calibration.py` (measured R), endpoint catalogue, `canonical_subsample.py` |
-| `estimator/` | `projective_camera`, `projective_sensor`, `projective_visibility`, `projective_terms`, `point_kalman_cuda`, `free_projective_run`, `projective_coherence`, `se3`, `rigid_kalman_cuda`; earlier rendered-splat modules kept as a labelled legacy baseline |
+| `estimator/` | `projective_camera`, `projective_sensor`, `projective_visibility`, `projective_terms`, `point_kalman_cuda`, `free_projective_run`, `rendered_mask_measurement`, `rendered_mask_iekf`, `projective_coherence`, `se3`, `rigid_kalman_cuda`; earlier rendered-splat modules kept as a labelled legacy baseline |
 | `joint_reduction/` | `joint_projective` (reduction, decision, `(q, q̇)` IEKF, F/B comparison), `support_projective` |
 | `debug/` | `projective_debug.py` and `assets/projective_*.html` (point-only measured RGB-D pages) |
 | `rigeuler_ref/` | vendored pinned RigEuler3DGS sources (coherence extractor, joint reduction) |

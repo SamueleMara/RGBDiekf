@@ -114,7 +114,12 @@ def camera_from_metadata(spec, default_pose_convention=None):
         if not 0 < fov < 180:
             raise ValueError("Invalid vertical field of view")
         fy = h/(2*np.tan(np.deg2rad(fov)/2))
-        intrinsics = np.array([fy, fy, w/2, h/2])
+        # pixel centres at integers (u = column, estimator/projective_camera.py): the image plane spans [-0.5, w-0.5] x
+        # [-0.5, h-0.5], so the optical axis of a symmetric field of view meets it at ((w-1)/2, (h-1)/2). (w/2, h/2) put
+        # every projection half a pixel off: on the Sapien renders the same-instant cross-camera depth residual of the
+        # endpoint clouds is 6.9 mm MAD with (w/2, h/2) and 0.006 mm with ((w-1)/2, (h-1)/2)
+        # (reports/visual_hull_constrained_iekf.md).
+        intrinsics = np.array([fy, fy, (w-1)/2, (h-1)/2])
     if not np.all(np.isfinite(intrinsics)) or min(intrinsics[:2]) <= 0:
         raise ValueError("Invalid camera intrinsics")
     convention = spec.get("pose_convention") or default_pose_convention or "sapien_camera_to_world"

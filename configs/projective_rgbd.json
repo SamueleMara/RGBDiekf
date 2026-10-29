@@ -7,7 +7,7 @@
   "visibility_n_sigma": 3.0,
   "visibility_note": "Self-occlusion: a point is behind the front-most projected point of its pixel when z_i - z_front > n_sigma*sqrt(sigma_zi^2 + sigma_zfront^2), sigma_z from the PRIOR position covariance. External occlusion: measured depth in front of the predicted point by more than n_sigma*sqrt(S_zz), S_zz = H_D P- H_D^T + R_D the predicted depth-innovation variance (chi-square gating of the one occlusion-explicable sign; the other sign is the motion signal and is kept).",
   "row_innovation_gate": "rgbd_chi2",
-  "row_innovation_gate_note": "Per-row admission on the innovation linearized back to the prior, nu = r + H_x (x_j - x-), S = H_x P-_xx H_x^T + R (estimator/projective_terms.py). 'rgbd_chi2': nu_D > n_sigma sqrt(S_DD) -> MEASURED_SURFACE_IN_FRONT, else nu^T S^-1 nu > chi2_4(1 - alpha_row) -> INNOVATION_INCONSISTENT, alpha_row = 2(1 - Phi(visibility_n_sigma)). 'depth_two_sided': only |nu_D| > n_sigma sqrt(S_DD). 'depth_front_only': the earlier one-sided rule (negative depth innovations of any size admitted as motion). Audit 2026-10-28 items 4, 5, 11.",
+  "row_innovation_gate_note": "Per-row admission on the innovation linearized back to the prior, nu = r + H_x (x_j - x-), S = H_x P-_xx H_x^T + R (estimator/projective_terms.py). 'rgbd_chi2': nu_D > n_sigma sqrt(S_DD) -> MEASURED_SURFACE_IN_FRONT, else nu^T S^-1 nu > chi2_4(1 - alpha_row) -> INNOVATION_INCONSISTENT, alpha_row = 2(1 - Phi(visibility_n_sigma)). 'depth_two_sided': only |nu_D| > n_sigma sqrt(S_DD). 'depth_front_only': the earlier one-sided rule exactly (the iterate's own r_D > n_sigma sqrt(S_DD); negative depth innovations of any size admitted as motion). Audit 2026-10-28 items 4, 5, 11.",
   "update_acceptance": "last_consistent_iterate",
   "update_acceptance_note": "Per-point acceptance of the IEKF result (estimator/point_kalman_cuda.py): posterior cost J = |s - s-|^2_{P-^-1} + r^T R^-1 r at the actual samples of the iterate, consistent when J <= chi2_{4m}(1 - alpha_row); accepted state = final iterate if consistent, else the last consistent iterate (j >= 1), else prediction only. 'final_iterate' = the earlier rule (final iterate accepted whenever it has a valid row, converged or not). Audit 2026-10-28 items 1, 2, 3.",
   "final_visibility": "recheck_self_occlusion",
@@ -20,5 +20,19 @@
   "max_iekf_iters": 10,
   "iekf_step_tolerance": 1e-08,
   "iekf_step_note": "Per-point convergence when delta^T A delta < tolerance (squared step in the posterior-information metric, dimensionless).",
-  "support_alpha_source": "configs/image_joint_policy.json tail_probability (one declared alpha for the joint adequacy tests and the support FDR)"
+  "support_alpha_source": "configs/image_joint_policy.json tail_probability (one declared alpha for the joint adequacy tests and the support FDR)",
+  "rendered_mask_measurement": {
+    "mode": "off",
+    "mode_note": "off: the RGB-D IEKF unchanged (exact control, no extra computation). diagnostic: the measured mask and the rendered white-point pseudomask of ALL transported points are compared and reported (rendered_mask_*.npy, numeric frame 'rendered_mask', mask_debug/*.png on debug frames); states never modified. on: the one-sided image innovation r = y_obs - y_hat on measured-background pixels is a second measurement of the same fixed-prior IEKF (estimator/rendered_mask_iekf.py). Contract RGBDiekf_Codex_Rendered_Binary_Mask_IEKF_Replacement.md.",
+    "render_white_points": true,
+    "include_occluded_points": true,
+    "foreground_as_measurement": "original_binary_image",
+    "measurement_rows": "observed_background_only",
+    "predicted_linearization": "bilinear_pixel_coverage_union",
+    "binary_debug_renderer": "nearest_pixel_white_point_or",
+    "joint_image_solver": "matrix_free_pcg_3d",
+    "covariance_model": "pixel_marginal_adf_approximation",
+    "measurement_noise_provenance": "required_when_on",
+    "globalization_note": "per connected component backtracking (alpha = 1 .. 2^-10) on the actual objective 0.5|X - X-|^2_{S^-1} + 0.5 sum r_rgbd^2/R + 0.5 sum m_hat^2/R_mask (RGB-D rows of the linearization re-sampled at the trial); in mode on this replaces the per-point RGB-D chi-square acceptance (a coupled image solve cannot be reverted point by point), and RGB-D consistency is reported separately"
+  }
 }
