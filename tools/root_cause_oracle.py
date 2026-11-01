@@ -95,12 +95,18 @@ def sample(img, cam, u, v, noise, policy):
     out['same_surface_spread_m'], out['same_surface_allowance_m'] = float(D.max()-D.min()), float(allow)
     w = np.array([(1-du)*(1-dv), du*(1-dv), (1-du)*dv, du*dv])
     out['w'] = w
-    out['depth'], out['rgb'] = float(w@D), w@I
-    out['grad_depth'] = np.array([(1-dv)*(D[1]-D[0])+dv*(D[3]-D[2]), (1-du)*(D[2]-D[0])+du*(D[3]-D[1])])
+    grad = lambda F: np.array([(1-dv)*(F[1]-F[0])+dv*(F[3]-F[2]), (1-du)*(F[2]-F[0])+du*(F[3]-F[1])])
+    # both interpolants are reported; policy depth_interpolation ('metric' default, 'inverse' = bilinear 1/D, exact on one
+    # plane: depth = 1/sum w/D, d depth = -depth^2 d(sum w/D), var = depth^4 sum w^2 sigma^2/D^4) selects the one used
+    out['depth_metric'] = float(w@D); dinv = 1./float(w@(1./D)); out['depth_inverse'] = dinv
+    mode = policy.get('depth_interpolation', 'metric')
+    if mode not in ('metric', 'inverse'): raise ValueError(mode)
+    out['depth'], out['rgb'] = (out['depth_metric'] if mode == 'metric' else dinv), w@I
+    out['grad_depth'] = grad(D) if mode == 'metric' else -dinv*dinv*grad(1./D)
     out['grad_rgb'] = np.stack([(1-dv)*(I[1]-I[0])+dv*(I[3]-I[2]), (1-du)*(I[2]-I[0])+du*(I[3]-I[1])], 1)      # [3,2]
     if noise.interp == 'sum_w2':
         out['var_rgb'] = (w*w).sum()*noise.rgb_var+noise.rgb_model
-        out['var_depth'] = float((w*w*noise.sigma2(D)).sum())+noise.depth_model
+        out['var_depth'] = (float((w*w*noise.sigma2(D)).sum()) if mode == 'metric' else dinv**4*float((w*w*noise.sigma2(D)/D**4).sum()))+noise.depth_model
     else:
         out['var_rgb'] = noise.rgb_var+noise.rgb_model; out['var_depth'] = float(noise.sigma2(out['depth']))+noise.depth_model
     if D.max()-D.min() > allow: out['reason'] = DISCONT

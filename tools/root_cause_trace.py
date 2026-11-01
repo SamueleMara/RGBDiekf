@@ -426,7 +426,8 @@ def chain_replay(run, pid, k_div, cams, override=None, noise=None):
         res = prob.run(run.policy.get('update_acceptance', 'final_iterate'))
         prod = t['final'][str(pid)]
         frames.append({'frame': k, 's_minus': sm, 'P_xv_minus': Pm[:3, 3:], 's_plus': res['s_plus'], 'observed': res['observed'],
-                       'production_s_plus_max_abs': absd(res['s_plus'], prod['s_plus']), 'production_P_plus_rel': rel(res['P_plus'], prod['P_plus'])})
+                       'production_position_linf_m': absd(res['s_plus'][:3], np.asarray(prod['s_plus'])[:3]),
+                       'production_velocity_linf_m_s': absd(res['s_plus'][3:], np.asarray(prod['s_plus'])[3:]), 'production_P_plus_rel': rel(res['P_plus'], prod['P_plus'])})
         s, P = res['s_plus'], res['P_plus']
         last = (prob, res)
     return frames, last
@@ -518,9 +519,10 @@ def verdicts(A):
     worst_alg = max(max(i['algebra_from_dump'][k] for k in ('A_rel', 'b_rel', 'delta_rel')) for i in its)
     worst_raw = max(i['raw_resample']['worst_row_disagreement'] for i in its)
     rep = A['oracle_replay']
-    v['algebra'] = {'max_relative_mismatch_dump': worst_alg, 'max_row_mismatch_raw_resample': worst_raw, 'replay_s_plus_max_abs_m': rep['s_plus_max_abs'],
+    v['algebra'] = {'max_relative_mismatch_dump': worst_alg, 'max_row_mismatch_raw_resample': worst_raw, 'replay_s_plus_position_linf_m': rep['s_plus_position_linf_m'], 'replay_s_plus_velocity_linf_m_s': rep['s_plus_velocity_linf_m_s'],
                     'replay_P_plus_rel': rep['P_plus_rel'], 'joseph_vs_information_max_abs': fin['joseph']['max_abs_difference'] if fin.get('joseph') else None,
-                    'free_running_replay_divergence_per_iterate_m': rep['free_running_state_divergence_per_iterate_m'],
+                    'free_running_replay_position_divergence_per_iterate_m': rep['free_running_position_divergence_per_iterate_m'],
+                    'free_running_replay_velocity_divergence_per_iterate_m_s': rep['free_running_velocity_divergence_per_iterate_m_s'],
                     'holds': bool(worst_alg < TOL_ALGEBRA and worst_raw < 1e-9 and (fin['joseph'] is None or fin['joseph']['max_abs_difference'] < 1e-10)),
                     'meaning': 'at every production state the 6x6 solve, the raw-pixel rows and the Joseph covariance match an independent float64 '
                                'oracle (no numerical / sign / accumulator bug); a free-running replay can still drift if the iteration map amplifies round-off'}
@@ -620,12 +622,16 @@ def cmd_analyze(a):
     A['iterates'] = iterate_section(prob, tr, pid, run)
     res = prob.run(run.policy.get('update_acceptance', 'final_iterate'))
     fin = tr['final'][str(pid)]
-    replay_div = [absd(h['s'], tr['iterations'][j]['points'][str(pid)]['state']) for j, h in enumerate(res['history']) if j < len(tr['iterations'])]
-    A['oracle_replay'] = {'free_running_state_divergence_per_iterate_m': replay_div,
+    _st = lambda j: np.asarray(tr['iterations'][j]['points'][str(pid)]['state'])
+    replay_div_x = [absd(h['s'][:3], _st(j)[:3]) for j, h in enumerate(res['history']) if j < len(tr['iterations'])]
+    replay_div_v = [absd(h['s'][3:], _st(j)[3:]) for j, h in enumerate(res['history']) if j < len(tr['iterations'])]
+    A['oracle_replay'] = {'free_running_position_divergence_per_iterate_m': replay_div_x, 'free_running_velocity_divergence_per_iterate_m_s': replay_div_v,
                           'note': 'the oracle iterated from s- on its own; at every PRODUCTION state it agrees to round-off (iterates[*].raw_resample). '
                                   'Growth of this divergence = amplification of round-off by the iteration map (see iterates[*].iteration_map).',
-'accepted_linearization_state_max_abs_m': absd(res['s_plus'] if res['observed'] else res['s_final_iterate'], fin['linearization_state']),
-                          's_plus_max_abs': absd(res['s_plus'], fin['s_plus']), 'P_plus_rel': rel(res['P_plus'], fin['P_plus']),
+'accepted_linearization_position_linf_m': absd((res['s_plus'] if res['observed'] else res['s_final_iterate'])[:3], np.asarray(fin['linearization_state'])[:3]),
+                          'accepted_linearization_velocity_linf_m_s': absd((res['s_plus'] if res['observed'] else res['s_final_iterate'])[3:], np.asarray(fin['linearization_state'])[3:]),
+                          's_plus_position_linf_m': absd(res['s_plus'][:3], np.asarray(fin['s_plus'])[:3]), 's_plus_velocity_linf_m_s': absd(res['s_plus'][3:], np.asarray(fin['s_plus'])[3:]),
+                          'P_plus_rel': rel(res['P_plus'], fin['P_plus']),
                           'acceptance_oracle': res['acceptance_code'], 'acceptance_production': fin['acceptance'], 'observed_oracle': res['observed'],
                           'iterations_oracle': len(res['history']), 'iterations_production': len(tr['iterations']), 'converged_oracle': res['converged'],
                           'converged_production': fin['converged']}
@@ -688,7 +694,7 @@ def report(A):
          '## Verdicts (spec interpretation table)', '', '| Hypothesis | Holds | Evidence |', '|---|---|---|']
     al = V['algebra']
     L.append(f"| Algebra / implementation bug | {'no bug' if al['holds'] else '**MISMATCH**'} | dump-vs-trace rel {f(al['max_relative_mismatch_dump'], 2)}, raw re-sample rows {f(al['max_row_mismatch_raw_resample'], 2)}, "
-             f"replay s+ {f(al['replay_s_plus_max_abs_m'], 2)} m, P+ rel {f(al['replay_P_plus_rel'], 2)}, Joseph {f(al['joseph_vs_information_max_abs'], 2)} |")
+             f"replay s+ position {f(al['replay_s_plus_position_linf_m'], 2)} m / velocity {f(al['replay_s_plus_velocity_linf_m_s'], 2)} m/s, P+ rel {f(al['replay_P_plus_rel'], 2)}, Joseph {f(al['joseph_vs_information_max_abs'], 2)} |")
     im = V['iteration_map']
     L.append(f"| Gauss–Newton iteration map expansive (ρ(∂G/∂s) > 1) | {'yes at '+str(im['expansive_iterates']) if im['expansive_iterates'] else 'no'} | ρ per iterate {f(im['spectral_radius_per_iterate'], 3)}; "
              f"free-running replay divergence {f(al['free_running_replay_divergence_per_iterate_m'], 2)} m |")
@@ -769,8 +775,8 @@ def report(A):
         for k, v in ch.items():
             if k.startswith('_'): continue
             g = np.diag(np.asarray(v['final']['velocity_gain_P_vx_Pxx_inv']))
-            repro = max(fr['production_s_plus_max_abs'] for fr in v['frames']) if k == 'original' else None
-            L.append(f"| {k} | {f(v['final']['delta_x_norm_m'])} | {f(v['final']['delta_v_norm_m_s'])} | {f(v['final']['speed_after_m_s'])} | {f(g, 4)} | {'' if repro is None else f(repro, 2)+' m'} |")
+            repro = (max(fr['production_position_linf_m'] for fr in v['frames']), max(fr['production_velocity_linf_m_s'] for fr in v['frames'])) if k == 'original' else None
+            L.append(f"| {k} | {f(v['final']['delta_x_norm_m'])} | {f(v['final']['delta_v_norm_m_s'])} | {f(v['final']['speed_after_m_s'])} | {f(g, 4)} | {'' if repro is None else f(repro[0], 2)+' m / '+f(repro[1], 2)+' m/s'} |")
     L += ['', 'All numbers in `analysis.json` (float64); matrices in `arrays.npz`.', '']
     return '\n'.join(L)
 

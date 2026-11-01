@@ -17,6 +17,25 @@ PHASES = ['free_forward', 'free_backward', 'coherence_forward', 'coherence_backw
 DEFAULT_W = {'free_forward': 86, 'free_backward': 91, 'coherence_forward': 14, 'coherence_backward': 14, 'rigid_forward': 15, 'rigid_backward': 16,
              'joint_forward': 3.5, 'joint_backward': 2, 'support_forward': 0, 'support_backward': 0, 'debug': 18, 'evaluate_qa': 37}   # storage, s
 FRAME = re.compile(r'^\[(forward|backward)\] (\d+)/(\d+) .*?(observed|rows)')
+T_FRAME = re.compile(r'^\[temporal\] forward frame \d+ \((\d+)/(\d+)\)')                # --free-solver temporal-ieks
+T_ITER = re.compile(r'^\[temporal\] IEKS iteration (\d+):.*\(([\d.]+) s\)$')
+T_ITER_FRAMES_PER_FRAME = .35   # one IEKS outer iteration ~ 0.35 K forward-frame times before the first one is timed
+                                # (measured: USB_100109 K=60 51 s vs 2.7 s/frame = 0.31 K; static fixture K=6 0.24 K)
+
+
+def temporal_left(text, el, max_outer):
+    """(fraction, phase text, seconds left) of a temporal-ieks F1 run, or None. The IEKS stops at convergence or at
+    max_outer iterations, so the time left is an upper bound (the cap)."""
+    fr = [m for m in map(T_FRAME.match, text) if m]; it = [m for m in map(T_ITER.match, text) if m]
+    if not fr: return None
+    i, n = int(fr[-1].group(1)), int(fr[-1].group(2))
+    if not it:
+        per_frame = el/i
+        left = (n-i)*per_frame+(max_outer+1)*T_ITER_FRAMES_PER_FRAME*n*per_frame
+        return el/(el+left), f'temporal forward IEKF frame {i}/{n}', left
+    secs = [float(m.group(2)) for m in it]; done = int(it[-1].group(1))+1
+    left = (max_outer-done+1)*sum(secs)/len(secs)                                      # + the final linearization pass
+    return el/(el+left), f'temporal IEKS iter {done}/{max_outer} (cap)', left
 
 
 def is_scene(p):
@@ -84,7 +103,9 @@ def fmt(s):
 
 def status(out, log=None):
     out = Path(out).resolve(); now = time.time(); lines = []
-    single = (out/'run_manifest.json').exists() and not (out/'batch.json').exists() and not (out/'summary.json').exists()
+    if not out.exists(): return f'{out}\nnot started yet (folder not created); waiting'
+    single = (((out/'run_manifest.json').exists() or (out/'run.lock').exists() or out.with_name(out.name+'.log').exists())
+              and not (out/'batch.json').exists() and not (out/'summary.json').exists())   # a starting run has no manifest yet
     if single:
         scenes = [(out.name, out, Path(log) if log else out.with_name(out.name+'.log'))]
     else:
@@ -105,6 +126,7 @@ def status(out, log=None):
     durations = [r['runtime_seconds'] for r in finished]
     mean_d = sum(durations)/len(durations) if durations else sum(w.values())
     left_total, n_done, n_run, n_wait = 0., 0, 0, 0
+    unknown = False
     for name, run, lg in scenes:
         res = json.loads((run/'result.json').read_text()) if (run/'result.json').exists() else None
         if run.exists() and running(run):
@@ -112,8 +134,16 @@ def status(out, log=None):
             start = (run/'run.lock').stat().st_mtime; el = now-start
             f, what = scene_progress(lg, w)
             est = el/f if f >= .08 else max(mean_d, el)
-            left = max(est-el, 0.); left_total += left
-            rows.append(f'  RUNNING  {name:<20} {what:<34} {100*f:5.1f}%  elapsed {fmt(el):>7}  left ~{fmt(left)}')
+            left = max(est-el, 0.)
+            man = json.loads((run/'run_manifest.json').read_text()) if (run/'run_manifest.json').exists() else {}
+            if man.get('arguments', {}).get('free_solver') == 'temporal-ieks' and lg.exists():
+                cfg = Path(man['arguments'].get('temporal_config') or '')
+                cap = json.loads(cfg.read_text()).get('max_outer_iterations', 20) if cfg.is_file() else 20
+                t = temporal_left(lg.read_text(errors='replace').splitlines(), el, cap)
+                if t: f, what, left = t
+                else: f, what, left, unknown = 0., 'temporal: loading frames', 0., True   # no frame timed yet
+            left_total += left
+            rows.append(f'  RUNNING  {name:<20} {what:<34} {100*f:5.1f}%  elapsed {fmt(el):>7}  left ~{"?" if unknown else fmt(left)}')
         elif res and 'runtime_seconds' in res:
             n_done += 1
             rows.append(f'  done     {name:<20} {res.get("status", "?"):<34} {fmt(res["runtime_seconds"]):>7}')
@@ -124,7 +154,11 @@ def status(out, log=None):
             n_wait += 1; left_total += mean_d
             rows.append(f'  queued   {name:<20}')
     head = f'{out}\n{n_done}/{len(scenes)} done, {n_run} running, {n_wait} queued'
-    if n_run or n_wait:
+    if not scenes:
+        head += '   |   nothing started yet; waiting'
+    elif unknown:
+        head += '   |   time left unknown until the first frame is timed'
+    elif n_run or n_wait:
         head += f'   |   time left ~{fmt(left_total)}  (finish ~{time.strftime("%H:%M", time.localtime(now+left_total))})'
         head += f'   [stage weights {"from this batch" if calibrated else "default (storage)"}; queued scene ~{fmt(mean_d)}]'
     else:

@@ -1,0 +1,68 @@
+{
+  "dry_run_commands_verified": 20,
+  "all_frames_and_cameras": true,
+  "default_stop_after": "free",
+  "complete_stop_after": "support",
+  "focal_downstream_rejected": true,
+  "real_cached_coherence_rigid_input_shapes": [
+    {
+      "scene": "storage_45135",
+      "points": 346437,
+      "trajectory_shape": [
+        11,
+        346437,
+        3
+      ],
+      "status_shape": [
+        11,
+        346437
+      ]
+    },
+    {
+      "scene": "USB_100109",
+      "points": 95967,
+      "trajectory_shape": [
+        11,
+        95967,
+        3
+      ],
+      "status_shape": [
+        11,
+        95967
+      ]
+    },
+    {
+      "scene": "blade_103706",
+      "points": 34369,
+      "trajectory_shape": [
+        11,
+        34369,
+        3
+      ],
+      "status_shape": [
+        11,
+        34369
+      ]
+    },
+    {
+      "scene": "stapler_103111",
+      "points": 137186,
+      "trajectory_shape": [
+        11,
+        137186,
+        3
+      ],
+      "status_shape": [
+        11,
+        137186
+      ]
+    }
+  ],
+  "full_end_to_end_execution_this_turn": false,
+  "downstream_model": "TEMPORAL_FREE_WITH_LEGACY_RIGID",
+  "limitations": [
+    "Full-cloud full mode has not completed a measurement update within recorded budgets",
+    "No successful end-to-end temporal reconstruction is claimed",
+    "GT evaluation and browser QA remain separate processes"
+  ]
+}

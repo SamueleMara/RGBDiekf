@@ -1,0 +1,92 @@
+[
+  {
+    "scene": "USB_100109",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  },
+  {
+    "scene": "blade_103706",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  },
+  {
+    "scene": "foldchair_102255",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  },
+  {
+    "scene": "fridge_10905",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  },
+  {
+    "scene": "laptop_10211",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  },
+  {
+    "scene": "oven_101917",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  },
+  {
+    "scene": "scissor_11100",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  },
+  {
+    "scene": "stapler_103111",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  },
+  {
+    "scene": "storage_45135",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  },
+  {
+    "scene": "washer_103776",
+    "frames": 60,
+    "fps": 59.0,
+    "time_source": "metadata/timing.json:fps",
+    "time_units": "seconds",
+    "cameras": 8,
+    "warp_noise_found": false
+  }
+]

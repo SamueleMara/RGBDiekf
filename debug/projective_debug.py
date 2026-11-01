@@ -119,6 +119,7 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
     fd = stage_dir(root, f'free_{d}')
     if not (fd/'canonical.npz').exists(): return None
     can = np.load(fd/'canonical.npz'); man = json.loads((fd/'run_manifest.json').read_text())
+    reason_names={int(code):name for code,name in man.get('reason_codes',REASONS).items()}
     X = np.load(fd/'posterior_xyz.npy', mmap_mode='r'); Xp = np.load(fd/'predicted_xyz.npy', mmap_mode='r')
     V = np.load(fd/'velocity.npy', mmap_mode='r'); S = np.load(fd/'point_status.npy', mmap_mode='r'); NV = np.load(fd/'valid_cameras.npy', mmap_mode='r')
     CR = np.load(fd/'camera_reason.npy', mmap_mode='r'); IM = np.load(fd/'information_min_eig.npy', mmap_mode='r'); PV = np.load(fd/'position_variance_diag.npy', mmap_mode='r')
@@ -150,7 +151,7 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
                                                             'velocity': np.asarray(V[:, i]).tolist(), 'var_diag': np.asarray(PV[:, i]).tolist(),
                                                             'status': np.asarray(S[:, i]).tolist(), 'source': can['original_source_ids'][i].tolist()} for i in traced},
             'glyph_covariance': {int(k): {int(i): (np.asarray(v['P_plus'])[:3, :3].tolist()) for i, v in t.items()} for k, t in traces.items()},
-            'cameras': cameras_js(rig), 'reasons': REASONS, 'status_codes': {0: 'ANCHOR_CANONICAL', 1: 'MEASURED', 2: 'PREDICTION_ONLY'},
+            'cameras': cameras_js(rig), 'reasons': man.get('reason_codes', REASONS), 'status_codes': man.get('status_codes',{0: 'ANCHOR_CANONICAL', 1: 'MEASURED', 2: 'PREDICTION_ONLY'}),
             'counts': counts, 'debug_frames': debug_frames, 'k_end': int(k_end),
             'tracked': {'ids': tids.tolist(), 'group': tgroup, 'posterior': T(X, np.float32), 'predicted': T(Xp, np.float32), 'velocity': T(V, np.float32),
                         'var_diag': T(PV, np.float32), 'status': T(S, np.uint8), 'valid_cameras': T(NV, np.uint8)},
@@ -162,6 +163,10 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
         anyvalid = (cr == 0).any(0)
         cnt = np.stack([(cr == code).sum(0) for code in range(1, 9)])                       # most frequent non-valid reason
         dom = np.where(anyvalid, 0, np.where(cnt.sum(0) > 0, cnt.argmax(0)+1, 9))
+        if man.get('observation_model') == 'temporal-rgbd':
+            codes=sorted(int(code) for code in man['reason_codes'] if int(code)>0)
+            cnt=np.stack([(cr==code).sum(0) for code in codes])
+            dom=np.where(anyvalid,0,np.asarray(codes)[cnt.argmax(0)])
         write_js(dbg/'data'/f'free_{d}_f{k:04d}.js', f'free_{d}_f{k:04d}', {
             'frame': k, 'posterior': b64(X[k][ids], np.float32), 'predicted': b64(Xp[k][ids], np.float32), 'velocity': b64(V[k][ids], np.float32),
             'status': b64(S[k][ids], np.uint8), 'valid_cameras': b64(NV[k][ids], np.uint8), 'reason': b64(dom, np.uint8),
@@ -188,7 +193,7 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
             uvq, zq, _, _ = rig.project_rows(t(np.asarray(X[k][pick], float)), cam)
             s = sample(frame, cam, uvq, noise, policy, rig.K, torch.float64)
             ok = s.reason == 0
-            rec['cameras'].append({**img, 'markers': len(pick), 'exact_reason_counts': {REASONS[int(r)]: int(n) for r, n in zip(*np.unique(cr, return_counts=True))},
+            rec['cameras'].append({**img, 'markers': len(pick), 'exact_reason_counts': {reason_names[int(r)]: int(n) for r, n in zip(*np.unique(cr, return_counts=True))},
                                    'ids': pick.tolist(), 'uv_initial': b64(uv0.cpu(), np.float32), 'uv_predicted': b64(uvp.cpu(), np.float32),
                                    'uv_posterior': b64(uvq.cpu(), np.float32), 'reason': b64(cr[pick], np.uint8),
                                    'sampled_rgb': b64(torch.where(ok[:, None], s.rgb, torch.full_like(s.rgb, -1)).cpu(), np.float32),
@@ -333,12 +338,20 @@ def write_debug(root, data, config, policy, directions, debug_frames, level, dev
                       ('rigid_3d', 'projective_rigid_3d.html'), ('joint', 'projective_joint.html')):
         for d in directions:
             html = (ASSETS/tpl).read_text().replace('__DIRECTION__', d)
+            free_manifest=stage_dir(root,f'free_{d}')/'run_manifest.json'
+            if name.startswith('free_') and free_manifest.exists() and json.loads(free_manifest.read_text()).get('temporal_mode')=='full':
+                html=html.replace('prediction only','no direct temporal row').replace('prediction-only','no direct temporal row')
             target = {'free_3d': f'free_{d}_3d.html', 'free_rgbd': f'free_{d}_rgbd.html', 'coherence': f'coherence_{d}.html',
                       'rigid_3d': f'rigid_{d}_3d.html', 'joint': f'joint_{d}.html'}[name]
             (dbg/target).write_text(html); written.append(target)
     for tpl, target in (('projective_rigid_rgbd.html', 'rigid_rgbd.html'), ('projective_bidirectional.html', 'bidirectional.html'),
                         ('projective_numeric.html', 'numerical_diagnostics.html'), ('projective_index.html', 'index.html')):
         (dbg/target).write_text((ASSETS/tpl).read_text().replace('__DIRECTIONS__', json.dumps(directions))); written.append(target)
+    temporal_links = [f'<a href="../free_{d}/temporal/index.html">Temporal {d}: ownership, reference warps, residuals, convergence</a>'
+                      for d in directions if (root/f'free_{d}'/'temporal'/'index.html').exists()]
+    if temporal_links:
+        p = dbg/'index.html'
+        p.write_text(p.read_text().replace('<body>', '<body><nav style="padding:16px">'+' | '.join(temporal_links)+'</nav>', 1))
     res = json.loads((root/'result.json').read_text()) if (root/'result.json').exists() else {}
     write_js(dbg/'data'/'index.js', 'index', {'pages': written, 'directions': directions, 'debug_frames': debug_frames, 'result': res,
                                               'run_manifest': json.loads((root/'run_manifest.json').read_text()) if (root/'run_manifest.json').exists() else None})

@@ -22,6 +22,7 @@ const PD = (() => {
              good: '#3fb950', bad: '#f85149', dim: '#8b949e', line: '#2a313a', fg: '#e6edf3', cam: '#58a6ff'};
   const REASON_COLORS = {0: '#3fb950', 1: '#6e7681', 2: '#484f58', 3: '#f0883e', 4: '#a5714e', 5: '#db61a2', 6: '#a371f7', 7: '#39c5cf', 8: '#f85149', 9: '#30363d', 10: '#e3b341'};
   const hex3 = h => { const v = parseInt(String(h).replace('#', ''), 16); return [(v>>16 & 255)/255, (v>>8 & 255)/255, (v & 255)/255]; };
+  Object.assign(REASON_COLORS, {11:'#f2cc60',12:'#bc8cff'}); // temporal bootstrap and expired reference, never assimilated
   let disc = null;                 // round point sprite
   function sprite() { if (disc) return disc; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
     x.beginPath(); x.arc(32, 32, 30, 0, 2*Math.PI); x.fillStyle = '#fff'; x.fill(); disc = new THREE.CanvasTexture(c); return disc; }

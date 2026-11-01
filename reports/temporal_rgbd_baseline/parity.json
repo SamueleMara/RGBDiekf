@@ -1,0 +1,342 @@
+{
+  "baseline_commit": "e1e663b9618d3c833e63158e65dbbb1edd732003",
+  "baseline": "captured pre-edit dirty working tree, not clean HEAD",
+  "device": "cpu",
+  "preserved_existing_sources": {
+    "estimator/free_projective_run.py": true,
+    "estimator/projective_sensor.py": true,
+    "estimator/projective_terms.py": true,
+    "tools/root_cause_oracle.py": true,
+    "tools/root_cause_trace.py": true,
+    "tools/run_status.py": true
+  },
+  "checks": [
+    {
+      "file": "free_backward/camera_reason.npy",
+      "shape": [
+        3,
+        2,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/converged.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/covariance/frame_0000.npy",
+      "shape": [
+        1530,
+        6,
+        6
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/covariance/frame_0001.npy",
+      "shape": [
+        1530,
+        6,
+        6
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/iekf_iterations.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/information_max_eig.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/information_min_eig.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/nis.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/nis_dof.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/point_status.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/position_variance_diag.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/posterior_cost.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/posterior_cost_dof.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/posterior_xyz.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/predicted_xyz.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/update_acceptance.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/valid_cameras.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/velocity.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_backward/velocity_variance_diag.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/camera_reason.npy",
+      "shape": [
+        3,
+        2,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/converged.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/covariance/frame_0001.npy",
+      "shape": [
+        1530,
+        6,
+        6
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/covariance/frame_0002.npy",
+      "shape": [
+        1530,
+        6,
+        6
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/iekf_iterations.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/information_max_eig.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/information_min_eig.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/nis.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/nis_dof.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/point_status.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/position_variance_diag.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/posterior_cost.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/posterior_cost_dof.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/posterior_xyz.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/predicted_xyz.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/update_acceptance.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/valid_cameras.npy",
+      "shape": [
+        3,
+        1530
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/velocity.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "file": "free_forward/velocity_variance_diag.npy",
+      "shape": [
+        3,
+        1530,
+        3
+      ],
+      "bitwise_equal": true
+    }
+  ],
+  "npz_snapshots_equal": 4,
+  "status": "PASS",
+  "directions": [
+    "forward",
+    "backward"
+  ],
+  "frames": 3
+}

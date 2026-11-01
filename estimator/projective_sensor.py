@@ -115,14 +115,29 @@ def sample(frame, cam, uv, noise, policy, K, dtype=torch.float64):
     broken = (D.max(1).values-D.min(1).values) > allow
     reason[(reason == 0) & broken] = CODE['DEPTH_DISCONTINUITY']
     w = torch.stack(((1-du)*(1-dv), du*(1-dv), (1-du)*dv, du*dv), 1)            # [M,4]
-    depth = (w*D).sum(1); rgb = (w[:, :, None]*I).sum(1)
-    gD = torch.stack(((1-dv)*(D[:, 1]-D[:, 0])+dv*(D[:, 3]-D[:, 2]), (1-du)*(D[:, 2]-D[:, 0])+du*(D[:, 3]-D[:, 1])), 1)
+    rgb = (w[:, :, None]*I).sum(1)
+    depth_mode = policy.get('depth_interpolation', 'metric')
+    if depth_mode == 'metric':
+        depth = (w*D).sum(1)
+        gD = torch.stack(((1-dv)*(D[:, 1]-D[:, 0])+dv*(D[:, 3]-D[:, 2]), (1-du)*(D[:, 2]-D[:, 0])+du*(D[:, 3]-D[:, 1])), 1)
+    elif depth_mode == 'inverse':
+        # Phase-1 temporal solver option (RGBDiekf_Phase1 spec 4.2 / G4.2): on one planar surface 1/Z is affine in (u, v), so
+        # the bilinear interpolant of 1/D is exact there, while the bilinear interpolant of D is biased behind the surface.
+        # depth = 1 / sum_j w_j / D_j; its exact interpolant gradient d depth = -depth^2 d(sum w/D). Same 2x2 support and
+        # same-surface rule as the metric interpolant (no interpolation across a mask or depth discontinuity).
+        Di = 1/D
+        wi = (w*Di).sum(1); depth = 1/wi
+        gW = torch.stack(((1-dv)*(Di[:, 1]-Di[:, 0])+dv*(Di[:, 3]-Di[:, 2]), (1-du)*(Di[:, 2]-Di[:, 0])+du*(Di[:, 3]-Di[:, 1])), 1)
+        gD = -(depth*depth)[:, None]*gW
+    else:
+        raise ValueError(f'depth_interpolation {depth_mode!r}')
     gI = torch.stack(((1-dv)[:, None]*(I[:, 1]-I[:, 0])+dv[:, None]*(I[:, 3]-I[:, 2]),
                       (1-du)[:, None]*(I[:, 2]-I[:, 0])+du[:, None]*(I[:, 3]-I[:, 1])), 2)   # [M,3,2]
     if noise.interpolation_variance == 'sum_w2':
         w2 = w*w
         var_rgb = w2.sum(1)[:, None]*noise.rgb_variance.to(dtype)[None]
-        var_depth = (w2*noise.depth_sigma2(D)).sum(1)
+        if depth_mode == 'metric': var_depth = (w2*noise.depth_sigma2(D)).sum(1)
+        else: var_depth = depth**4*(w2*noise.depth_sigma2(D)/D**4).sum(1)        # delta method through 1/D and 1/w
     elif noise.interpolation_variance == 'sensor':
         var_rgb = noise.rgb_variance.to(dtype)[None].expand(M, 3).clone(); var_depth = noise.depth_sigma2(depth)
     else:

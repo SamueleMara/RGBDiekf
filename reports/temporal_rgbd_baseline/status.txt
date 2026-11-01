@@ -1,0 +1,71 @@
+ M estimator/free_projective_run.py
+ M estimator/projective_sensor.py
+ M estimator/projective_terms.py
+ M tools/root_cause_oracle.py
+ M tools/root_cause_trace.py
+ M tools/run_status.py
+ M train.py
+?? RGBDiekf_Codex_Depth_Sorted_Temporal_RGBD_Full_FixedLag_IEKF.md
+?? RGBDiekf_Codex_Fifth_Pass_Source_Responsibility_Causal_Experiments.md
+?? RGBDiekf_Codex_Final_Joint_Responsibility_8444_45588_Test.md
+?? RGBDiekf_Codex_Static_Point_Equilibrium_Root_Cause_Audit.md
+?? RGBDiekf_Definitive_F1_Static_Drift_Causal_Forensics_Codex.md
+?? RGBDiekf_F1_Fourth_Pass_Sequential_Replay_and_Diagnostic_Bugfix_Codex.md
+?? RGBDiekf_F1_Temporal_Reference_Depth_Surface_Reacquisition_Debug_Codex.md
+?? RGBDiekf_Inner_F1_Second_Pass_Causal_Debug_Codex.md
+?? RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md
+?? RGBDiekf_Static_Drift_INNER_IEKF_Only_Codex_2026-10-30.md
+?? configs/temporal_phase1.json
+?? estimator/block_tridiagonal.py
+?? estimator/ieks_point_trajectory.py
+?? estimator/rts_point_smoother.py
+?? estimator/temporal_history.py
+?? estimator/temporal_model_identification.py
+?? estimator/temporal_observability.py
+?? estimator/temporal_phase1.py
+?? reports/covariance_2x2_experiment.md
+?? reports/f1_static_drift_forensics_20261030.md
+?? reports/static_point_equilibrium/
+?? reports/static_point_equilibrium_root_cause_CURRENT.md
+?? reports/temporal_rgbd_baseline/
+?? tests/temporal_fixtures.py
+?? tests/test_f1_definitive_drift_forensics.py
+?? tests/test_f1_diagnostic_units.py
+?? tests/test_f1_joint_responsibility_audit.py
+?? tests/test_f1_second_pass_oracles.py
+?? tests/test_f1_sequential_causal_replay.py
+?? tests/test_f1_source_responsibility.py
+?? tests/test_f1_temporal_reference_diagnostics.py
+?? tests/test_forensic_f1_oracles.py
+?? tests/test_static_equilibrium_audit.py
+?? tests/test_temporal_phase1_identification.py
+?? tests/test_temporal_phase1_masks.py
+?? tests/test_temporal_phase1_math.py
+?? tests/test_temporal_phase1_measurement.py
+?? tests/test_temporal_phase1_motion.py
+?? tests/test_temporal_phase1_pipeline.py
+?? tests/test_temporal_phase1_static.py
+?? tools/README_f1_definitive_drift_forensics.md
+?? tools/README_f1_joint_responsibility.md
+?? tools/README_f1_source_responsibility.md
+?? tools/attribute_static_drift_channels.py
+?? tools/audit_static_equilibrium.py
+?? tools/evaluate_temporal_phase1.py
+?? tools/f1_definitive_drift_forensics.py
+?? tools/f1_definitive_evidence.py
+?? tools/f1_definitive_math.py
+?? tools/f1_definitive_point.py
+?? tools/f1_diagnostic_units.py
+?? tools/f1_joint_responsibility_audit.py
+?? tools/f1_second_pass.py
+?? tools/f1_sequential_causal_replay.py
+?? tools/f1_source_responsibility.py
+?? tools/f1_source_responsibility_audit.py
+?? tools/f1_source_responsibility_evaluation.py
+?? tools/f1_source_responsibility_population.py
+?? tools/f1_temporal_reference_diagnostics.py
+?? tools/forensic_f1_drift.py
+?? tools/report_f1_definitive_drift.py
+?? tools/report_f1_joint_responsibility.py
+?? tools/report_f1_source_responsibility.py
+?? tools/temporal_phase1_gate_evidence.py

@@ -1,0 +1,181 @@
+usage: train.py [-h] --scene SCENE [--output OUTPUT] [--device {cuda,cpu}]
+                [--fps FPS] [--timestamps-file TIMESTAMPS_FILE]
+                [--dt-seconds DT_SECONDS] [--noise-config NOISE_CONFIG]
+                [--sensor-noise {measured,config}]
+                [--velocity-prior-speed99 M_PER_S]
+                [--policy-override [KEY=VALUE ...]]
+                [--rendered-mask-measurement {off,diagnostic,on}]
+                [--mask-image-noise-config MASK_IMAGE_NOISE_CONFIG]
+                [--free-solver {directional,temporal-ieks}]
+                [--temporal-config TEMPORAL_CONFIG]
+                [--direction {forward,backward,both}]
+                [--stage {free,coherence,rigid,joint,support,debug,all}]
+                [--stop-after {free,coherence,rigid,joint,support}]
+                [--resume-from RESUME_FROM] [--no-evaluate] [--no-qa]
+                [--pcd-subsample-factor PCD_SUBSAMPLE_FACTOR]
+                [--pcd-subsample-method {spatial-stratified,seeded-uniform}]
+                [--pcd-subsample-seed PCD_SUBSAMPLE_SEED]
+                [--pcd-subsample-boundary-preserve PCD_SUBSAMPLE_BOUNDARY_PRESERVE]
+                [--pcd-subsample-report PCD_SUBSAMPLE_REPORT]
+                [--cuda-backend {torch,triton}]
+                [--covariance-precision {float64,float32,mixed}]
+                [--pixel-reuse-assignment {per-frame,per-iteration}]
+                [--point-chunk-size POINT_CHUNK_SIZE]
+                [--max-iekf-iters MAX_IEKF_ITERS]
+                [--coherence-count COHERENCE_COUNT]
+                [--coherence-knn COHERENCE_KNN]
+                [--coherence-folds COHERENCE_FOLDS]
+                [--coherence-weighting {pinned_raw,measurement_supported}]
+                [--joint-q-filter JOINT_Q_FILTER] [--debug {none,light,full}]
+                [--debug-frames DEBUG_FRAMES]
+                [--debug-point-ids DEBUG_POINT_IDS]
+                [--save-state-interval SAVE_STATE_INTERVAL]
+                [--save-full-covariance] [--only [ONLY ...]]
+                [--exclude [EXCLUDE ...]] [--frame-limit FRAME_LIMIT]
+
+RGBDekf: four independent directional RGB-D filters (CODEX_RGBD_FOUR_PASS_PROJECTIVE_IEKF_CUDA_SUBSAMPLING_2026-10-27.md).
+
+    F1 free forward    measured frame-0 cloud,   0 -> T,  independent 6D [x, v] IEKF per point
+    B1 free backward   measured frame-T cloud,   T -> 0,  independent 6D [x, v] IEKF per point
+    coherence          pinned RigEuler 192-node held-out coherence on each completed free pass (both weightings)
+    F2 rigid forward   frame-0 moving core,      0 -> T,  one shared SE(3) pose + twist 12D IEKF
+    B2 rigid backward  frame-T moving core,      T -> 0,  one shared SE(3) pose + twist 12D IEKF
+    joint              fixed-axis reduction + decision per direction, optional (q, qdot) projective IEKF, F/B comparison
+    support            measured projective consistency labels per direction
+    debug              point-only measured RGB-D pages (debug/index.html) and numeric diagnostics
+    evaluate           ground truth, separate process, after every inference output is written (evaluation_gt/)
+    qa                 headless browser screenshots + numeric overlay checks of the debug pages
+
+The ONLY observations are the actual masked calibrated RGB-D frames sampled at the projections of transported
+original endpoint points; every correction is a Kalman correction. No splat, render, image energy, trust region,
+group tangent, point correspondence or ground truth enters inference.
+
+One command runs everything, debug included, for a scene folder or a dataset root of scene folders:
+    python train.py --scene <scene | dataset root> --output <new folder>
+Part of the pipeline:
+    --stop-after free|coherence|rigid|joint|support      last inference stage
+    --stage S --resume-from RUN                          take every stage before S from RUN (read-only, verified)
+    --debug none|light|full,  --no-evaluate,  --no-qa
+
+options:
+  -h, --help            show this help message and exit
+
+input / output:
+  --scene SCENE, --input SCENE
+                        calibrated RGB-D scene folder, or a dataset root of
+                        scene folders
+  --output OUTPUT       new, non-existing (or empty) output folder outside the
+                        code tree; never overwritten (default:
+                        RESULTS_ROOT/projective_<scene>_<YYYYmmdd_HHMM>)
+  --device {cuda,cpu}
+  --fps FPS
+  --timestamps-file TIMESTAMPS_FILE
+  --dt-seconds DT_SECONDS
+  --noise-config NOISE_CONFIG
+                        declared RGB/depth/process noise (default
+                        configs/example_uncalibrated.json, UNCALIBRATED)
+  --sensor-noise {measured,config}
+                        measured (default): R (RGB / depth sensor noise and
+                        model mismatch) measured from this scene's own frames,
+                        scene/noise_calibration.py, written to
+                        noise_calibration.json; config: the --noise-config
+                        values and the policy model variances
+  --velocity-prior-speed99 M_PER_S
+                        DECLARED physical speed (m/s) enclosing 99% of the
+                        expected point speeds of this acquisition: free-pass
+                        initial P_vv = (v99/3.368)^2 I (default: the --noise-
+                        config initial_twist_covariance, 1 (m/s)^2 per axis =
+                        v99 3.37 m/s). Not inferred from data or ground truth.
+  --policy-override [KEY=VALUE ...]
+                        override configs/projective_rgbd.json keys for an
+                        ablation, e.g. update_acceptance=final_iterate
+                        row_innovation_gate=depth_front_only
+  --rendered-mask-measurement {off,diagnostic,on}
+                        the measured binary mask against the rendered white-
+                        point pseudomask of ALL transported points as a second
+                        IEKF image measurement in F1/B1
+                        (estimator/rendered_mask_iekf.py; default
+                        configs/projective_rgbd.json
+                        rendered_mask_measurement.mode = off). diagnostic
+                        renders and reports without changing any state; on
+                        assimilates the one-sided image innovation (needs
+                        --mask-image-noise-config)
+  --mask-image-noise-config MASK_IMAGE_NOISE_CONFIG
+                        DECLARED mask-intensity variance R_mask ((white
+                        intensity in [0,1])^2, per camera or one value) with
+                        its provenance, e.g.
+                        configs/example_mask_image_noise.json (UNCALIBRATED)
+  --free-solver {directional,temporal-ieks}
+                        directional (default): the original free F1/B1 filter.
+                        temporal-ieks: the opt-in Phase-1 joint initial-
+                        geometry and motion smoother
+                        (RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md),
+                        F1 only, writes free_forward_temporal/; downstream
+                        stages have no adapter yet, so it requires --stop-
+                        after free
+  --temporal-config TEMPORAL_CONFIG
+                        declared numerics of --free-solver temporal-ieks
+
+stages:
+  --direction {forward,backward,both}
+  --stage {free,coherence,rigid,joint,support,debug,all}
+                        first stage to compute (earlier ones from --resume-
+                        from); debug = reuse every inference stage, rebuild
+                        debug pages, evaluation and QA
+  --stop-after {free,coherence,rigid,joint,support}
+  --resume-from RESUME_FROM
+                        completed earlier run: stages before --stage are
+                        reused read-only after hash checks
+  --no-evaluate         skip the ground-truth evaluation (separate process)
+  --no-qa               skip the headless-browser debug QA
+
+endpoint subsampling (before F1/B1; images, cameras and frames are never reduced):
+  --pcd-subsample-factor PCD_SUBSAMPLE_FACTOR
+                        integer >= 1; 1 = OFF (every original point, original
+                        order)
+  --pcd-subsample-method {spatial-stratified,seeded-uniform}
+  --pcd-subsample-seed PCD_SUBSAMPLE_SEED
+  --pcd-subsample-boundary-preserve PCD_SUBSAMPLE_BOUNDARY_PRESERVE
+  --pcd-subsample-report PCD_SUBSAMPLE_REPORT
+
+numerics:
+  --cuda-backend {torch,triton}
+                        torch reference (triton is NOT implemented)
+  --covariance-precision {float64,float32,mixed}
+                        float64 everywhere; float32 everywhere; mixed =
+                        float32 projection/sampling, float64 Kalman algebra
+  --pixel-reuse-assignment {per-frame,per-iteration}
+                        front-most-per-pixel reuse decided once at the
+                        prediction (default) or re-decided at every IEKF
+                        iterate
+  --point-chunk-size POINT_CHUNK_SIZE
+                        points per measurement chunk (memory bound; identical
+                        per-point results)
+  --max-iekf-iters MAX_IEKF_ITERS
+                        default from configs/projective_rgbd.json
+  --coherence-count COHERENCE_COUNT
+  --coherence-knn COHERENCE_KNN
+  --coherence-folds COHERENCE_FOLDS
+  --coherence-weighting {pinned_raw,measurement_supported}
+                        policy whose core drives F2/B2 (both are always
+                        computed and reported)
+  --joint-q-filter JOINT_Q_FILTER
+                        optional constrained (q, qdot) IEKF
+
+debug:
+  --debug {none,light,full}
+  --debug-frames DEBUG_FRAMES
+                        e.g. 0,1,2,5,10,30,59 (default: 0,1,2,5,10 and the
+                        last)
+  --debug-point-ids DEBUG_POINT_IDS
+                        traced canonical point ids (default: 6 evenly spaced)
+  --save-state-interval SAVE_STATE_INTERVAL
+                        full 6x6 covariance snapshot interval (with --save-
+                        full-covariance or --debug full)
+  --save-full-covariance
+
+dataset root / tests:
+  --only [ONLY ...]
+  --exclude [EXCLUDE ...]
+  --frame-limit FRAME_LIMIT
+                        TEST prefix of frames only

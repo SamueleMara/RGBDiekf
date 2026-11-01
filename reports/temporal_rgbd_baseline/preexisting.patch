@@ -1,0 +1,322 @@
+diff --git a/estimator/free_projective_run.py b/estimator/free_projective_run.py
+index 6566f60..18216b3 100644
+--- a/estimator/free_projective_run.py
++++ b/estimator/free_projective_run.py
+@@ -344,3 +344,9 @@ def _write_timeline(path, rows):
+     if not rows: return
+     with open(path, 'w', newline='') as fh:
+         w = csv.DictWriter(fh, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
++
++
++def run_free_temporal(dataset, config, policy, tcfg, direction, root, device, sub, debug_point_ids=None, log=print, provenance=None):
++    """Opt-in Phase-1 temporal solver (train.py --free-solver temporal-ieks): free_forward_temporal/. run_free above is unchanged."""
++    from estimator.temporal_phase1 import run_temporal_stage
++    return run_temporal_stage(dataset, config, policy, tcfg, direction, root, device, sub, debug_point_ids, log, provenance)
+diff --git a/estimator/projective_sensor.py b/estimator/projective_sensor.py
+index 97c98a3..6159be5 100644
+--- a/estimator/projective_sensor.py
++++ b/estimator/projective_sensor.py
+@@ -115,14 +115,29 @@ def sample(frame, cam, uv, noise, policy, K, dtype=torch.float64):
+     broken = (D.max(1).values-D.min(1).values) > allow
+     reason[(reason == 0) & broken] = CODE['DEPTH_DISCONTINUITY']
+     w = torch.stack(((1-du)*(1-dv), du*(1-dv), (1-du)*dv, du*dv), 1)            # [M,4]
+-    depth = (w*D).sum(1); rgb = (w[:, :, None]*I).sum(1)
+-    gD = torch.stack(((1-dv)*(D[:, 1]-D[:, 0])+dv*(D[:, 3]-D[:, 2]), (1-du)*(D[:, 2]-D[:, 0])+du*(D[:, 3]-D[:, 1])), 1)
++    rgb = (w[:, :, None]*I).sum(1)
++    depth_mode = policy.get('depth_interpolation', 'metric')
++    if depth_mode == 'metric':
++        depth = (w*D).sum(1)
++        gD = torch.stack(((1-dv)*(D[:, 1]-D[:, 0])+dv*(D[:, 3]-D[:, 2]), (1-du)*(D[:, 2]-D[:, 0])+du*(D[:, 3]-D[:, 1])), 1)
++    elif depth_mode == 'inverse':
++        # Phase-1 temporal solver option (RGBDiekf_Phase1 spec 4.2 / G4.2): on one planar surface 1/Z is affine in (u, v), so
++        # the bilinear interpolant of 1/D is exact there, while the bilinear interpolant of D is biased behind the surface.
++        # depth = 1 / sum_j w_j / D_j; its exact interpolant gradient d depth = -depth^2 d(sum w/D). Same 2x2 support and
++        # same-surface rule as the metric interpolant (no interpolation across a mask or depth discontinuity).
++        Di = 1/D
++        wi = (w*Di).sum(1); depth = 1/wi
++        gW = torch.stack(((1-dv)*(Di[:, 1]-Di[:, 0])+dv*(Di[:, 3]-Di[:, 2]), (1-du)*(Di[:, 2]-Di[:, 0])+du*(Di[:, 3]-Di[:, 1])), 1)
++        gD = -(depth*depth)[:, None]*gW
++    else:
++        raise ValueError(f'depth_interpolation {depth_mode!r}')
+     gI = torch.stack(((1-dv)[:, None]*(I[:, 1]-I[:, 0])+dv[:, None]*(I[:, 3]-I[:, 2]),
+                       (1-du)[:, None]*(I[:, 2]-I[:, 0])+du[:, None]*(I[:, 3]-I[:, 1])), 2)   # [M,3,2]
+     if noise.interpolation_variance == 'sum_w2':
+         w2 = w*w
+         var_rgb = w2.sum(1)[:, None]*noise.rgb_variance.to(dtype)[None]
+-        var_depth = (w2*noise.depth_sigma2(D)).sum(1)
++        if depth_mode == 'metric': var_depth = (w2*noise.depth_sigma2(D)).sum(1)
++        else: var_depth = depth**4*(w2*noise.depth_sigma2(D)/D**4).sum(1)        # delta method through 1/D and 1/w
+     elif noise.interpolation_variance == 'sensor':
+         var_rgb = noise.rgb_variance.to(dtype)[None].expand(M, 3).clone(); var_depth = noise.depth_sigma2(depth)
+     else:
+diff --git a/estimator/projective_terms.py b/estimator/projective_terms.py
+index d46dd5a..2c59820 100644
+--- a/estimator/projective_terms.py
++++ b/estimator/projective_terms.py
+@@ -19,7 +19,8 @@ the prior (the quantity a Kalman gate tests; identical to r at the prior iterate
+                                which the 2x2 interpolant-validity test cannot tell (it only checks one surface per cell).
+ row_innovation_gate selects the rule: 'rgbd_chi2' (above, default), 'depth_two_sided' (|nu_D| > n_sigma sqrt(S_DD) only,
+ sign -> reason) or 'depth_front_only' (the earlier rule exactly: only r_D > n_sigma sqrt(S_DD) on the ITERATE's own
+-residual, not the prior-linearized nu_D; the other sign kept as motion).
++residual, not the prior-linearized nu_D; the other sign kept as motion); 'none' returns the raw sampled rows ungated
++(the Phase-1 temporal solver evaluates a FROZEN support with it; never a production admission rule).
+ A row moving within its prior uncertainty passes every rule; the prior covariance (velocity prior and q_c included)
+ is what decides how far a legitimate motion may go in one frame.
+ """
+@@ -28,7 +29,7 @@ import torch
+ from scipy.stats import chi2, norm
+ from estimator.projective_sensor import sample, CODE
+ 
+-GATES = ('rgbd_chi2', 'depth_two_sided', 'depth_front_only')
++GATES = ('rgbd_chi2', 'depth_two_sided', 'depth_front_only', 'none')
+ 
+ 
+ def row_gate_threshold(policy, dof=4):
+@@ -85,6 +86,7 @@ def build_terms(rig, frame, cam, point, x, rgb0, Sigma_x, noise, policy, dtype=t
+     n_sig = policy['visibility_n_sigma']
+     # 'depth_front_only' is the audited rule exactly (29a23a7): the iterate's own depth residual r_D, not nu_D
+     front = ok & ((r[:, 3] if gate == 'depth_front_only' else nu[:, 3]) > n_sig*torch.sqrt(S_zz.clamp_min(0)))
++    if gate == 'none': front = torch.zeros_like(ok)                      # raw candidate rows (Phase-1 frozen-support evaluation)
+     reason[front] = CODE['MEASURED_SURFACE_IN_FRONT']
+     L, info = torch.linalg.cholesky_ex(torch.where(ok[:, None, None], S, torch.eye(4, dtype=dtype, device=S.device)))
+     nis = (torch.linalg.solve_triangular(L, nu[:, :, None], upper=False)[..., 0]**2).sum(1)
+diff --git a/tools/root_cause_oracle.py b/tools/root_cause_oracle.py
+index 9962094..1f5ce62 100644
+--- a/tools/root_cause_oracle.py
++++ b/tools/root_cause_oracle.py
+@@ -95,12 +95,18 @@ def sample(img, cam, u, v, noise, policy):
+     out['same_surface_spread_m'], out['same_surface_allowance_m'] = float(D.max()-D.min()), float(allow)
+     w = np.array([(1-du)*(1-dv), du*(1-dv), (1-du)*dv, du*dv])
+     out['w'] = w
+-    out['depth'], out['rgb'] = float(w@D), w@I
+-    out['grad_depth'] = np.array([(1-dv)*(D[1]-D[0])+dv*(D[3]-D[2]), (1-du)*(D[2]-D[0])+du*(D[3]-D[1])])
++    grad = lambda F: np.array([(1-dv)*(F[1]-F[0])+dv*(F[3]-F[2]), (1-du)*(F[2]-F[0])+du*(F[3]-F[1])])
++    # both interpolants are reported; policy depth_interpolation ('metric' default, 'inverse' = bilinear 1/D, exact on one
++    # plane: depth = 1/sum w/D, d depth = -depth^2 d(sum w/D), var = depth^4 sum w^2 sigma^2/D^4) selects the one used
++    out['depth_metric'] = float(w@D); dinv = 1./float(w@(1./D)); out['depth_inverse'] = dinv
++    mode = policy.get('depth_interpolation', 'metric')
++    if mode not in ('metric', 'inverse'): raise ValueError(mode)
++    out['depth'], out['rgb'] = (out['depth_metric'] if mode == 'metric' else dinv), w@I
++    out['grad_depth'] = grad(D) if mode == 'metric' else -dinv*dinv*grad(1./D)
+     out['grad_rgb'] = np.stack([(1-dv)*(I[1]-I[0])+dv*(I[3]-I[2]), (1-du)*(I[2]-I[0])+du*(I[3]-I[1])], 1)      # [3,2]
+     if noise.interp == 'sum_w2':
+         out['var_rgb'] = (w*w).sum()*noise.rgb_var+noise.rgb_model
+-        out['var_depth'] = float((w*w*noise.sigma2(D)).sum())+noise.depth_model
++        out['var_depth'] = (float((w*w*noise.sigma2(D)).sum()) if mode == 'metric' else dinv**4*float((w*w*noise.sigma2(D)/D**4).sum()))+noise.depth_model
+     else:
+         out['var_rgb'] = noise.rgb_var+noise.rgb_model; out['var_depth'] = float(noise.sigma2(out['depth']))+noise.depth_model
+     if D.max()-D.min() > allow: out['reason'] = DISCONT
+diff --git a/tools/root_cause_trace.py b/tools/root_cause_trace.py
+index 637d082..f1ff3c0 100644
+--- a/tools/root_cause_trace.py
++++ b/tools/root_cause_trace.py
+@@ -426,7 +426,8 @@ def chain_replay(run, pid, k_div, cams, override=None, noise=None):
+         res = prob.run(run.policy.get('update_acceptance', 'final_iterate'))
+         prod = t['final'][str(pid)]
+         frames.append({'frame': k, 's_minus': sm, 'P_xv_minus': Pm[:3, 3:], 's_plus': res['s_plus'], 'observed': res['observed'],
+-                       'production_s_plus_max_abs': absd(res['s_plus'], prod['s_plus']), 'production_P_plus_rel': rel(res['P_plus'], prod['P_plus'])})
++                       'production_position_linf_m': absd(res['s_plus'][:3], np.asarray(prod['s_plus'])[:3]),
++                       'production_velocity_linf_m_s': absd(res['s_plus'][3:], np.asarray(prod['s_plus'])[3:]), 'production_P_plus_rel': rel(res['P_plus'], prod['P_plus'])})
+         s, P = res['s_plus'], res['P_plus']
+         last = (prob, res)
+     return frames, last
+@@ -518,9 +519,10 @@ def verdicts(A):
+     worst_alg = max(max(i['algebra_from_dump'][k] for k in ('A_rel', 'b_rel', 'delta_rel')) for i in its)
+     worst_raw = max(i['raw_resample']['worst_row_disagreement'] for i in its)
+     rep = A['oracle_replay']
+-    v['algebra'] = {'max_relative_mismatch_dump': worst_alg, 'max_row_mismatch_raw_resample': worst_raw, 'replay_s_plus_max_abs_m': rep['s_plus_max_abs'],
++    v['algebra'] = {'max_relative_mismatch_dump': worst_alg, 'max_row_mismatch_raw_resample': worst_raw, 'replay_s_plus_position_linf_m': rep['s_plus_position_linf_m'], 'replay_s_plus_velocity_linf_m_s': rep['s_plus_velocity_linf_m_s'],
+                     'replay_P_plus_rel': rep['P_plus_rel'], 'joseph_vs_information_max_abs': fin['joseph']['max_abs_difference'] if fin.get('joseph') else None,
+-                    'free_running_replay_divergence_per_iterate_m': rep['free_running_state_divergence_per_iterate_m'],
++                    'free_running_replay_position_divergence_per_iterate_m': rep['free_running_position_divergence_per_iterate_m'],
++                    'free_running_replay_velocity_divergence_per_iterate_m_s': rep['free_running_velocity_divergence_per_iterate_m_s'],
+                     'holds': bool(worst_alg < TOL_ALGEBRA and worst_raw < 1e-9 and (fin['joseph'] is None or fin['joseph']['max_abs_difference'] < 1e-10)),
+                     'meaning': 'at every production state the 6x6 solve, the raw-pixel rows and the Joseph covariance match an independent float64 '
+                                'oracle (no numerical / sign / accumulator bug); a free-running replay can still drift if the iteration map amplifies round-off'}
+@@ -620,12 +622,16 @@ def cmd_analyze(a):
+     A['iterates'] = iterate_section(prob, tr, pid, run)
+     res = prob.run(run.policy.get('update_acceptance', 'final_iterate'))
+     fin = tr['final'][str(pid)]
+-    replay_div = [absd(h['s'], tr['iterations'][j]['points'][str(pid)]['state']) for j, h in enumerate(res['history']) if j < len(tr['iterations'])]
+-    A['oracle_replay'] = {'free_running_state_divergence_per_iterate_m': replay_div,
++    _st = lambda j: np.asarray(tr['iterations'][j]['points'][str(pid)]['state'])
++    replay_div_x = [absd(h['s'][:3], _st(j)[:3]) for j, h in enumerate(res['history']) if j < len(tr['iterations'])]
++    replay_div_v = [absd(h['s'][3:], _st(j)[3:]) for j, h in enumerate(res['history']) if j < len(tr['iterations'])]
++    A['oracle_replay'] = {'free_running_position_divergence_per_iterate_m': replay_div_x, 'free_running_velocity_divergence_per_iterate_m_s': replay_div_v,
+                           'note': 'the oracle iterated from s- on its own; at every PRODUCTION state it agrees to round-off (iterates[*].raw_resample). '
+                                   'Growth of this divergence = amplification of round-off by the iteration map (see iterates[*].iteration_map).',
+-'accepted_linearization_state_max_abs_m': absd(res['s_plus'] if res['observed'] else res['s_final_iterate'], fin['linearization_state']),
+-                          's_plus_max_abs': absd(res['s_plus'], fin['s_plus']), 'P_plus_rel': rel(res['P_plus'], fin['P_plus']),
++'accepted_linearization_position_linf_m': absd((res['s_plus'] if res['observed'] else res['s_final_iterate'])[:3], np.asarray(fin['linearization_state'])[:3]),
++                          'accepted_linearization_velocity_linf_m_s': absd((res['s_plus'] if res['observed'] else res['s_final_iterate'])[3:], np.asarray(fin['linearization_state'])[3:]),
++                          's_plus_position_linf_m': absd(res['s_plus'][:3], np.asarray(fin['s_plus'])[:3]), 's_plus_velocity_linf_m_s': absd(res['s_plus'][3:], np.asarray(fin['s_plus'])[3:]),
++                          'P_plus_rel': rel(res['P_plus'], fin['P_plus']),
+                           'acceptance_oracle': res['acceptance_code'], 'acceptance_production': fin['acceptance'], 'observed_oracle': res['observed'],
+                           'iterations_oracle': len(res['history']), 'iterations_production': len(tr['iterations']), 'converged_oracle': res['converged'],
+                           'converged_production': fin['converged']}
+@@ -688,7 +694,7 @@ def report(A):
+          '## Verdicts (spec interpretation table)', '', '| Hypothesis | Holds | Evidence |', '|---|---|---|']
+     al = V['algebra']
+     L.append(f"| Algebra / implementation bug | {'no bug' if al['holds'] else '**MISMATCH**'} | dump-vs-trace rel {f(al['max_relative_mismatch_dump'], 2)}, raw re-sample rows {f(al['max_row_mismatch_raw_resample'], 2)}, "
+-             f"replay s+ {f(al['replay_s_plus_max_abs_m'], 2)} m, P+ rel {f(al['replay_P_plus_rel'], 2)}, Joseph {f(al['joseph_vs_information_max_abs'], 2)} |")
++             f"replay s+ position {f(al['replay_s_plus_position_linf_m'], 2)} m / velocity {f(al['replay_s_plus_velocity_linf_m_s'], 2)} m/s, P+ rel {f(al['replay_P_plus_rel'], 2)}, Joseph {f(al['joseph_vs_information_max_abs'], 2)} |")
+     im = V['iteration_map']
+     L.append(f"| Gauss–Newton iteration map expansive (ρ(∂G/∂s) > 1) | {'yes at '+str(im['expansive_iterates']) if im['expansive_iterates'] else 'no'} | ρ per iterate {f(im['spectral_radius_per_iterate'], 3)}; "
+              f"free-running replay divergence {f(al['free_running_replay_divergence_per_iterate_m'], 2)} m |")
+@@ -769,8 +775,8 @@ def report(A):
+         for k, v in ch.items():
+             if k.startswith('_'): continue
+             g = np.diag(np.asarray(v['final']['velocity_gain_P_vx_Pxx_inv']))
+-            repro = max(fr['production_s_plus_max_abs'] for fr in v['frames']) if k == 'original' else None
+-            L.append(f"| {k} | {f(v['final']['delta_x_norm_m'])} | {f(v['final']['delta_v_norm_m_s'])} | {f(v['final']['speed_after_m_s'])} | {f(g, 4)} | {'' if repro is None else f(repro, 2)+' m'} |")
++            repro = (max(fr['production_position_linf_m'] for fr in v['frames']), max(fr['production_velocity_linf_m_s'] for fr in v['frames'])) if k == 'original' else None
++            L.append(f"| {k} | {f(v['final']['delta_x_norm_m'])} | {f(v['final']['delta_v_norm_m_s'])} | {f(v['final']['speed_after_m_s'])} | {f(g, 4)} | {'' if repro is None else f(repro[0], 2)+' m / '+f(repro[1], 2)+' m/s'} |")
+     L += ['', 'All numbers in `analysis.json` (float64); matrices in `arrays.npz`.', '']
+     return '\n'.join(L)
+ 
+diff --git a/tools/run_status.py b/tools/run_status.py
+index b5ecd81..ef2002c 100644
+--- a/tools/run_status.py
++++ b/tools/run_status.py
+@@ -17,6 +17,25 @@ PHASES = ['free_forward', 'free_backward', 'coherence_forward', 'coherence_backw
+ DEFAULT_W = {'free_forward': 86, 'free_backward': 91, 'coherence_forward': 14, 'coherence_backward': 14, 'rigid_forward': 15, 'rigid_backward': 16,
+              'joint_forward': 3.5, 'joint_backward': 2, 'support_forward': 0, 'support_backward': 0, 'debug': 18, 'evaluate_qa': 37}   # storage, s
+ FRAME = re.compile(r'^\[(forward|backward)\] (\d+)/(\d+) .*?(observed|rows)')
++T_FRAME = re.compile(r'^\[temporal\] forward frame \d+ \((\d+)/(\d+)\)')                # --free-solver temporal-ieks
++T_ITER = re.compile(r'^\[temporal\] IEKS iteration (\d+):.*\(([\d.]+) s\)$')
++T_ITER_FRAMES_PER_FRAME = .35   # one IEKS outer iteration ~ 0.35 K forward-frame times before the first one is timed
++                                # (measured: USB_100109 K=60 51 s vs 2.7 s/frame = 0.31 K; static fixture K=6 0.24 K)
++
++
++def temporal_left(text, el, max_outer):
++    """(fraction, phase text, seconds left) of a temporal-ieks F1 run, or None. The IEKS stops at convergence or at
++    max_outer iterations, so the time left is an upper bound (the cap)."""
++    fr = [m for m in map(T_FRAME.match, text) if m]; it = [m for m in map(T_ITER.match, text) if m]
++    if not fr: return None
++    i, n = int(fr[-1].group(1)), int(fr[-1].group(2))
++    if not it:
++        per_frame = el/i
++        left = (n-i)*per_frame+(max_outer+1)*T_ITER_FRAMES_PER_FRAME*n*per_frame
++        return el/(el+left), f'temporal forward IEKF frame {i}/{n}', left
++    secs = [float(m.group(2)) for m in it]; done = int(it[-1].group(1))+1
++    left = (max_outer-done+1)*sum(secs)/len(secs)                                      # + the final linearization pass
++    return el/(el+left), f'temporal IEKS iter {done}/{max_outer} (cap)', left
+ 
+ 
+ def is_scene(p):
+@@ -84,7 +103,9 @@ def fmt(s):
+ 
+ def status(out, log=None):
+     out = Path(out).resolve(); now = time.time(); lines = []
+-    single = (out/'run_manifest.json').exists() and not (out/'batch.json').exists() and not (out/'summary.json').exists()
++    if not out.exists(): return f'{out}\nnot started yet (folder not created); waiting'
++    single = (((out/'run_manifest.json').exists() or (out/'run.lock').exists() or out.with_name(out.name+'.log').exists())
++              and not (out/'batch.json').exists() and not (out/'summary.json').exists())   # a starting run has no manifest yet
+     if single:
+         scenes = [(out.name, out, Path(log) if log else out.with_name(out.name+'.log'))]
+     else:
+@@ -105,6 +126,7 @@ def status(out, log=None):
+     durations = [r['runtime_seconds'] for r in finished]
+     mean_d = sum(durations)/len(durations) if durations else sum(w.values())
+     left_total, n_done, n_run, n_wait = 0., 0, 0, 0
++    unknown = False
+     for name, run, lg in scenes:
+         res = json.loads((run/'result.json').read_text()) if (run/'result.json').exists() else None
+         if run.exists() and running(run):
+@@ -112,8 +134,16 @@ def status(out, log=None):
+             start = (run/'run.lock').stat().st_mtime; el = now-start
+             f, what = scene_progress(lg, w)
+             est = el/f if f >= .08 else max(mean_d, el)
+-            left = max(est-el, 0.); left_total += left
+-            rows.append(f'  RUNNING  {name:<20} {what:<34} {100*f:5.1f}%  elapsed {fmt(el):>7}  left ~{fmt(left)}')
++            left = max(est-el, 0.)
++            man = json.loads((run/'run_manifest.json').read_text()) if (run/'run_manifest.json').exists() else {}
++            if man.get('arguments', {}).get('free_solver') == 'temporal-ieks' and lg.exists():
++                cfg = Path(man['arguments'].get('temporal_config') or '')
++                cap = json.loads(cfg.read_text()).get('max_outer_iterations', 20) if cfg.is_file() else 20
++                t = temporal_left(lg.read_text(errors='replace').splitlines(), el, cap)
++                if t: f, what, left = t
++                else: f, what, left, unknown = 0., 'temporal: loading frames', 0., True   # no frame timed yet
++            left_total += left
++            rows.append(f'  RUNNING  {name:<20} {what:<34} {100*f:5.1f}%  elapsed {fmt(el):>7}  left ~{"?" if unknown else fmt(left)}')
+         elif res and 'runtime_seconds' in res:
+             n_done += 1
+             rows.append(f'  done     {name:<20} {res.get("status", "?"):<34} {fmt(res["runtime_seconds"]):>7}')
+@@ -124,7 +154,11 @@ def status(out, log=None):
+             n_wait += 1; left_total += mean_d
+             rows.append(f'  queued   {name:<20}')
+     head = f'{out}\n{n_done}/{len(scenes)} done, {n_run} running, {n_wait} queued'
+-    if n_run or n_wait:
++    if not scenes:
++        head += '   |   nothing started yet; waiting'
++    elif unknown:
++        head += '   |   time left unknown until the first frame is timed'
++    elif n_run or n_wait:
+         head += f'   |   time left ~{fmt(left_total)}  (finish ~{time.strftime("%H:%M", time.localtime(now+left_total))})'
+         head += f'   [stage weights {"from this batch" if calibrated else "default (storage)"}; queued scene ~{fmt(mean_d)}]'
+     else:
+diff --git a/train.py b/train.py
+index 2ecf5b1..2e04be8 100644
+--- a/train.py
++++ b/train.py
+@@ -44,6 +44,8 @@ STAGE_SOURCES = {
+     'joint': ['joint_reduction/joint_projective.py', 'joint_reduction/bidirectional.py', 'rigeuler_ref/rigid_trajectory_reduction.py',
+               'rigeuler_ref/joint_manifold.py', 'rigeuler_ref/manifold.py', 'configs/image_joint_policy.json'],
+     'support': ['joint_reduction/support_projective.py'],
++    'free_temporal': ['estimator/temporal_phase1.py', 'estimator/ieks_point_trajectory.py', 'estimator/rts_point_smoother.py', 'estimator/block_tridiagonal.py',
++                      'estimator/temporal_history.py', 'estimator/temporal_observability.py', 'configs/temporal_phase1.json'],
+ }
+ DIRS = {'forward': 'forward', 'backward': 'backward'}
+ 
+@@ -78,6 +80,11 @@ def parse(argv=None):
+                          'configs/example_mask_image_noise.json (UNCALIBRATED)')
+     for old in ('--geometry-constraints', '--geometry-depth-mode', '--geometry-posterior-mean'):    # removed, never aliased
+         io.add_argument(old, dest=old.strip('-').replace('-', '_'), help=argparse.SUPPRESS)
++    io.add_argument('--free-solver', choices=['directional', 'temporal-ieks'], default='directional',
++                    help='directional (default): the original free F1/B1 filter. temporal-ieks: the opt-in Phase-1 joint initial-geometry and motion '
++                         'smoother (RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md), F1 only, writes free_forward_temporal/; downstream stages '
++                         'have no adapter yet, so it requires --stop-after free')
++    io.add_argument('--temporal-config', type=Path, default=REPO/'configs/temporal_phase1.json', help='declared numerics of --free-solver temporal-ieks')
+     st = ap.add_argument_group('stages')
+     st.add_argument('--direction', choices=['forward', 'backward', 'both'], default='both')
+     st.add_argument('--stage', choices=INFERENCE+['debug', 'all'], default='all',
+@@ -122,6 +129,12 @@ def parse(argv=None):
+                      '(RGBDiekf_Codex_Rendered_Binary_Mask_IEKF_Replacement.md); it is not aliased to the new measurement')
+     if a.rendered_mask_measurement == 'on' and a.mask_image_noise_config is None:
+         ap.error('--rendered-mask-measurement on needs a DECLARED mask variance: --mask-image-noise-config (no default weight is chosen for you)')
++    if a.free_solver == 'temporal-ieks':
++        if a.stop_after != 'free': ap.error('--free-solver temporal-ieks: downstream stages have no adapter yet (spec P1.9): use --stop-after free')
++        if a.direction != 'forward': ap.error('--free-solver temporal-ieks runs F1 only until F1 is validated (spec 0.1): use --direction forward')
++        if a.velocity_prior_speed99 is not None: ap.error('--free-solver temporal-ieks uses no speed percentile (spec 0.4): remove --velocity-prior-speed99')
++        if a.rendered_mask_measurement not in (None, 'off'): ap.error('--free-solver temporal-ieks: the rendered pseudomask stays off (G6.5)')
++        if a.stage not in ('all', 'free') or a.resume_from is not None: ap.error('--free-solver temporal-ieks has no resume path')
+     if a.stage != 'all' and a.stage != 'free' and a.resume_from is None: ap.error('--stage after free needs --resume-from')
+     if a.stage not in ('all', 'debug') and INFERENCE.index(a.stage) > INFERENCE.index(a.stop_after): ap.error('--stage is after --stop-after')
+     return ap, a
+@@ -247,6 +260,15 @@ def run_scene(ap, a):
+         # ---- F1 / B1
+         from estimator.free_projective_run import run_free
+         for d in directions:
++            if a.free_solver == 'temporal-ieks':
++                from estimator.free_projective_run import run_free_temporal
++                t0 = time.time()
++                tcfg = json.loads(a.temporal_config.read_text())
++                stages[f'free_{d}_temporal'] = run_free_temporal(data, config, policy, tcfg, d, root/f'free_{d}_temporal', a.device, sub, a.debug_point_ids,
++                                                                 lambda m: print(m, flush=True), {'git_commit': manifest['git_commit'], 'source_hashes': manifest['source_hashes'],
++                                                                                                  'temporal_config_file': str(a.temporal_config.resolve())})
++                timings[f'free_{d}_temporal'] = time.time()-t0
++                continue
+             if want('free'):
+                 t0 = time.time()
+                 stages[f'free_{d}'] = run_free(data, config, policy, d, root/f'free_{d}', a.device, sub, a.covariance_precision, max_iters,
+@@ -309,6 +331,10 @@ def run_scene(ap, a):
+         result = {'status': 'COMPLETE' if complete else 'INCOMPLETE_OR_UNRESOLVED', 'stages': stages, 'stage_seconds': timings,
+                   'runtime_seconds': time.time()-t_start}
+         json_write(root/'result.json', serial(result))
++        if a.free_solver == 'temporal-ieks' and (a.debug != 'none' or not a.no_evaluate or not a.no_qa):
++            result['debug_evaluation_qa'] = {'status': 'SKIPPED', 'reason': 'temporal-ieks: debug pages / evaluate_projective_gt read free_forward/; use '
++                                                                             'tools/evaluate_temporal_phase1.py (spec: avoid coupling the solver to debug pages)'}
++            a.debug, a.no_evaluate, a.no_qa = 'none', True, True
+         if a.debug != 'none':
+             t0 = time.time()
+             from debug.projective_debug import write_debug

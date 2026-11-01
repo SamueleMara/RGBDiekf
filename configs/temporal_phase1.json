@@ -1,0 +1,25 @@
+{
+  "assumption_class": "declared-implementation-decision-policy for the opt-in Phase-1 temporal solver (--free-solver temporal-ieks); not tuned on any result or ground truth",
+  "spec": "RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md",
+  "max_inner_iterations": 10,
+  "max_outer_iterations": 20,
+  "iteration_caps_note": "diagnostic caps (spec P1.4.6): stopping is the Newton decrement delta^T A delta < iekf_step_tolerance (configs/projective_rgbd.json) under the current support, or no objective-improving step; reaching a cap is reported as ITERATION_CAP, never as convergence",
+  "line_search_halvings": 12,
+  "objective_decrease_precision_factor": 64,
+  "line_search_note": "candidate accepted only if J(candidate) < J(current) - 64 eps (|J(current)| + 1) on the same frozen support (floating-point precision; no chi-square acceptance, no Armijo constant); 2^-12 is the smallest trial fraction: a point with no improving step down to 2^-12 of its Gauss-Newton step is reported stalled / failed (30 halvings cost up to 31 full image passes per outer iteration: 6.6 s per forward frame at 10k points)",
+  "knife_edge_shift_m": 1e-09,
+  "cell_border_px": 1e-09,
+  "knife_edge_note": "a used row within 1e-9 px of an integer pixel coordinate is on a bilinear cell border; when no step decreases J there, the direction is recomputed from the linearization 1e-9 m along the step (the other side's interpolant) and the true objective is tested again",
+  "depth_interpolation": "inverse",
+  "depth_interpolation_note": "'inverse' = bilinear inverse depth: exact on a single planar surface where the metric bilinear depth is biased behind it (oracle tests/test_temporal_phase1_measurement.py G4.2, passed); 'metric' = the original sampler (same 2x2 support, same-surface rule); the old directional filter is unaffected",
+  "latent_colour": true,
+  "latent_colour_note": "the canonical colour a_i is a latent variable shared by every RGB row of the point, prior N(source pixel colour, measured RGB sensor variance), eliminated exactly by a Schur complement in the IEKS (oracle G4.4 passed: naive NEES 15.4, latent 3.0); the forward warm start is conditional on the source colour. Stage-A analytic tests set it false (anchor colour known, spec P1.1.5)",
+  "gate_covariance": "visibility (self-occlusion test) and the production row gate use the forward warm start's prior-predictive position covariance P-_k of every frame, in the warm start AND fixed for every outer IEKS iteration; using the previous IEKS posterior instead made the support oscillate with period two (storage, 10k points: J 1e13 <-> 2e14, rows 1.36M <-> 1.40M)",
+  "save_lag_one": false,
+  "save_lag_one_note": "Cov(s_{k+1}, s_k | T) is computed (selected inverse) but written only when requested: parameter identification is disabled and the array is 6x6 per point-frame",
+  "residual_audit_points": 20000,
+  "identification": {
+    "enabled": false,
+    "note": "estimator/temporal_model_identification.py (P1.7, Gate 5): not run in the pipeline until Gates 1-4 pass on the scenes"
+  }
+}

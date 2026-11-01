@@ -1,0 +1,841 @@
+{
+  "analysis_date": "2026-11-01",
+  "timezone": "Europe/Zurich",
+  "batch": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k",
+  "acceptance": "FAILED_NO_FILTERED_MOTION",
+  "recorded_child_exits": [
+    {
+      "scene": "USB_100109",
+      "mode": "full",
+      "returncode": 1
+    },
+    {
+      "scene": "blade_103706",
+      "mode": "full",
+      "returncode": 1
+    },
+    {
+      "scene": "foldchair_102255",
+      "mode": "full",
+      "returncode": 1
+    },
+    {
+      "scene": "fridge_10905",
+      "mode": "full",
+      "returncode": 1
+    },
+    {
+      "scene": "laptop_10211",
+      "mode": "full",
+      "returncode": 1
+    },
+    {
+      "scene": "oven_101917",
+      "mode": "full",
+      "returncode": 1
+    },
+    {
+      "scene": "scissor_11100",
+      "mode": "full",
+      "returncode": 1
+    },
+    {
+      "scene": "stapler_103111",
+      "mode": "full",
+      "returncode": 1
+    }
+  ],
+  "batch_summary_exists": false,
+  "timeout_runs": 7,
+  "total_recorded_filter_seconds": 7833.696664451942,
+  "allocated_bytes_all_run_directories": 6309281792,
+  "SSD_available_bytes_at_analysis": 14798553088,
+  "runs": [
+    {
+      "scene": "USB_100109",
+      "mode": "full",
+      "root": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/USB_100109_full",
+      "status": {
+        "status": "FULL_RUNTIME_LIMIT",
+        "reason": "FULL_RUNTIME_LIMIT: explicit diagnostic runtime budget exhausted; variables=376538, factors=465175; no component skipped or truncated",
+        "completed_frames": 1,
+        "point_count": 95967,
+        "elapsed_filter_seconds": 902.7147150959936,
+        "cuda_peak_bytes": 2643442688,
+        "cpu_max_rss_bytes": 6190481408,
+        "graph_variables": 376538,
+        "graph_factors": 465175,
+        "covariance_policy": "no graph truncation; incomplete frames not valid estimates"
+      },
+      "log": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/USB_100109_full.log",
+      "log_sha256": "35d9f564062d9038913b4840fba5ae45b1d1450bef116655f48b50971807863c",
+      "ENOSPC_in_log": false,
+      "filtered_frame_records": 0,
+      "backward_pass_exists": false,
+      "downstream_directories": [],
+      "latest_graph_traceback_locations": [
+        [
+          "estimator/temporal_run.py",
+          "271",
+          "run_temporal_free"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "262",
+          "correlated_warp_nis"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "289",
+          "linearize"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "69",
+          "check_budget"
+        ]
+      ],
+      "logical_bytes": 605769726,
+      "allocated_bytes": 635437056,
+      "trajectory_file": {
+        "shape": [
+          60,
+          95967,
+          3
+        ],
+        "actual_bytes": 138192608,
+        "required_bytes": 138192608,
+        "truncated": false,
+        "anchor_nonzero_scalars": 287901,
+        "ALL_nonanchor_nonzero_scalars": 0
+      },
+      "accepted_updates_saved": 0,
+      "original_ID_order_verified": true,
+      "timing": {
+        "frames": 60,
+        "first_last_s": [
+          0.0,
+          1.0
+        ],
+        "interval_min_max_s": [
+          0.016949152542372836,
+          0.016949152542372947
+        ],
+        "cameras": 8
+      },
+      "component_lower_bound": {
+        "points": 95967,
+        "components": 41234,
+        "largest_point_components": [
+          69,
+          69,
+          64,
+          44,
+          44,
+          42,
+          41,
+          41,
+          40,
+          40,
+          40,
+          40,
+          39,
+          39,
+          37,
+          37,
+          36,
+          35,
+          35,
+          34
+        ],
+        "minimum_largest_component_workspace_bytes": 10969344,
+        "workspace_budget_bytes": 536870912,
+        "bound": "6 current scalars per connected point; excludes additional states/latents"
+      },
+      "sensor_depth_constant_std_m": 6.882551541204759e-08,
+      "saved_panel_frames": [
+        0
+      ]
+    },
+    {
+      "scene": "blade_103706",
+      "mode": "full",
+      "root": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/blade_103706_full",
+      "status": {
+        "status": "FULL_RUNTIME_LIMIT",
+        "reason": "FULL_RUNTIME_LIMIT: explicit diagnostic runtime budget exhausted; variables=133190, factors=163273; no component skipped or truncated",
+        "completed_frames": 1,
+        "point_count": 34369,
+        "elapsed_filter_seconds": 2414.1557704779843,
+        "cuda_peak_bytes": 1788257792,
+        "cpu_max_rss_bytes": 3969511424,
+        "graph_variables": 133190,
+        "graph_factors": 163273,
+        "covariance_policy": "no graph truncation; incomplete frames not valid estimates"
+      },
+      "log": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/blade_103706_full.log",
+      "log_sha256": "8b4b9febe9d936f9f375567907715b95f806707c5bcaa1a0eacd70843566948a",
+      "ENOSPC_in_log": false,
+      "filtered_frame_records": 0,
+      "backward_pass_exists": false,
+      "downstream_directories": [],
+      "latest_graph_traceback_locations": [
+        [
+          "estimator/temporal_run.py",
+          "297",
+          "run_temporal_free"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "399",
+          "solve_sparse_map"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "69",
+          "check_budget"
+        ]
+      ],
+      "logical_bytes": 218845722,
+      "allocated_bytes": 247463936,
+      "trajectory_file": {
+        "shape": [
+          60,
+          34369,
+          3
+        ],
+        "actual_bytes": 49491488,
+        "required_bytes": 49491488,
+        "truncated": false,
+        "anchor_nonzero_scalars": 103107,
+        "ALL_nonanchor_nonzero_scalars": 0
+      },
+      "accepted_updates_saved": 0,
+      "original_ID_order_verified": true,
+      "timing": {
+        "frames": 60,
+        "first_last_s": [
+          0.0,
+          1.0
+        ],
+        "interval_min_max_s": [
+          0.016949152542372836,
+          0.016949152542372947
+        ],
+        "cameras": 8
+      },
+      "component_lower_bound": {
+        "points": 34369,
+        "components": 15956,
+        "largest_point_components": [
+          56,
+          50,
+          49,
+          48,
+          43,
+          43,
+          41,
+          40,
+          39,
+          39,
+          35,
+          35,
+          34,
+          34,
+          33,
+          33,
+          31,
+          27,
+          27,
+          27
+        ],
+        "minimum_largest_component_workspace_bytes": 7225344,
+        "workspace_budget_bytes": 536870912,
+        "bound": "6 current scalars per connected point; excludes additional states/latents"
+      },
+      "sensor_depth_constant_std_m": 6.882551541204759e-08,
+      "saved_panel_frames": [
+        0
+      ]
+    },
+    {
+      "scene": "foldchair_102255",
+      "mode": "full",
+      "root": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/foldchair_102255_full",
+      "status": {
+        "status": "FULL_RUNTIME_LIMIT",
+        "reason": "FULL_RUNTIME_LIMIT: explicit diagnostic runtime budget exhausted; variables=403365, factors=494850; no component skipped or truncated",
+        "completed_frames": 1,
+        "point_count": 103960,
+        "elapsed_filter_seconds": 902.9701686379849,
+        "cuda_peak_bytes": 2519717888,
+        "cpu_max_rss_bytes": 6027149312,
+        "graph_variables": 403365,
+        "graph_factors": 494850,
+        "covariance_policy": "no graph truncation; incomplete frames not valid estimates"
+      },
+      "log": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/foldchair_102255_full.log",
+      "log_sha256": "6c8830ffb000a15a0656660b3add766c5070579212d97e162b40e0ba42f9f5e7",
+      "ENOSPC_in_log": false,
+      "filtered_frame_records": 0,
+      "backward_pass_exists": false,
+      "downstream_directories": [],
+      "latest_graph_traceback_locations": [
+        [
+          "estimator/temporal_run.py",
+          "271",
+          "run_temporal_free"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "262",
+          "correlated_warp_nis"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "289",
+          "linearize"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "69",
+          "check_budget"
+        ]
+      ],
+      "logical_bytes": 657161659,
+      "allocated_bytes": 685768704,
+      "trajectory_file": {
+        "shape": [
+          60,
+          103960,
+          3
+        ],
+        "actual_bytes": 149702528,
+        "required_bytes": 149702528,
+        "truncated": false,
+        "anchor_nonzero_scalars": 311880,
+        "ALL_nonanchor_nonzero_scalars": 0
+      },
+      "accepted_updates_saved": 0,
+      "original_ID_order_verified": true,
+      "timing": {
+        "frames": 60,
+        "first_last_s": [
+          0.0,
+          1.0
+        ],
+        "interval_min_max_s": [
+          0.016949152542372836,
+          0.016949152542372947
+        ],
+        "cameras": 8
+      },
+      "component_lower_bound": {
+        "points": 103960,
+        "components": 49489,
+        "largest_point_components": [
+          89,
+          79,
+          65,
+          65,
+          65,
+          55,
+          52,
+          50,
+          50,
+          46,
+          42,
+          40,
+          40,
+          40,
+          38,
+          36,
+          35,
+          35,
+          35,
+          34
+        ],
+        "minimum_largest_component_workspace_bytes": 18249984,
+        "workspace_budget_bytes": 536870912,
+        "bound": "6 current scalars per connected point; excludes additional states/latents"
+      },
+      "sensor_depth_constant_std_m": 6.882551541204759e-08,
+      "saved_panel_frames": [
+        0
+      ]
+    },
+    {
+      "scene": "fridge_10905",
+      "mode": "full",
+      "root": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/fridge_10905_full",
+      "status": {
+        "status": "FULL_RUNTIME_LIMIT",
+        "reason": "FULL_RUNTIME_LIMIT: explicit diagnostic runtime budget exhausted; variables=626688, factors=691659; no component skipped or truncated",
+        "completed_frames": 1,
+        "point_count": 187239,
+        "elapsed_filter_seconds": 903.5044734619732,
+        "cuda_peak_bytes": 2607011840,
+        "cpu_max_rss_bytes": 5956366336,
+        "graph_variables": 626688,
+        "graph_factors": 691659,
+        "covariance_policy": "no graph truncation; incomplete frames not valid estimates"
+      },
+      "log": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/fridge_10905_full.log",
+      "log_sha256": "76b0be9204e7f20440053f1d0a5933afc6593a9d72cb06f14aba444c8e2cc91f",
+      "ENOSPC_in_log": false,
+      "filtered_frame_records": 0,
+      "backward_pass_exists": false,
+      "downstream_directories": [],
+      "latest_graph_traceback_locations": [
+        [
+          "estimator/temporal_run.py",
+          "79",
+          "add_full_rows"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "42",
+          "add_raw_sensor_factors_once"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "155",
+          "add_variable"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "69",
+          "check_budget"
+        ]
+      ],
+      "logical_bytes": 1178148527,
+      "allocated_bytes": 1209008128,
+      "trajectory_file": {
+        "shape": [
+          60,
+          187239,
+          3
+        ],
+        "actual_bytes": 269624288,
+        "required_bytes": 269624288,
+        "truncated": false,
+        "anchor_nonzero_scalars": 561717,
+        "ALL_nonanchor_nonzero_scalars": 0
+      },
+      "accepted_updates_saved": 0,
+      "original_ID_order_verified": true,
+      "timing": {
+        "frames": 60,
+        "first_last_s": [
+          0.0,
+          1.0
+        ],
+        "interval_min_max_s": [
+          0.016949152542372836,
+          0.016949152542372947
+        ],
+        "cameras": 8
+      },
+      "component_lower_bound": {
+        "points": 187239,
+        "components": 87789,
+        "largest_point_components": [
+          108,
+          108,
+          76,
+          76,
+          69,
+          63,
+          58,
+          56,
+          54,
+          52,
+          48,
+          47,
+          44,
+          44,
+          44,
+          44,
+          44,
+          44,
+          42,
+          41
+        ],
+        "minimum_largest_component_workspace_bytes": 26873856,
+        "workspace_budget_bytes": 536870912,
+        "bound": "6 current scalars per connected point; excludes additional states/latents"
+      },
+      "sensor_depth_constant_std_m": 6.882551541204759e-08,
+      "saved_panel_frames": [
+        0
+      ]
+    },
+    {
+      "scene": "laptop_10211",
+      "mode": "full",
+      "root": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/laptop_10211_full",
+      "status": {
+        "status": "FULL_RUNTIME_LIMIT",
+        "reason": "FULL_RUNTIME_LIMIT: explicit diagnostic runtime budget exhausted; variables=535296, factors=632673; no component skipped or truncated",
+        "completed_frames": 1,
+        "point_count": 145973,
+        "elapsed_filter_seconds": 903.7115043049853,
+        "cuda_peak_bytes": 2354136064,
+        "cpu_max_rss_bytes": 5584891904,
+        "graph_variables": 535296,
+        "graph_factors": 632673,
+        "covariance_policy": "no graph truncation; incomplete frames not valid estimates"
+      },
+      "log": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/laptop_10211_full.log",
+      "log_sha256": "106d1f7e11d31c3869edae408ef1741c2065a0e75c55eb780f89f376d5eaa786",
+      "ENOSPC_in_log": false,
+      "filtered_frame_records": 0,
+      "backward_pass_exists": false,
+      "downstream_directories": [],
+      "latest_graph_traceback_locations": [
+        [
+          "estimator/temporal_run.py",
+          "79",
+          "add_full_rows"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "42",
+          "add_raw_sensor_factors_once"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "155",
+          "add_variable"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "69",
+          "check_budget"
+        ]
+      ],
+      "logical_bytes": 919356499,
+      "allocated_bytes": 955252736,
+      "trajectory_file": {
+        "shape": [
+          60,
+          145973,
+          3
+        ],
+        "actual_bytes": 210201248,
+        "required_bytes": 210201248,
+        "truncated": false,
+        "anchor_nonzero_scalars": 437919,
+        "ALL_nonanchor_nonzero_scalars": 0
+      },
+      "accepted_updates_saved": 0,
+      "original_ID_order_verified": true,
+      "timing": {
+        "frames": 60,
+        "first_last_s": [
+          0.0,
+          1.0
+        ],
+        "interval_min_max_s": [
+          0.016949152542372836,
+          0.016949152542372947
+        ],
+        "cameras": 8
+      },
+      "component_lower_bound": {
+        "points": 145973,
+        "components": 52540,
+        "largest_point_components": [
+          101,
+          81,
+          78,
+          77,
+          68,
+          56,
+          50,
+          49,
+          48,
+          47,
+          47,
+          46,
+          46,
+          46,
+          45,
+          44,
+          43,
+          43,
+          43,
+          42
+        ],
+        "minimum_largest_component_workspace_bytes": 23503104,
+        "workspace_budget_bytes": 536870912,
+        "bound": "6 current scalars per connected point; excludes additional states/latents"
+      },
+      "sensor_depth_constant_std_m": 6.882551541204759e-08,
+      "saved_panel_frames": [
+        0
+      ]
+    },
+    {
+      "scene": "oven_101917",
+      "mode": "full",
+      "root": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/oven_101917_full",
+      "status": {
+        "status": "FULL_RUNTIME_LIMIT",
+        "reason": "FULL_RUNTIME_LIMIT: explicit diagnostic runtime budget exhausted; variables=969472, factors=969472; no component skipped or truncated",
+        "completed_frames": 1,
+        "point_count": 343176,
+        "elapsed_filter_seconds": 904.2667247100035,
+        "cuda_peak_bytes": 4198548480,
+        "cpu_max_rss_bytes": 8070987776,
+        "graph_variables": 969472,
+        "graph_factors": 969472,
+        "covariance_policy": "no graph truncation; incomplete frames not valid estimates"
+      },
+      "log": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/oven_101917_full.log",
+      "log_sha256": "204bc255666d9b47175c005c8560671f9e8c847880b196353540ee5fdff722c6",
+      "ENOSPC_in_log": false,
+      "filtered_frame_records": 0,
+      "backward_pass_exists": false,
+      "downstream_directories": [],
+      "latest_graph_traceback_locations": [
+        [
+          "estimator/temporal_run.py",
+          "266",
+          "run_temporal_free"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "203",
+          "add_process_factors"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "155",
+          "add_variable"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "69",
+          "check_budget"
+        ]
+      ],
+      "logical_bytes": 2152520110,
+      "allocated_bytes": 2184183808,
+      "trajectory_file": {
+        "shape": [
+          60,
+          343176,
+          3
+        ],
+        "actual_bytes": 494173568,
+        "required_bytes": 494173568,
+        "truncated": false,
+        "anchor_nonzero_scalars": 1029528,
+        "ALL_nonanchor_nonzero_scalars": 0
+      },
+      "accepted_updates_saved": 0,
+      "original_ID_order_verified": true,
+      "timing": {
+        "frames": 60,
+        "first_last_s": [
+          0.0,
+          1.0
+        ],
+        "interval_min_max_s": [
+          0.016949152542372836,
+          0.016949152542372947
+        ],
+        "cameras": 8
+      },
+      "component_lower_bound": {
+        "points": 343176,
+        "components": 149573,
+        "largest_point_components": [
+          57,
+          57,
+          54,
+          53,
+          52,
+          52,
+          51,
+          51,
+          44,
+          44,
+          42,
+          40,
+          39,
+          39,
+          39,
+          39,
+          37,
+          37,
+          34,
+          33
+        ],
+        "minimum_largest_component_workspace_bytes": 7485696,
+        "workspace_budget_bytes": 536870912,
+        "bound": "6 current scalars per connected point; excludes additional states/latents"
+      },
+      "sensor_depth_constant_std_m": 6.882551541204759e-08,
+      "saved_panel_frames": [
+        0
+      ]
+    },
+    {
+      "scene": "scissor_11100",
+      "mode": "full",
+      "root": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/scissor_11100_full",
+      "status": {
+        "status": "FULL_RUNTIME_LIMIT",
+        "reason": "FULL_RUNTIME_LIMIT: explicit diagnostic runtime budget exhausted; variables=183287, factors=225475; no component skipped or truncated",
+        "completed_frames": 1,
+        "point_count": 47033,
+        "elapsed_filter_seconds": 902.3733077630168,
+        "cuda_peak_bytes": 2354258944,
+        "cpu_max_rss_bytes": 4815757312,
+        "graph_variables": 183287,
+        "graph_factors": 225475,
+        "covariance_policy": "no graph truncation; incomplete frames not valid estimates"
+      },
+      "log": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/scissor_11100_full.log",
+      "log_sha256": "8101102215ca320df65d6ab0ce75632c789f01a86897912fc3a091eec315f503",
+      "ENOSPC_in_log": false,
+      "filtered_frame_records": 0,
+      "backward_pass_exists": false,
+      "downstream_directories": [],
+      "latest_graph_traceback_locations": [
+        [
+          "estimator/temporal_run.py",
+          "297",
+          "run_temporal_free"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "371",
+          "solve_sparse_map"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "289",
+          "linearize"
+        ],
+        [
+          "estimator/temporal_full_graph.py",
+          "69",
+          "check_budget"
+        ]
+      ],
+      "logical_bytes": 299077793,
+      "allocated_bytes": 331350016,
+      "trajectory_file": {
+        "shape": [
+          60,
+          47033,
+          3
+        ],
+        "actual_bytes": 67727648,
+        "required_bytes": 67727648,
+        "truncated": false,
+        "anchor_nonzero_scalars": 141099,
+        "ALL_nonanchor_nonzero_scalars": 0
+      },
+      "accepted_updates_saved": 0,
+      "original_ID_order_verified": true,
+      "timing": {
+        "frames": 60,
+        "first_last_s": [
+          0.0,
+          1.0
+        ],
+        "interval_min_max_s": [
+          0.016949152542372836,
+          0.016949152542372947
+        ],
+        "cameras": 8
+      },
+      "component_lower_bound": {
+        "points": 47033,
+        "components": 17859,
+        "largest_point_components": [
+          98,
+          83,
+          82,
+          75,
+          74,
+          74,
+          71,
+          71,
+          69,
+          69,
+          65,
+          65,
+          64,
+          64,
+          62,
+          59,
+          56,
+          54,
+          54,
+          54
+        ],
+        "minimum_largest_component_workspace_bytes": 22127616,
+        "workspace_budget_bytes": 536870912,
+        "bound": "6 current scalars per connected point; excludes additional states/latents"
+      },
+      "sensor_depth_constant_std_m": 2.4125655061237028e-05,
+      "saved_panel_frames": [
+        0
+      ]
+    },
+    {
+      "scene": "stapler_103111",
+      "mode": "full",
+      "root": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/stapler_103111_full",
+      "status": {
+        "status": "NO_STATUS_WRITTEN"
+      },
+      "log": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261031_185807_opzr4l9k/stapler_103111_full.log",
+      "log_sha256": "6637acf095e4c2c5baa8e1fcf0c985038a9e822c7f26966adeb7d3f52fe5223a",
+      "ENOSPC_in_log": true,
+      "filtered_frame_records": 0,
+      "backward_pass_exists": false,
+      "downstream_directories": [],
+      "latest_graph_traceback_locations": [
+        [
+          "estimator/temporal_run.py",
+          "149",
+          "run_temporal_free"
+        ],
+        [
+          "estimator/temporal_run.py",
+          "149",
+          "<dictcomp>"
+        ]
+      ],
+      "logical_bytes": 57451592,
+      "allocated_bytes": 60817408,
+      "trajectory_file": {
+        "shape": [
+          60,
+          137186,
+          3
+        ],
+        "actual_bytes": 45088768,
+        "required_bytes": 197547968,
+        "truncated": true
+      },
+      "sensor_depth_constant_std_m": 1.593086044188601e-06,
+      "saved_panel_frames": []
+    }
+  ],
+  "inference_launched_by_analysis": false,
+  "inference_or_data_modified": false,
+  "limits": [
+    "No accepted filtering frame exists: accuracy, convergence and smoothed covariance cannot be evaluated from this batch",
+    "Original source ordering verified for seven nontruncated anchor catalogues; Stapler has only partial output",
+    "Failure stage inferred from final recorded traceback, not an isolated CPU/GPU profile",
+    "ENOSPC is established at crash time; current free space does not reconstruct disk usage history",
+    "No claim that this batch accounts for all SSD usage"
+  ]
+}

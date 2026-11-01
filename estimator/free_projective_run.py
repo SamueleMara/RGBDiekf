@@ -344,3 +344,9 @@ def _write_timeline(path, rows):
     if not rows: return
     with open(path, 'w', newline='') as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+
+
+def run_free_temporal(dataset, config, policy, tcfg, direction, root, device, sub, debug_point_ids=None, log=print, provenance=None):
+    """Opt-in Phase-1 temporal solver (train.py --free-solver temporal-ieks): free_forward_temporal/. run_free above is unchanged."""
+    from estimator.temporal_phase1 import run_temporal_stage
+    return run_temporal_stage(dataset, config, policy, tcfg, direction, root, device, sub, debug_point_ids, log, provenance)

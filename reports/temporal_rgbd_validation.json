@@ -1,0 +1,4225 @@
+{
+  "git_commit": "e1e663b9618d3c833e63158e65dbbb1edd732003",
+  "dirty_status": [
+    " M README.md",
+    " M debug/assets/projective_common.js",
+    " M debug/projective_debug.py",
+    " M docs/PIPELINE_CODE_MAP.md",
+    " M estimator/free_projective_run.py",
+    " M estimator/projective_sensor.py",
+    " M estimator/projective_terms.py",
+    " M tools/root_cause_oracle.py",
+    " M tools/root_cause_trace.py",
+    " M tools/run_status.py",
+    " M train.py",
+    "?? RGBDiekf_Codex_Depth_Sorted_Temporal_RGBD_Full_FixedLag_IEKF.md",
+    "?? RGBDiekf_Codex_Fifth_Pass_Source_Responsibility_Causal_Experiments.md",
+    "?? RGBDiekf_Codex_Final_Joint_Responsibility_8444_45588_Test.md",
+    "?? RGBDiekf_Codex_Static_Point_Equilibrium_Root_Cause_Audit.md",
+    "?? RGBDiekf_Definitive_F1_Static_Drift_Causal_Forensics_Codex.md",
+    "?? RGBDiekf_F1_Fourth_Pass_Sequential_Replay_and_Diagnostic_Bugfix_Codex.md",
+    "?? RGBDiekf_F1_Temporal_Reference_Depth_Surface_Reacquisition_Debug_Codex.md",
+    "?? RGBDiekf_Inner_F1_Second_Pass_Causal_Debug_Codex.md",
+    "?? RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md",
+    "?? RGBDiekf_Static_Drift_INNER_IEKF_Only_Codex_2026-10-30.md",
+    "?? configs/temporal_phase1.json",
+    "?? configs/temporal_warp_noise.schema.json",
+    "?? debug/temporal_debug.py",
+    "?? docs/TEMPORAL_RGBD_IEKF_MATHEMATICAL_CONTRACT.md",
+    "?? estimator/block_tridiagonal.py",
+    "?? estimator/ieks_point_trajectory.py",
+    "?? estimator/rts_point_smoother.py",
+    "?? estimator/temporal_full_graph.py",
+    "?? estimator/temporal_history.py",
+    "?? estimator/temporal_model_identification.py",
+    "?? estimator/temporal_noise.py",
+    "?? estimator/temporal_observability.py",
+    "?? estimator/temporal_phase1.py",
+    "?? estimator/temporal_reference.py",
+    "?? estimator/temporal_rgbd_terms.py",
+    "?? estimator/temporal_run.py",
+    "?? estimator/temporal_simplified_iekf.py",
+    "?? estimator/temporal_zbuffer.py",
+    "?? reports/covariance_2x2_experiment.md",
+    "?? reports/f1_static_drift_forensics_20261030.md",
+    "?? reports/static_point_equilibrium/",
+    "?? reports/static_point_equilibrium_root_cause_CURRENT.md",
+    "?? reports/temporal_rgbd_baseline/",
+    "?? reports/temporal_rgbd_critical_scenes.md",
+    "?? reports/temporal_rgbd_implementation.md",
+    "?? reports/temporal_rgbd_validation.json",
+    "?? tests/temporal_fixtures.py",
+    "?? tests/temporal_test_results.json",
+    "?? tests/test_f1_definitive_drift_forensics.py",
+    "?? tests/test_f1_diagnostic_units.py",
+    "?? tests/test_f1_joint_responsibility_audit.py",
+    "?? tests/test_f1_second_pass_oracles.py",
+    "?? tests/test_f1_sequential_causal_replay.py",
+    "?? tests/test_f1_source_responsibility.py",
+    "?? tests/test_f1_temporal_reference_diagnostics.py",
+    "?? tests/test_forensic_f1_oracles.py",
+    "?? tests/test_static_equilibrium_audit.py",
+    "?? tests/test_temporal_full_graph.py",
+    "?? tests/test_temporal_motion.py",
+    "?? tests/test_temporal_phase1_identification.py",
+    "?? tests/test_temporal_phase1_masks.py",
+    "?? tests/test_temporal_phase1_math.py",
+    "?? tests/test_temporal_phase1_measurement.py",
+    "?? tests/test_temporal_phase1_motion.py",
+    "?? tests/test_temporal_phase1_pipeline.py",
+    "?? tests/test_temporal_phase1_static.py",
+    "?? tests/test_temporal_rgbd_pipeline.py",
+    "?? tests/test_temporal_warp.py",
+    "?? tools/README_f1_definitive_drift_forensics.md",
+    "?? tools/README_f1_joint_responsibility.md",
+    "?? tools/README_f1_source_responsibility.md",
+    "?? tools/attribute_static_drift_channels.py",
+    "?? tools/audit_static_equilibrium.py",
+    "?? tools/audit_temporal_inputs.py",
+    "?? tools/compare_temporal_modes.py",
+    "?? tools/evaluate_temporal_phase1.py",
+    "?? tools/evaluate_temporal_rgbd.py",
+    "?? tools/f1_definitive_drift_forensics.py",
+    "?? tools/f1_definitive_evidence.py",
+    "?? tools/f1_definitive_math.py",
+    "?? tools/f1_definitive_point.py",
+    "?? tools/f1_diagnostic_units.py",
+    "?? tools/f1_joint_responsibility_audit.py",
+    "?? tools/f1_second_pass.py",
+    "?? tools/f1_sequential_causal_replay.py",
+    "?? tools/f1_source_responsibility.py",
+    "?? tools/f1_source_responsibility_audit.py",
+    "?? tools/f1_source_responsibility_evaluation.py",
+    "?? tools/f1_source_responsibility_population.py",
+    "?? tools/f1_temporal_reference_diagnostics.py",
+    "?? tools/forensic_f1_drift.py",
+    "?? tools/report_f1_definitive_drift.py",
+    "?? tools/report_f1_joint_responsibility.py",
+    "?? tools/report_f1_source_responsibility.py",
+    "?? tools/report_temporal_rgbd_validation.py",
+    "?? tools/run_temporal_rgbd_critical.py",
+    "?? tools/run_temporal_rgbd_critical.sh",
+    "?? tools/temporal_phase1_gate_evidence.py",
+    "?? tools/test_temporal_rgbd.py",
+    "?? tools/verify_temporal_legacy_parity.py"
+  ],
+  "sources": {
+    "train.py": {
+      "sha256": "7f7dc5b5fa0f3b9e949b25e57376e5916594e71b7a59d718100f56fa60060a5a",
+      "lines": 472,
+      "top_level_symbols": {
+        "is_scene": [
+          57,
+          58
+        ],
+        "parse": [
+          61,
+          165
+        ],
+        "main": [
+          168,
+          173
+        ],
+        "run_root": [
+          176,
+          206
+        ],
+        "source_hashes": [
+          209,
+          210
+        ],
+        "git_commit": [
+          213,
+          215
+        ],
+        "run_scene": [
+          218,
+          405
+        ],
+        "progress_line": [
+          408,
+          416
+        ],
+        "tool": [
+          419,
+          425
+        ],
+        "write_performance": [
+          428,
+          441
+        ],
+        "check_resume": [
+          444,
+          468
+        ]
+      }
+    },
+    "debug/projective_debug.py": {
+      "sha256": "f2471a0ac69a779b7e1750e29c1361f623c983805caeb47846d60793b188bb1d",
+      "lines": 358,
+      "top_level_symbols": {
+        "b64": [
+          27,
+          28
+        ],
+        "write_js": [
+          31,
+          33
+        ],
+        "display_ids": [
+          36,
+          38
+        ],
+        "fps": [
+          41,
+          48
+        ],
+        "tracked_points": [
+          51,
+          72
+        ],
+        "cameras_js": [
+          75,
+          76
+        ],
+        "source_images": [
+          79,
+          106
+        ],
+        "_turbo": [
+          109,
+          114
+        ],
+        "export_free": [
+          118,
+          204
+        ],
+        "export_coherence": [
+          207,
+          228
+        ],
+        "export_rigid": [
+          231,
+          272
+        ],
+        "export_joint": [
+          275,
+          297
+        ],
+        "export_numeric": [
+          300,
+          317
+        ],
+        "write_debug": [
+          320,
+          358
+        ]
+      }
+    },
+    "debug/assets/projective_common.js": {
+      "sha256": "06cfa27e076ca6d93376f90d260e4433ed6abfb5e7bfcbb0b169b8bf9ae05c6d",
+      "lines": 111,
+      "top_level_symbols": {}
+    },
+    "estimator/temporal_zbuffer.py": {
+      "sha256": "ce367a4ed46aa9e011a6cbf61b4808d7b9665f5b8fc222343905d01db430d9be",
+      "lines": 73,
+      "top_level_symbols": {
+        "OwnerMap": [
+          8,
+          16
+        ],
+        "first_hit_pixel_owner": [
+          19,
+          53
+        ],
+        "numpy_first_hit": [
+          56,
+          66
+        ],
+        "compare_owner_maps": [
+          69,
+          73
+        ]
+      }
+    },
+    "estimator/temporal_reference.py": {
+      "sha256": "add71cd5200fef41cbada2c8865c610cf9cd57d483e1b31c5c8af9fbfadfd5ec",
+      "lines": 28,
+      "top_level_symbols": {
+        "ReferenceTable": [
+          5,
+          28
+        ]
+      }
+    },
+    "estimator/temporal_rgbd_terms.py": {
+      "sha256": "7857ae5e44a75c128266657907506be4c3931e7cf6e8e0b27f660220d26ff72b",
+      "lines": 146,
+      "top_level_symbols": {
+        "bilinear": [
+          14,
+          22
+        ],
+        "temporal_prediction": [
+          25,
+          35
+        ],
+        "raw_values": [
+          38,
+          46
+        ],
+        "sensor_covariance": [
+          49,
+          55
+        ],
+        "validate_reference_patch": [
+          58,
+          82
+        ],
+        "TemporalRows": [
+          86,
+          107
+        ],
+        "build_temporal_rows": [
+          110,
+          146
+        ]
+      }
+    },
+    "estimator/temporal_noise.py": {
+      "sha256": "9ad9e4881f5ae2cd24fd900857cc8d63ab0290675ce5b1c69ecace662b77dc7d",
+      "lines": 32,
+      "top_level_symbols": {
+        "MissingTemporalWarpNoise": [
+          7,
+          8
+        ],
+        "load_warp_noise": [
+          11,
+          32
+        ]
+      }
+    },
+    "estimator/temporal_full_graph.py": {
+      "sha256": "d9adabbd389090663e0fef4529c952b9325cc4a0ac681d0e4d4404dde919da4d",
+      "lines": 417,
+      "top_level_symbols": {
+        "FullResourceLimit": [
+          12,
+          13
+        ],
+        "Factor": [
+          17,
+          24
+        ],
+        "UniquePixelRegistry": [
+          27,
+          44
+        ],
+        "TemporalWindowGraph": [
+          47,
+          417
+        ]
+      }
+    },
+    "estimator/temporal_simplified_iekf.py": {
+      "sha256": "2d9f574903b15b736638a87bb82eac400532cbb9c8fcbfb3f45c08919907f2a6",
+      "lines": 78,
+      "top_level_symbols": {
+        "row_signature": [
+          8,
+          10
+        ],
+        "same_domain": [
+          13,
+          14
+        ],
+        "foreground_violations": [
+          17,
+          20
+        ],
+        "information": [
+          23,
+          31
+        ],
+        "objective": [
+          34,
+          40
+        ],
+        "update_points_temporal_simplified": [
+          43,
+          78
+        ]
+      }
+    },
+    "estimator/temporal_run.py": {
+      "sha256": "dfa5c69a0bf16d7ea6d51d45d278608f835d46f47eae011b4cef3a519924e1f5",
+      "lines": 383,
+      "top_level_symbols": {
+        "append_csv": [
+          20,
+          25
+        ],
+        "full_component_preflight": [
+          28,
+          58
+        ],
+        "initialize_full": [
+          61,
+          67
+        ],
+        "add_full_rows": [
+          70,
+          78
+        ],
+        "refresh_full_reference_support": [
+          81,
+          98
+        ],
+        "run_temporal_free": [
+          101,
+          383
+        ]
+      }
+    },
+    "debug/temporal_debug.py": {
+      "sha256": "a9e02694b775b56defd2123d54f63551bd5abf95b8a5e33778185debf2427c19",
+      "lines": 109,
+      "top_level_symbols": {
+        "_color_depth": [
+          10,
+          15
+        ],
+        "temporal_frame_debug": [
+          18,
+          65
+        ],
+        "write_temporal_dashboard": [
+          68,
+          109
+        ]
+      }
+    },
+    "tests/test_temporal_warp.py": {
+      "sha256": "df56c146abcd5489fa6976cd3d1806d3af465a4cd11cbea413d2d8822547e00b",
+      "lines": 164,
+      "top_level_symbols": {
+        "rig": [
+          13,
+          16
+        ],
+        "frame": [
+          19,
+          25
+        ],
+        "TemporalWarpTests": [
+          28,
+          164
+        ]
+      }
+    },
+    "tests/test_temporal_full_graph.py": {
+      "sha256": "45881f2df374f035b5c0cec2ef9d41d257381ab9c8b06ad5ee3ba487e8b6502e",
+      "lines": 190,
+      "top_level_symbols": {
+        "shared_graph": [
+          8,
+          21
+        ],
+        "FullGraphTests": [
+          24,
+          190
+        ]
+      }
+    },
+    "tests/test_temporal_rgbd_pipeline.py": {
+      "sha256": "e0e664aff1d6d8443178f9ecf190d4ccd1ba31692d041bd381794b1b7b07ab1e",
+      "lines": 112,
+      "top_level_symbols": {
+        "TinyDataset": [
+          17,
+          24
+        ],
+        "PipelineTests": [
+          27,
+          112
+        ]
+      }
+    },
+    "tests/test_temporal_motion.py": {
+      "sha256": "a55d6ba95688b8a4b637be46b5f9b814e8e56c297dd02fcf4501825c0df27d37",
+      "lines": 59,
+      "top_level_symbols": {
+        "TemporalMotionTests": [
+          20,
+          59
+        ]
+      }
+    },
+    "tools/test_temporal_rgbd.py": {
+      "sha256": "46a264723987b1c3c25c49ea54a4f211679ffeacbdb35a65fe26ea77e3b1ead0",
+      "lines": 85,
+      "top_level_symbols": {
+        "RecordedResult": [
+          18,
+          28
+        ],
+        "witnesses": [
+          31,
+          63
+        ],
+        "main": [
+          66,
+          83
+        ]
+      }
+    },
+    "tools/verify_temporal_legacy_parity.py": {
+      "sha256": "1b6680f5a047db7ea297529adc3bb112900a874d7ae0a9e50f79c2ae03a0b4d4",
+      "lines": 57,
+      "top_level_symbols": {
+        "main": [
+          22,
+          55
+        ]
+      }
+    },
+    "tools/audit_temporal_inputs.py": {
+      "sha256": "a9d951d267d2e5f24ef3e5c1dc5591a1ce5b20344acff5aff0cc280f09e179ac",
+      "lines": 85,
+      "top_level_symbols": {
+        "main": [
+          29,
+          83
+        ]
+      }
+    },
+    "tools/run_temporal_rgbd_critical.py": {
+      "sha256": "1c4ef8130307299aa75ebc324cbb995cb1c8378ff99f53232b349c51ed7a6e1f",
+      "lines": 94,
+      "top_level_symbols": {
+        "discover": [
+          23,
+          29
+        ],
+        "main": [
+          32,
+          92
+        ]
+      }
+    },
+    "tools/evaluate_temporal_rgbd.py": {
+      "sha256": "9b3be687de27c35921f9e5d610c6058400ce3b7e05f4d4542a99de397b32c88f",
+      "lines": 62,
+      "top_level_symbols": {
+        "evaluate": [
+          14,
+          46
+        ],
+        "main": [
+          49,
+          60
+        ]
+      }
+    },
+    "tools/compare_temporal_modes.py": {
+      "sha256": "2a0b531c4da2d2cf5dfafa8f1a10fc9d0a2f03cfc4e32e3010aebcf2b8481495",
+      "lines": 31,
+      "top_level_symbols": {
+        "main": [
+          12,
+          29
+        ]
+      }
+    },
+    "tools/report_temporal_rgbd_validation.py": {
+      "sha256": "7b0e7c5d09e84172e0f7acafc2d0db2585ccd297ca42f8047b982bfbf812e1c1",
+      "lines": 214,
+      "top_level_symbols": {
+        "main": [
+          25,
+          212
+        ]
+      }
+    },
+    "tools/run_temporal_rgbd_critical.sh": {
+      "sha256": "7ff9b727b58830b120a32861b31d5d5cb3721ba0c286df029b38fe6be3588ae8",
+      "lines": 5,
+      "top_level_symbols": {}
+    },
+    "configs/temporal_warp_noise.schema.json": {
+      "sha256": "fd15bb2cd5755d3ab78f6646eb1e1ad3483abca4d8130a544fe6857c23762287",
+      "lines": 12,
+      "top_level_symbols": {}
+    },
+    "tools/f1_source_responsibility_audit.py": {
+      "sha256": "d2a33a8c34dffdf94e58cdb81eb0a8e925ef825c6ed3779f6a3947bd7e86ad84",
+      "lines": 273,
+      "top_level_symbols": {
+        "run_tests": [
+          33,
+          51
+        ],
+        "preselect": [
+          54,
+          84
+        ],
+        "audit_archived_update": [
+          87,
+          124
+        ],
+        "code_for_row": [
+          127,
+          131
+        ],
+        "record_frames": [
+          134,
+          169
+        ],
+        "analyze": [
+          172,
+          230
+        ],
+        "checkpoint": [
+          233,
+          236
+        ],
+        "main": [
+          239,
+          270
+        ]
+      }
+    },
+    "tools/f1_joint_responsibility_audit.py": {
+      "sha256": "5a9e2ed63b7b792496e964c0f61245d58401932f4addf10fb6c4386c10ee9cf5",
+      "lines": 556,
+      "top_level_symbols": {
+        "joint_predict": [
+          41,
+          44
+        ],
+        "mixture_moments": [
+          47,
+          51
+        ],
+        "toy_mixture": [
+          54,
+          63
+        ],
+        "frame1_prior": [
+          66,
+          69
+        ],
+        "footprint": [
+          72,
+          76
+        ],
+        "shared_sensor_covariance": [
+          79,
+          92
+        ],
+        "joint_information": [
+          95,
+          109
+        ],
+        "Environment": [
+          112,
+          155
+        ],
+        "baseline": [
+          158,
+          182
+        ],
+        "observation_universe": [
+          185,
+          193
+        ],
+        "PairProblem": [
+          196,
+          256
+        ],
+        "references_for_untraced": [
+          259,
+          265
+        ],
+        "archive_completeness": [
+          268,
+          289
+        ],
+        "prepare": [
+          292,
+          346
+        ],
+        "verify": [
+          349,
+          353
+        ],
+        "run_tests": [
+          356,
+          374
+        ],
+        "fixed_pixel_compatibility": [
+          377,
+          386
+        ],
+        "enumerate_assignments": [
+          389,
+          410
+        ],
+        "heldout_controls": [
+          413,
+          434
+        ],
+        "analyze": [
+          437,
+          542
+        ],
+        "main": [
+          545,
+          553
+        ]
+      }
+    },
+    "tools/f1_definitive_drift_forensics.py": {
+      "sha256": "42e0ef3b33d5e948cf0aece1ba0f7cf98758dd47e4eed237b06205940244d54e",
+      "lines": 413,
+      "top_level_symbols": {
+        "test_command": [
+          24,
+          25
+        ],
+        "run_tests": [
+          28,
+          48
+        ],
+        "full_timeline": [
+          51,
+          64
+        ],
+        "analyze_controls": [
+          67,
+          89
+        ],
+        "bias_models": [
+          92,
+          123
+        ],
+        "point_figures": [
+          126,
+          169
+        ],
+        "problem_at": [
+          172,
+          174
+        ],
+        "actual_observability": [
+          177,
+          205
+        ],
+        "one_update_sensor_controls": [
+          208,
+          231
+        ],
+        "holdout_samples": [
+          234,
+          248
+        ],
+        "branch_figure": [
+          251,
+          264
+        ],
+        "analyze": [
+          267,
+          367
+        ],
+        "camera_models": [
+          370,
+          388
+        ],
+        "main": [
+          391,
+          410
+        ]
+      }
+    },
+    "README.md": {
+      "sha256": "307af29a76df3ec747386ee8d476ef0dbb3a56c467ea6372d24e6d1816d04635",
+      "lines": 148,
+      "top_level_symbols": {}
+    },
+    "docs/PIPELINE_CODE_MAP.md": {
+      "sha256": "43d8b2c36c55c8cb08858ffe13838fd5ba144250f36bf343ca96021400a3f842",
+      "lines": 111,
+      "top_level_symbols": {}
+    },
+    "docs/TEMPORAL_RGBD_IEKF_MATHEMATICAL_CONTRACT.md": {
+      "sha256": "62ad5d3f4185abe22ddd6205e8ebec3fcdbb8c4fe49bf7312eaf793d960dbbcc",
+      "lines": 231,
+      "top_level_symbols": {}
+    }
+  },
+  "new_tests": {
+    "timestamp_utc": "2026-10-30T23:45:44.058615+00:00",
+    "git_commit": "e1e663b9618d3c833e63158e65dbbb1edd732003",
+    "dirty_status": [
+      " M README.md",
+      " M debug/assets/projective_common.js",
+      " M debug/projective_debug.py",
+      " M docs/PIPELINE_CODE_MAP.md",
+      " M estimator/free_projective_run.py",
+      " M estimator/projective_sensor.py",
+      " M estimator/projective_terms.py",
+      " M tools/root_cause_oracle.py",
+      " M tools/root_cause_trace.py",
+      " M tools/run_status.py",
+      " M train.py",
+      "?? RGBDiekf_Codex_Depth_Sorted_Temporal_RGBD_Full_FixedLag_IEKF.md",
+      "?? RGBDiekf_Codex_Fifth_Pass_Source_Responsibility_Causal_Experiments.md",
+      "?? RGBDiekf_Codex_Final_Joint_Responsibility_8444_45588_Test.md",
+      "?? RGBDiekf_Codex_Static_Point_Equilibrium_Root_Cause_Audit.md",
+      "?? RGBDiekf_Definitive_F1_Static_Drift_Causal_Forensics_Codex.md",
+      "?? RGBDiekf_F1_Fourth_Pass_Sequential_Replay_and_Diagnostic_Bugfix_Codex.md",
+      "?? RGBDiekf_F1_Temporal_Reference_Depth_Surface_Reacquisition_Debug_Codex.md",
+      "?? RGBDiekf_Inner_F1_Second_Pass_Causal_Debug_Codex.md",
+      "?? RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md",
+      "?? RGBDiekf_Static_Drift_INNER_IEKF_Only_Codex_2026-10-30.md",
+      "?? configs/temporal_phase1.json",
+      "?? configs/temporal_warp_noise.schema.json",
+      "?? debug/temporal_debug.py",
+      "?? docs/TEMPORAL_RGBD_IEKF_MATHEMATICAL_CONTRACT.md",
+      "?? estimator/block_tridiagonal.py",
+      "?? estimator/ieks_point_trajectory.py",
+      "?? estimator/rts_point_smoother.py",
+      "?? estimator/temporal_full_graph.py",
+      "?? estimator/temporal_history.py",
+      "?? estimator/temporal_model_identification.py",
+      "?? estimator/temporal_noise.py",
+      "?? estimator/temporal_observability.py",
+      "?? estimator/temporal_phase1.py",
+      "?? estimator/temporal_reference.py",
+      "?? estimator/temporal_rgbd_terms.py",
+      "?? estimator/temporal_run.py",
+      "?? estimator/temporal_simplified_iekf.py",
+      "?? estimator/temporal_zbuffer.py",
+      "?? reports/covariance_2x2_experiment.md",
+      "?? reports/f1_static_drift_forensics_20261030.md",
+      "?? reports/static_point_equilibrium/",
+      "?? reports/static_point_equilibrium_root_cause_CURRENT.md",
+      "?? reports/temporal_rgbd_baseline/",
+      "?? tests/temporal_fixtures.py",
+      "?? tests/temporal_test_results.json",
+      "?? tests/test_f1_definitive_drift_forensics.py",
+      "?? tests/test_f1_diagnostic_units.py",
+      "?? tests/test_f1_joint_responsibility_audit.py",
+      "?? tests/test_f1_second_pass_oracles.py",
+      "?? tests/test_f1_sequential_causal_replay.py",
+      "?? tests/test_f1_source_responsibility.py",
+      "?? tests/test_f1_temporal_reference_diagnostics.py",
+      "?? tests/test_forensic_f1_oracles.py",
+      "?? tests/test_static_equilibrium_audit.py",
+      "?? tests/test_temporal_full_graph.py",
+      "?? tests/test_temporal_motion.py",
+      "?? tests/test_temporal_phase1_identification.py",
+      "?? tests/test_temporal_phase1_masks.py",
+      "?? tests/test_temporal_phase1_math.py",
+      "?? tests/test_temporal_phase1_measurement.py",
+      "?? tests/test_temporal_phase1_motion.py",
+      "?? tests/test_temporal_phase1_pipeline.py",
+      "?? tests/test_temporal_phase1_static.py",
+      "?? tests/test_temporal_rgbd_pipeline.py",
+      "?? tests/test_temporal_warp.py",
+      "?? tools/README_f1_definitive_drift_forensics.md",
+      "?? tools/README_f1_joint_responsibility.md",
+      "?? tools/README_f1_source_responsibility.md",
+      "?? tools/attribute_static_drift_channels.py",
+      "?? tools/audit_static_equilibrium.py",
+      "?? tools/audit_temporal_inputs.py",
+      "?? tools/compare_temporal_modes.py",
+      "?? tools/evaluate_temporal_phase1.py",
+      "?? tools/evaluate_temporal_rgbd.py",
+      "?? tools/f1_definitive_drift_forensics.py",
+      "?? tools/f1_definitive_evidence.py",
+      "?? tools/f1_definitive_math.py",
+      "?? tools/f1_definitive_point.py",
+      "?? tools/f1_diagnostic_units.py",
+      "?? tools/f1_joint_responsibility_audit.py",
+      "?? tools/f1_second_pass.py",
+      "?? tools/f1_sequential_causal_replay.py",
+      "?? tools/f1_source_responsibility.py",
+      "?? tools/f1_source_responsibility_audit.py",
+      "?? tools/f1_source_responsibility_evaluation.py",
+      "?? tools/f1_source_responsibility_population.py",
+      "?? tools/f1_temporal_reference_diagnostics.py",
+      "?? tools/forensic_f1_drift.py",
+      "?? tools/report_f1_definitive_drift.py",
+      "?? tools/report_f1_joint_responsibility.py",
+      "?? tools/report_f1_source_responsibility.py",
+      "?? tools/run_temporal_rgbd_critical.py",
+      "?? tools/run_temporal_rgbd_critical.sh",
+      "?? tools/temporal_phase1_gate_evidence.py",
+      "?? tools/test_temporal_rgbd.py",
+      "?? tools/verify_temporal_legacy_parity.py"
+    ],
+    "python": "3.11.15 (main, Jun 11 2026, 15:20:16) [GCC 14.3.0]",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "torch": "2.11.0+cu128",
+    "cuda_available": true,
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "seconds": 16.022093007006333,
+    "checks": [
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_affine_translations_and_negative_time",
+        "status": "PASS",
+        "seconds": 0.010499437994440086,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_camera_handover_stale_reference_and_occlusion",
+        "status": "PASS",
+        "seconds": 0.01197909600159619,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_conservative_domain_rejects_row_deletion",
+        "status": "PASS",
+        "seconds": 0.006661601000814699,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_cuda_owner_parity",
+        "status": "PASS",
+        "seconds": 0.4969590799883008,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_first_hit_tie_depth_swap_numpy",
+        "status": "PASS",
+        "seconds": 0.0035358660097699612,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_no_rows_exact_prediction",
+        "status": "PASS",
+        "seconds": 0.004223185998853296,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_random_numpy_parity",
+        "status": "PASS",
+        "seconds": 0.008299054999952205,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_source_identity_and_handover_bootstrap",
+        "status": "PASS",
+        "seconds": 0.001565799000672996,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_support_all_four_even_zero_weight",
+        "status": "PASS",
+        "seconds": 0.0027360600070096552,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_warp.TemporalWarpTests.test_two_time_and_latent_jacobian",
+        "status": "PASS",
+        "seconds": 0.03944507999403868,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_actual_nonlinear_warp_factor_all_columns",
+        "status": "PASS",
+        "seconds": 0.06867755399434827,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_conditional_is_not_marginal_and_simplified_limit",
+        "status": "PASS",
+        "seconds": 0.006614010999328457,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_conditioned_reference_limit_matches_simplified",
+        "status": "PASS",
+        "seconds": 0.0268022639938863,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_correlated_predictive_nis_against_dense",
+        "status": "PASS",
+        "seconds": 0.0017432479944545776,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_cuda_cpu_mean_covariance",
+        "status": "PASS",
+        "seconds": 0.2620020949980244,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_exact_schur_and_lag_slide",
+        "status": "PASS",
+        "seconds": 0.016359654007828794,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_expired_covariance_is_not_reported_as_zero_uncertainty",
+        "status": "PASS",
+        "seconds": 0.007156060004490428,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_jvp_vjp",
+        "status": "PASS",
+        "seconds": 0.0011384069948690012,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_linear_gaussian_nees_nis_monte_carlo",
+        "status": "PASS",
+        "seconds": 0.0030063829908613116,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_resource_limit_never_cuts_component",
+        "status": "PASS",
+        "seconds": 0.0013575720076914877,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_shared_latents_mean_cov_dense_and_cross",
+        "status": "PASS",
+        "seconds": 0.00580148899462074,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_full_graph.FullGraphTests.test_source_coupling_single_depth",
+        "status": "PASS",
+        "seconds": 0.0020071379985893145,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='forward', device='cpu')",
+        "status": "PASS",
+        "seconds": 0.2566529189934954,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='forward', device='cuda')",
+        "status": "PASS",
+        "seconds": 0.6563052129931748,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='backward', device='cpu')",
+        "status": "PASS",
+        "seconds": 0.9077754460013239,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='backward', device='cuda')",
+        "status": "PASS",
+        "seconds": 1.2297377130016685,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='forward', device='cpu')",
+        "status": "PASS",
+        "seconds": 2.1561605189926922,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='forward', device='cuda')",
+        "status": "PASS",
+        "seconds": 4.75491685999441,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='backward', device='cpu')",
+        "status": "PASS",
+        "seconds": 5.897424797993153,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='backward', device='cuda')",
+        "status": "PASS",
+        "seconds": 8.436276972992346,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html",
+        "status": "PASS",
+        "seconds": 8.436371846997645,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_cli_defaults_and_invalid_combinations",
+        "status": "PASS",
+        "seconds": 0.0046694899938302115,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_forensic_imports_do_not_disable_cuda",
+        "status": "PASS",
+        "seconds": 3.0147516230063047,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_full_no_new_observations_is_exact_prediction",
+        "status": "PASS",
+        "seconds": 0.4114376719953725,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_missing_warp_and_explicit_provenance",
+        "status": "PASS",
+        "seconds": 0.0012706769921351224,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports (mode='full')",
+        "status": "PASS",
+        "seconds": 2.043285403997288,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports (mode='simplified')",
+        "status": "PASS",
+        "seconds": 2.6609419000014896,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports",
+        "status": "PASS",
+        "seconds": 2.661010431998875,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=0.1, device='cpu')",
+        "status": "PASS",
+        "seconds": 0.05435448599746451,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=0.1, device='cuda')",
+        "status": "PASS",
+        "seconds": 0.22312285700172652,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=-0.1, device='cpu')",
+        "status": "PASS",
+        "seconds": 0.280051434005145,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=-0.1, device='cuda')",
+        "status": "PASS",
+        "seconds": 0.4878173369943397,
+        "detail": null
+      },
+      {
+        "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells",
+        "status": "PASS",
+        "seconds": 0.4879307459923439,
+        "detail": null
+      }
+    ],
+    "tests_run": 29,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "all_executed_checks_pass": true,
+    "complete_spec_acceptance": false,
+    "not_validated": [
+      "No real-scene temporal estimation: required temporal warp noise absent",
+      "Full-scene exact graph beyond implemented component-factor workspace",
+      "All mandatory adversarial/camera-handover tests are not yet exhaustive"
+    ],
+    "numerical_witnesses": {
+      "CPU_dense_vs_sparse_component_covariance_max_abs": 1.1102230246251565e-16,
+      "JVP_VJP_dot_product_abs": 4.440892098500626e-16,
+      "Schur_marginal_covariance_max_abs": 0.0,
+      "two_time_FD_max_abs": 2.1201918692925759e-10,
+      "tolerances": {
+        "covariance_abs": 2e-13,
+        "adjoint_abs": 1e-12,
+        "two_time_FD_abs": 3e-09,
+        "Schur_abs": 1e-12
+      },
+      "CUDA_mean_covariance_discrepancy": {
+        "mean_max_abs": 2.220446049250313e-16,
+        "covariance_max_abs": 2.7755575615628914e-16,
+        "seconds": 0.021244661998935044,
+        "peak_allocated_bytes": 19203072,
+        "device_total_memory_bytes": 8444575744
+      },
+      "raw_sensor_factors_per_shared_key": 1
+    },
+    "CPU_CUDA_pipeline_comparisons": [
+      {
+        "mode": "simplified",
+        "direction": "forward",
+        "xyz_max_abs": 0.0,
+        "position_diagonal_max_abs": 0.0,
+        "traced_covariance_max_abs": 2.220446049250313e-16
+      },
+      {
+        "mode": "simplified",
+        "direction": "backward",
+        "xyz_max_abs": 0.0,
+        "position_diagonal_max_abs": 0.0,
+        "traced_covariance_max_abs": 3.3306690738754696e-16
+      },
+      {
+        "mode": "full",
+        "direction": "forward",
+        "xyz_max_abs": 0.0,
+        "position_diagonal_max_abs": 0.0,
+        "traced_covariance_max_abs": 1.1435297153639112e-14
+      },
+      {
+        "mode": "full",
+        "direction": "backward",
+        "xyz_max_abs": 0.0,
+        "position_diagonal_max_abs": 0.0,
+        "traced_covariance_max_abs": 5.329070518200751e-15
+      }
+    ],
+    "motion_witnesses": [
+      {
+        "device": "cpu",
+        "true_dx_m": 0.1,
+        "simplified_dx_m": 0.09997694877148022,
+        "full_relative_dx_m": 0.0996774738878175,
+        "full_velocity_m_s": 2.492102954170987,
+        "true_velocity_m_s": 2.5,
+        "newly_touched_sensor_pixels": 2,
+        "full_covariance_trace": 0.04765084130296757,
+        "converged": true
+      },
+      {
+        "device": "cuda",
+        "true_dx_m": 0.1,
+        "simplified_dx_m": 0.09997694877148022,
+        "full_relative_dx_m": 0.09967747388781736,
+        "full_velocity_m_s": 2.492102954170984,
+        "true_velocity_m_s": 2.5,
+        "newly_touched_sensor_pixels": 2,
+        "full_covariance_trace": 0.04765084130298118,
+        "converged": true
+      },
+      {
+        "device": "cpu",
+        "true_dx_m": -0.1,
+        "simplified_dx_m": -0.0999769242459737,
+        "full_relative_dx_m": -0.09967744957799168,
+        "full_velocity_m_s": -2.4921023463848306,
+        "true_velocity_m_s": -2.5,
+        "newly_touched_sensor_pixels": 2,
+        "full_covariance_trace": 0.047650839772325454,
+        "converged": true
+      },
+      {
+        "device": "cuda",
+        "true_dx_m": -0.1,
+        "simplified_dx_m": -0.09997692424597351,
+        "full_relative_dx_m": -0.09967744957799143,
+        "full_velocity_m_s": -2.492102346384824,
+        "true_velocity_m_s": -2.5,
+        "newly_touched_sensor_pixels": 2,
+        "full_covariance_trace": 0.04765083977231691,
+        "converged": true
+      }
+    ]
+  },
+  "legacy_parity": {
+    "baseline_commit": "e1e663b9618d3c833e63158e65dbbb1edd732003",
+    "baseline": "captured pre-edit dirty working tree, not clean HEAD",
+    "device": "cpu",
+    "preserved_existing_sources": {
+      "estimator/free_projective_run.py": true,
+      "estimator/projective_sensor.py": true,
+      "estimator/projective_terms.py": true,
+      "tools/root_cause_oracle.py": true,
+      "tools/root_cause_trace.py": true,
+      "tools/run_status.py": true
+    },
+    "checks": [
+      {
+        "file": "free_backward/camera_reason.npy",
+        "shape": [
+          3,
+          2,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/converged.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/covariance/frame_0000.npy",
+        "shape": [
+          1530,
+          6,
+          6
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/covariance/frame_0001.npy",
+        "shape": [
+          1530,
+          6,
+          6
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/iekf_iterations.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/information_max_eig.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/information_min_eig.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/nis.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/nis_dof.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/point_status.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/position_variance_diag.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/posterior_cost.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/posterior_cost_dof.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/posterior_xyz.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/predicted_xyz.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/update_acceptance.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/valid_cameras.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/velocity.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_backward/velocity_variance_diag.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/camera_reason.npy",
+        "shape": [
+          3,
+          2,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/converged.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/covariance/frame_0001.npy",
+        "shape": [
+          1530,
+          6,
+          6
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/covariance/frame_0002.npy",
+        "shape": [
+          1530,
+          6,
+          6
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/iekf_iterations.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/information_max_eig.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/information_min_eig.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/nis.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/nis_dof.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/point_status.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/position_variance_diag.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/posterior_cost.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/posterior_cost_dof.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/posterior_xyz.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/predicted_xyz.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/update_acceptance.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/valid_cameras.npy",
+        "shape": [
+          3,
+          1530
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/velocity.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      },
+      {
+        "file": "free_forward/velocity_variance_diag.npy",
+        "shape": [
+          3,
+          1530,
+          3
+        ],
+        "bitwise_equal": true
+      }
+    ],
+    "npz_snapshots_equal": 4,
+    "status": "PASS",
+    "directions": [
+      "forward",
+      "backward"
+    ],
+    "frames": 3
+  },
+  "full_suite": {
+    "summary": [
+      "316",
+      "2707.672"
+    ],
+    "failures": [
+      "test_G0a_exact_sequential_required_points_and_covariance (tests.test_f1_definitive_drift_forensics.DefinitiveArchivedDataTests.test_G0a_exact_sequential_required_points_and_covariance)",
+      "test_prismatic_backward_chronological (tests.test_image_rigid_joint.PipelineTest.test_prismatic_backward_chronological)",
+      "test_prismatic_forward (tests.test_image_rigid_joint.PipelineTest.test_prismatic_forward)",
+      "test_revolute_forward (tests.test_image_rigid_joint.PipelineTest.test_revolute_forward)",
+      "test_image_iekf_recovers_hinge_without_phase1_motion (tests.test_image_rigid_joint.RigidFromZeroInitTest.test_image_iekf_recovers_hinge_without_phase1_motion)",
+      "test_labels_on_textured_scene (tests.test_image_support.SupportLabelsTest.test_labels_on_textured_scene)",
+      "test_on_keeps_a_static_scene_static (tests.test_rendered_mask_four_pass.RenderedMaskFourPassTest.test_on_keeps_a_static_scene_static)"
+    ],
+    "log": "/tmp/temporal_full_suite_cuda_final.log",
+    "status": "FAIL"
+  },
+  "geometry_preflight": {
+    "scene": "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/storage_45135",
+    "points": 346437,
+    "cameras": 8,
+    "times": [
+      0.0,
+      0.01694915254237288,
+      0.03389830508474576,
+      0.05084745762711865,
+      0.06779661016949153,
+      0.0847457627118644,
+      0.1016949152542373,
+      0.11864406779661017,
+      0.13559322033898305,
+      0.15254237288135594,
+      0.1694915254237288,
+      0.1864406779661017,
+      0.2033898305084746,
+      0.22033898305084745,
+      0.23728813559322035,
+      0.2542372881355932,
+      0.2711864406779661,
+      0.288135593220339,
+      0.3050847457627119,
+      0.3220338983050847,
+      0.3389830508474576,
+      0.3559322033898305,
+      0.3728813559322034,
+      0.3898305084745763,
+      0.4067796610169492,
+      0.423728813559322,
+      0.4406779661016949,
+      0.4576271186440678,
+      0.4745762711864407,
+      0.4915254237288136,
+      0.5084745762711864,
+      0.5254237288135594,
+      0.5423728813559322,
+      0.559322033898305,
+      0.576271186440678,
+      0.5932203389830508,
+      0.6101694915254238,
+      0.6271186440677966,
+      0.6440677966101694,
+      0.6610169491525424,
+      0.6779661016949152,
+      0.6949152542372882,
+      0.711864406779661,
+      0.7288135593220338,
+      0.7457627118644068,
+      0.7627118644067796,
+      0.7796610169491526,
+      0.7966101694915254,
+      0.8135593220338984,
+      0.8305084745762712,
+      0.847457627118644,
+      0.864406779661017,
+      0.8813559322033898,
+      0.8983050847457628,
+      0.9152542372881356,
+      0.9322033898305084,
+      0.9491525423728814,
+      0.9661016949152542,
+      0.9830508474576272,
+      1.0
+    ],
+    "timing": {
+      "scene": "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/storage_45135",
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "fps": 59.0,
+      "timestamps_seconds": [
+        0.0,
+        0.01694915254237288,
+        0.03389830508474576,
+        0.05084745762711865,
+        0.06779661016949153,
+        0.0847457627118644,
+        0.1016949152542373,
+        0.11864406779661017,
+        0.13559322033898305,
+        0.15254237288135594,
+        0.1694915254237288,
+        0.1864406779661017,
+        0.2033898305084746,
+        0.22033898305084745,
+        0.23728813559322035,
+        0.2542372881355932,
+        0.2711864406779661,
+        0.288135593220339,
+        0.3050847457627119,
+        0.3220338983050847,
+        0.3389830508474576,
+        0.3559322033898305,
+        0.3728813559322034,
+        0.3898305084745763,
+        0.4067796610169492,
+        0.423728813559322,
+        0.4406779661016949,
+        0.4576271186440678,
+        0.4745762711864407,
+        0.4915254237288136,
+        0.5084745762711864,
+        0.5254237288135594,
+        0.5423728813559322,
+        0.559322033898305,
+        0.576271186440678,
+        0.5932203389830508,
+        0.6101694915254238,
+        0.6271186440677966,
+        0.6440677966101694,
+        0.6610169491525424,
+        0.6779661016949152,
+        0.6949152542372882,
+        0.711864406779661,
+        0.7288135593220338,
+        0.7457627118644068,
+        0.7627118644067796,
+        0.7796610169491526,
+        0.7966101694915254,
+        0.8135593220338984,
+        0.8305084745762712,
+        0.847457627118644,
+        0.864406779661017,
+        0.8813559322033898,
+        0.8983050847457628,
+        0.9152542372881356,
+        0.9322033898305084,
+        0.9491525423728814,
+        0.9661016949152542,
+        0.9830508474576272,
+        1.0
+      ],
+      "timestamps_frame_units": null,
+      "interval_count": 59,
+      "interval_min_max_seconds": [
+        0.016949152542372836,
+        0.016949152542372947
+      ],
+      "source_kind": "dataset-acquisition-metadata",
+      "metadata_disagreements": [],
+      "files_searched": [
+        "metadata/job_config_resolved.yaml",
+        "metadata/config.yaml",
+        "metadata/config.yml",
+        "metadata/config.json",
+        "metadata/metadata.json",
+        "metadata/metadata.yaml",
+        "metadata/scene_metadata.json",
+        "metadata/sequence.json",
+        "metadata/sequence.yaml",
+        "metadata/acquisition_manifest.json",
+        "metadata/acquisition_manifest.yaml",
+        "metadata/dataset_manifest.json",
+        "metadata/dataset_manifest.yaml",
+        "metadata/manifest.json",
+        "metadata/manifest.yaml",
+        "metadata/timing.json",
+        "metadata/timing.yaml",
+        "metadata/timestamps.csv",
+        "metadata/timestamps.json",
+        "metadata/timestamps.txt",
+        "metadata/timestamps.npy",
+        "metadata/frame_timestamps.csv",
+        "metadata/frame_timestamps.json",
+        "metadata/frame_timestamps.txt",
+        "metadata/frame_timestamps.npy",
+        "metadata/frame_times.csv",
+        "metadata/frame_times.json",
+        "metadata/frame_times.txt",
+        "metadata/frame_times.npy",
+        "metadata/frame_values.csv",
+        "job_config_resolved.yaml",
+        "config.yaml",
+        "config.yml",
+        "config.json",
+        "metadata.json",
+        "metadata.yaml",
+        "scene_metadata.json",
+        "sequence.json",
+        "sequence.yaml",
+        "acquisition_manifest.json",
+        "acquisition_manifest.yaml",
+        "dataset_manifest.json",
+        "dataset_manifest.yaml",
+        "manifest.json",
+        "manifest.yaml",
+        "timing.json",
+        "timing.yaml",
+        "timestamps.csv",
+        "timestamps.json",
+        "timestamps.txt",
+        "timestamps.npy",
+        "frame_timestamps.csv",
+        "frame_timestamps.json",
+        "frame_timestamps.txt",
+        "frame_timestamps.npy",
+        "frame_times.csv",
+        "frame_times.json",
+        "frame_times.txt",
+        "frame_times.npy",
+        "frame_values.csv",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/job_config_resolved.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/job_config_resolved.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/config.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/config.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/config.yml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/config.yml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/config.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/config.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/metadata.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/scene_metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/scene_metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/sequence.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/sequence.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/sequence.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/sequence.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/acquisition_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/acquisition_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/acquisition_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/acquisition_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/dataset_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/dataset_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/dataset_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/dataset_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/timing.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/timing.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/timing.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/metadata/timing.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/job_config_resolved.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/job_config_resolved.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/config.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/config.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/config.yml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/config.yml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/config.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/config.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/metadata.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/scene_metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/scene_metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/sequence.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/sequence.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/sequence.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/sequence.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/acquisition_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/acquisition_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/acquisition_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/acquisition_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/dataset_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/dataset_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/dataset_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/dataset_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/timing.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/timing.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/timing.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/metadata/timing.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/job_config_resolved.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/job_config_resolved.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/config.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/config.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/config.yml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/config.yml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/config.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/config.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/metadata.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/scene_metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/scene_metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/sequence.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/sequence.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/sequence.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/sequence.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/acquisition_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/acquisition_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/acquisition_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/acquisition_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/dataset_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/dataset_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/dataset_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/dataset_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/timing.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/timing.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/timing.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/metadata/timing.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/job_config_resolved.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/job_config_resolved.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/config.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/config.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/config.yml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/config.yml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/config.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/config.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/metadata.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/scene_metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/scene_metadata.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/sequence.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/sequence.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/sequence.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/sequence.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/acquisition_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/acquisition_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/acquisition_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/acquisition_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/dataset_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/dataset_manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/dataset_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/dataset_manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/manifest.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/manifest.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/timing.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/timing.json",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/timing.yaml",
+        "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/metadata/timing.yaml"
+      ],
+      "acquisition_qualifications": {}
+    },
+    "uncertainty_policy": "Existing documented source/sensor guesses only used for support validation; no filtering, no warp R invented",
+    "frames": [
+      {
+        "frame": 0,
+        "occupied": 348484,
+        "conflicts": 342429,
+        "unexplained_foreground": 0,
+        "outside_foreground": 2047,
+        "valid_reference_patches_at_zero_motion": 341258,
+        "component_preflight": {
+          "points": 346437,
+          "components": 143901,
+          "largest_point_components": [
+            64,
+            63,
+            61,
+            61,
+            59,
+            58,
+            56,
+            56,
+            54,
+            54,
+            53,
+            53,
+            51,
+            51,
+            49,
+            49,
+            49,
+            49,
+            45,
+            44
+          ],
+          "minimum_largest_component_workspace_bytes": 9437184,
+          "workspace_budget_bytes": 134217728,
+          "bound": "6 current scalars per connected point; excludes additional states/latents"
+        },
+        "resource_result": "fits lower bound only; actual graph may be larger",
+        "points": {
+          "8444": {
+            "source": [
+              0,
+              0,
+              151962
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  282,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.427461862564087,
+                "winner_z": 3.4273588334329204,
+                "count": 7
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  231,
+                  232
+                ],
+                "winner": 8444,
+                "winner_source": [
+                  0,
+                  0,
+                  151962
+                ],
+                "projected_z": 3.7549285130444785,
+                "winner_z": 3.7549285130444785,
+                "count": 8
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  239,
+                  226
+                ],
+                "winner": 45044,
+                "winner_source": [
+                  0,
+                  1,
+                  146868
+                ],
+                "projected_z": 4.233347232446362,
+                "winner_z": 3.6020091188172585,
+                "count": 27
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  287,
+                  223
+                ],
+                "winner": 91615,
+                "winner_source": [
+                  0,
+                  2,
+                  143059
+                ],
+                "projected_z": 4.582466823437281,
+                "winner_z": 3.633702889501054,
+                "count": 8
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  347,
+                  223
+                ],
+                "winner": 220648,
+                "winner_source": [
+                  0,
+                  5,
+                  142349
+                ],
+                "projected_z": 4.5977777645049045,
+                "winner_z": 3.4160553553719595,
+                "count": 5
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  397,
+                  226
+                ],
+                "winner": 267817,
+                "winner_source": [
+                  0,
+                  6,
+                  148217
+                ],
+                "projected_z": 4.270311114024514,
+                "winner_z": 3.9866081476722464,
+                "count": 8
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  409,
+                  232
+                ],
+                "winner": 312542,
+                "winner_source": [
+                  0,
+                  7,
+                  151380
+                ],
+                "projected_z": 3.7918923946226295,
+                "winner_z": 3.6197203201041432,
+                "count": 22
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  363,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.44277280363171,
+                "winner_z": 3.4417036823452696,
+                "count": 7
+              }
+            ]
+          },
+          "45588": {
+            "source": [
+              0,
+              1,
+              148711
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  282,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.4273588334329204,
+                "winner_z": 3.4273588334329204,
+                "count": 7
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  231,
+                  232
+                ],
+                "winner": 8444,
+                "winner_source": [
+                  0,
+                  0,
+                  151962
+                ],
+                "projected_z": 3.7557942867279053,
+                "winner_z": 3.7549285130444785,
+                "count": 8
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  239,
+                  226
+                ],
+                "winner": 45044,
+                "winner_source": [
+                  0,
+                  1,
+                  146868
+                ],
+                "projected_z": 4.234617008054177,
+                "winner_z": 3.6020091188172585,
+                "count": 27
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  287,
+                  223
+                ],
+                "winner": 91615,
+                "winner_source": [
+                  0,
+                  2,
+                  143059
+                ],
+                "projected_z": 4.583339141231199,
+                "winner_z": 3.633702889501054,
+                "count": 8
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  348,
+                  223
+                ],
+                "winner": 183654,
+                "winner_source": [
+                  0,
+                  4,
+                  143068
+                ],
+                "projected_z": 4.5976839901435484,
+                "winner_z": 3.416239023208618,
+                "count": 4
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  397,
+                  226
+                ],
+                "winner": 267817,
+                "winner_source": [
+                  0,
+                  6,
+                  148217
+                ],
+                "projected_z": 4.269248536848564,
+                "winner_z": 3.9866081476722464,
+                "count": 8
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  409,
+                  232
+                ],
+                "winner": 312542,
+                "winner_source": [
+                  0,
+                  7,
+                  151380
+                ],
+                "projected_z": 3.7904258155222914,
+                "winner_z": 3.6197203201041432,
+                "count": 22
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  363,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.4417036823452696,
+                "winner_z": 3.4417036823452696,
+                "count": 7
+              }
+            ]
+          },
+          "49199": {
+            "source": [
+              0,
+              1,
+              159695
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  382,
+                  245
+                ],
+                "winner": 9695,
+                "winner_source": [
+                  0,
+                  0,
+                  157182
+                ],
+                "projected_z": 3.7488577062126995,
+                "winner_z": 3.4321985244750977,
+                "count": 26
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  335,
+                  249
+                ],
+                "winner": 96327,
+                "winner_source": [
+                  0,
+                  2,
+                  158995
+                ],
+                "projected_z": 3.541867256164551,
+                "winner_z": 3.5391226718133257,
+                "count": 9
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  276,
+                  248
+                ],
+                "winner": 49199,
+                "winner_source": [
+                  0,
+                  1,
+                  159695
+                ],
+                "projected_z": 3.615526636789137,
+                "winner_z": 3.615526636789137,
+                "count": 4
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  248,
+                  242
+                ],
+                "winner": 49199,
+                "winner_source": [
+                  0,
+                  1,
+                  159695
+                ],
+                "projected_z": 3.9266871819125777,
+                "winner_z": 3.9266871819125777,
+                "count": 10
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  265,
+                  237
+                ],
+                "winner": 185565,
+                "winner_source": [
+                  0,
+                  4,
+                  151945
+                ],
+                "projected_z": 4.2930752642769665,
+                "winner_z": 3.424489974975586,
+                "count": 41
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  307,
+                  235
+                ],
+                "winner": 310382,
+                "winner_source": [
+                  0,
+                  7,
+                  144870
+                ],
+                "projected_z": 4.500065714325117,
+                "winner_z": 3.383236289916912,
+                "count": 8
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  355,
+                  236
+                ],
+                "winner": 222807,
+                "winner_source": [
+                  0,
+                  5,
+                  148864
+                ],
+                "projected_z": 4.4264063337005295,
+                "winner_z": 3.6221963209320927,
+                "count": 7
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  387,
+                  240
+                ],
+                "winner": 9353,
+                "winner_source": [
+                  0,
+                  0,
+                  155840
+                ],
+                "projected_z": 4.115245788577089,
+                "winner_z": 3.6044851418175825,
+                "count": 8
+              }
+            ]
+          },
+          "262894": {
+            "source": [
+              0,
+              6,
+              132069
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  269,
+                  201
+                ],
+                "winner": 305369,
+                "winner_source": [
+                  0,
+                  7,
+                  128995
+                ],
+                "projected_z": 4.555280189819835,
+                "winner_z": 3.4061821134100585,
+                "count": 76
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  334,
+                  200
+                ],
+                "winner": 132804,
+                "winner_source": [
+                  0,
+                  3,
+                  126967
+                ],
+                "projected_z": 4.668063292409359,
+                "winner_z": 3.505073260181166,
+                "count": 11
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  394,
+                  202
+                ],
+                "winner": 133923,
+                "winner_source": [
+                  0,
+                  3,
+                  130246
+                ],
+                "projected_z": 4.386692004056404,
+                "winner_z": 3.587092027901126,
+                "count": 8
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  421,
+                  204
+                ],
+                "winner": 181411,
+                "winner_source": [
+                  0,
+                  4,
+                  132857
+                ],
+                "projected_z": 3.8759898094157412,
+                "winner_z": 3.8083365636060105,
+                "count": 9
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  386,
+                  207
+                ],
+                "winner": 134229,
+                "winner_source": [
+                  0,
+                  3,
+                  130984
+                ],
+                "projected_z": 3.4351191277741666,
+                "winner_z": 3.4040396821181167,
+                "count": 21
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  299,
+                  208
+                ],
+                "winner": 262894,
+                "winner_source": [
+                  0,
+                  6,
+                  132069
+                ],
+                "projected_z": 3.3223360251846437,
+                "winner_z": 3.3223360251846437,
+                "count": 7
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  229,
+                  206
+                ],
+                "winner": 217802,
+                "winner_source": [
+                  0,
+                  5,
+                  133419
+                ],
+                "projected_z": 3.6037073135375977,
+                "winner_z": 3.6036752434548855,
+                "count": 21
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  224,
+                  203
+                ],
+                "winner": 262894,
+                "winner_source": [
+                  0,
+                  6,
+                  132069
+                ],
+                "projected_z": 4.114409508178261,
+                "winner_z": 4.114409508178261,
+                "count": 8
+              }
+            ]
+          },
+          "205921": {
+            "source": [
+              0,
+              4,
+              244805
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  315,
+                  332
+                ],
+                "winner": 64466,
+                "winner_source": [
+                  0,
+                  1,
+                  207611
+                ],
+                "projected_z": 4.688554033897374,
+                "winner_z": 3.484421507764244,
+                "count": 9
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  370,
+                  337
+                ],
+                "winner": 162221,
+                "winner_source": [
+                  0,
+                  3,
+                  218522
+                ],
+                "projected_z": 4.539761215978404,
+                "winner_z": 3.8408022575106813,
+                "count": 8
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  402,
+                  352
+                ],
+                "winner": 66250,
+                "winner_source": [
+                  0,
+                  1,
+                  212891
+                ],
+                "projected_z": 4.13362684198319,
+                "winner_z": 3.681875448876129,
+                "count": 22
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  388,
+                  371
+                ],
+                "winner": 205782,
+                "winner_source": [
+                  0,
+                  4,
+                  244164
+                ],
+                "projected_z": 3.708058920052221,
+                "winner_z": 3.7031690345611885,
+                "count": 4
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  325,
+                  382
+                ],
+                "winner": 205921,
+                "winner_source": [
+                  0,
+                  4,
+                  244805
+                ],
+                "projected_z": 3.5123493671417236,
+                "winner_z": 3.5123493671417236,
+                "count": 2
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  257,
+                  374
+                ],
+                "winner": 205921,
+                "winner_source": [
+                  0,
+                  4,
+                  244805
+                ],
+                "projected_z": 3.6611421850606933,
+                "winner_z": 3.6611421850606933,
+                "count": 6
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  235,
+                  355
+                ],
+                "winner": 250228,
+                "winner_source": [
+                  0,
+                  5,
+                  235822
+                ],
+                "projected_z": 4.067276559055907,
+                "winner_z": 3.6980137154285995,
+                "count": 21
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  263,
+                  338
+                ],
+                "winner": 289618,
+                "winner_source": [
+                  0,
+                  6,
+                  222375
+                ],
+                "projected_z": 4.492844480986876,
+                "winner_z": 3.926087414632508,
+                "count": 10
+              }
+            ]
+          }
+        },
+        "CPU_CUDA_owner_disagreement_pixels": 0,
+        "cuda_peak_allocated_bytes": 542776832
+      },
+      {
+        "frame": 1,
+        "occupied": 348484,
+        "conflicts": 342429,
+        "unexplained_foreground": 262,
+        "outside_foreground": 1811,
+        "valid_reference_patches_at_zero_motion": 341258,
+        "component_preflight": {
+          "points": 346437,
+          "components": 143901,
+          "largest_point_components": [
+            64,
+            63,
+            61,
+            61,
+            59,
+            58,
+            56,
+            56,
+            54,
+            54,
+            53,
+            53,
+            51,
+            51,
+            49,
+            49,
+            49,
+            49,
+            45,
+            44
+          ],
+          "minimum_largest_component_workspace_bytes": 9437184,
+          "workspace_budget_bytes": 134217728,
+          "bound": "6 current scalars per connected point; excludes additional states/latents"
+        },
+        "resource_result": "fits lower bound only; actual graph may be larger",
+        "points": {
+          "8444": {
+            "source": [
+              0,
+              0,
+              151962
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  282,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.427461862564087,
+                "winner_z": 3.4273588334329204,
+                "count": 7
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  231,
+                  232
+                ],
+                "winner": 8444,
+                "winner_source": [
+                  0,
+                  0,
+                  151962
+                ],
+                "projected_z": 3.7549285130444785,
+                "winner_z": 3.7549285130444785,
+                "count": 8
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  239,
+                  226
+                ],
+                "winner": 45044,
+                "winner_source": [
+                  0,
+                  1,
+                  146868
+                ],
+                "projected_z": 4.233347232446362,
+                "winner_z": 3.6020091188172585,
+                "count": 27
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  287,
+                  223
+                ],
+                "winner": 91615,
+                "winner_source": [
+                  0,
+                  2,
+                  143059
+                ],
+                "projected_z": 4.582466823437281,
+                "winner_z": 3.633702889501054,
+                "count": 8
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  347,
+                  223
+                ],
+                "winner": 220648,
+                "winner_source": [
+                  0,
+                  5,
+                  142349
+                ],
+                "projected_z": 4.5977777645049045,
+                "winner_z": 3.4160553553719595,
+                "count": 5
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  397,
+                  226
+                ],
+                "winner": 267817,
+                "winner_source": [
+                  0,
+                  6,
+                  148217
+                ],
+                "projected_z": 4.270311114024514,
+                "winner_z": 3.9866081476722464,
+                "count": 8
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  409,
+                  232
+                ],
+                "winner": 312542,
+                "winner_source": [
+                  0,
+                  7,
+                  151380
+                ],
+                "projected_z": 3.7918923946226295,
+                "winner_z": 3.6197203201041432,
+                "count": 22
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  363,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.44277280363171,
+                "winner_z": 3.4417036823452696,
+                "count": 7
+              }
+            ]
+          },
+          "45588": {
+            "source": [
+              0,
+              1,
+              148711
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  282,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.4273588334329204,
+                "winner_z": 3.4273588334329204,
+                "count": 7
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  231,
+                  232
+                ],
+                "winner": 8444,
+                "winner_source": [
+                  0,
+                  0,
+                  151962
+                ],
+                "projected_z": 3.7557942867279053,
+                "winner_z": 3.7549285130444785,
+                "count": 8
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  239,
+                  226
+                ],
+                "winner": 45044,
+                "winner_source": [
+                  0,
+                  1,
+                  146868
+                ],
+                "projected_z": 4.234617008054177,
+                "winner_z": 3.6020091188172585,
+                "count": 27
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  287,
+                  223
+                ],
+                "winner": 91615,
+                "winner_source": [
+                  0,
+                  2,
+                  143059
+                ],
+                "projected_z": 4.583339141231199,
+                "winner_z": 3.633702889501054,
+                "count": 8
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  348,
+                  223
+                ],
+                "winner": 183654,
+                "winner_source": [
+                  0,
+                  4,
+                  143068
+                ],
+                "projected_z": 4.5976839901435484,
+                "winner_z": 3.416239023208618,
+                "count": 4
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  397,
+                  226
+                ],
+                "winner": 267817,
+                "winner_source": [
+                  0,
+                  6,
+                  148217
+                ],
+                "projected_z": 4.269248536848564,
+                "winner_z": 3.9866081476722464,
+                "count": 8
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  409,
+                  232
+                ],
+                "winner": 312542,
+                "winner_source": [
+                  0,
+                  7,
+                  151380
+                ],
+                "projected_z": 3.7904258155222914,
+                "winner_z": 3.6197203201041432,
+                "count": 22
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  363,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.4417036823452696,
+                "winner_z": 3.4417036823452696,
+                "count": 7
+              }
+            ]
+          },
+          "49199": {
+            "source": [
+              0,
+              1,
+              159695
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  382,
+                  245
+                ],
+                "winner": 9695,
+                "winner_source": [
+                  0,
+                  0,
+                  157182
+                ],
+                "projected_z": 3.7488577062126995,
+                "winner_z": 3.4321985244750977,
+                "count": 26
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  335,
+                  249
+                ],
+                "winner": 96327,
+                "winner_source": [
+                  0,
+                  2,
+                  158995
+                ],
+                "projected_z": 3.541867256164551,
+                "winner_z": 3.5391226718133257,
+                "count": 9
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  276,
+                  248
+                ],
+                "winner": 49199,
+                "winner_source": [
+                  0,
+                  1,
+                  159695
+                ],
+                "projected_z": 3.615526636789137,
+                "winner_z": 3.615526636789137,
+                "count": 4
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  248,
+                  242
+                ],
+                "winner": 49199,
+                "winner_source": [
+                  0,
+                  1,
+                  159695
+                ],
+                "projected_z": 3.9266871819125777,
+                "winner_z": 3.9266871819125777,
+                "count": 10
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  265,
+                  237
+                ],
+                "winner": 185565,
+                "winner_source": [
+                  0,
+                  4,
+                  151945
+                ],
+                "projected_z": 4.2930752642769665,
+                "winner_z": 3.424489974975586,
+                "count": 41
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  307,
+                  235
+                ],
+                "winner": 310382,
+                "winner_source": [
+                  0,
+                  7,
+                  144870
+                ],
+                "projected_z": 4.500065714325117,
+                "winner_z": 3.383236289916912,
+                "count": 8
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  355,
+                  236
+                ],
+                "winner": 222807,
+                "winner_source": [
+                  0,
+                  5,
+                  148864
+                ],
+                "projected_z": 4.4264063337005295,
+                "winner_z": 3.6221963209320927,
+                "count": 7
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  387,
+                  240
+                ],
+                "winner": 9353,
+                "winner_source": [
+                  0,
+                  0,
+                  155840
+                ],
+                "projected_z": 4.115245788577089,
+                "winner_z": 3.6044851418175825,
+                "count": 8
+              }
+            ]
+          },
+          "262894": {
+            "source": [
+              0,
+              6,
+              132069
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  269,
+                  201
+                ],
+                "winner": 305369,
+                "winner_source": [
+                  0,
+                  7,
+                  128995
+                ],
+                "projected_z": 4.555280189819835,
+                "winner_z": 3.4061821134100585,
+                "count": 76
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  334,
+                  200
+                ],
+                "winner": 132804,
+                "winner_source": [
+                  0,
+                  3,
+                  126967
+                ],
+                "projected_z": 4.668063292409359,
+                "winner_z": 3.505073260181166,
+                "count": 11
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  394,
+                  202
+                ],
+                "winner": 133923,
+                "winner_source": [
+                  0,
+                  3,
+                  130246
+                ],
+                "projected_z": 4.386692004056404,
+                "winner_z": 3.587092027901126,
+                "count": 8
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  421,
+                  204
+                ],
+                "winner": 181411,
+                "winner_source": [
+                  0,
+                  4,
+                  132857
+                ],
+                "projected_z": 3.8759898094157412,
+                "winner_z": 3.8083365636060105,
+                "count": 9
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  386,
+                  207
+                ],
+                "winner": 134229,
+                "winner_source": [
+                  0,
+                  3,
+                  130984
+                ],
+                "projected_z": 3.4351191277741666,
+                "winner_z": 3.4040396821181167,
+                "count": 21
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  299,
+                  208
+                ],
+                "winner": 262894,
+                "winner_source": [
+                  0,
+                  6,
+                  132069
+                ],
+                "projected_z": 3.3223360251846437,
+                "winner_z": 3.3223360251846437,
+                "count": 7
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  229,
+                  206
+                ],
+                "winner": 217802,
+                "winner_source": [
+                  0,
+                  5,
+                  133419
+                ],
+                "projected_z": 3.6037073135375977,
+                "winner_z": 3.6036752434548855,
+                "count": 21
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  224,
+                  203
+                ],
+                "winner": 262894,
+                "winner_source": [
+                  0,
+                  6,
+                  132069
+                ],
+                "projected_z": 4.114409508178261,
+                "winner_z": 4.114409508178261,
+                "count": 8
+              }
+            ]
+          },
+          "205921": {
+            "source": [
+              0,
+              4,
+              244805
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  315,
+                  332
+                ],
+                "winner": 64466,
+                "winner_source": [
+                  0,
+                  1,
+                  207611
+                ],
+                "projected_z": 4.688554033897374,
+                "winner_z": 3.484421507764244,
+                "count": 9
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  370,
+                  337
+                ],
+                "winner": 162221,
+                "winner_source": [
+                  0,
+                  3,
+                  218522
+                ],
+                "projected_z": 4.539761215978404,
+                "winner_z": 3.8408022575106813,
+                "count": 8
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  402,
+                  352
+                ],
+                "winner": 66250,
+                "winner_source": [
+                  0,
+                  1,
+                  212891
+                ],
+                "projected_z": 4.13362684198319,
+                "winner_z": 3.681875448876129,
+                "count": 22
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  388,
+                  371
+                ],
+                "winner": 205782,
+                "winner_source": [
+                  0,
+                  4,
+                  244164
+                ],
+                "projected_z": 3.708058920052221,
+                "winner_z": 3.7031690345611885,
+                "count": 4
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  325,
+                  382
+                ],
+                "winner": 205921,
+                "winner_source": [
+                  0,
+                  4,
+                  244805
+                ],
+                "projected_z": 3.5123493671417236,
+                "winner_z": 3.5123493671417236,
+                "count": 2
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  257,
+                  374
+                ],
+                "winner": 205921,
+                "winner_source": [
+                  0,
+                  4,
+                  244805
+                ],
+                "projected_z": 3.6611421850606933,
+                "winner_z": 3.6611421850606933,
+                "count": 6
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  235,
+                  355
+                ],
+                "winner": 250228,
+                "winner_source": [
+                  0,
+                  5,
+                  235822
+                ],
+                "projected_z": 4.067276559055907,
+                "winner_z": 3.6980137154285995,
+                "count": 21
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  263,
+                  338
+                ],
+                "winner": 289618,
+                "winner_source": [
+                  0,
+                  6,
+                  222375
+                ],
+                "projected_z": 4.492844480986876,
+                "winner_z": 3.926087414632508,
+                "count": 10
+              }
+            ]
+          }
+        },
+        "CPU_CUDA_owner_disagreement_pixels": 0,
+        "cuda_peak_allocated_bytes": 829992960
+      },
+      {
+        "frame": 2,
+        "occupied": 348484,
+        "conflicts": 342429,
+        "unexplained_foreground": 710,
+        "outside_foreground": 1802,
+        "valid_reference_patches_at_zero_motion": 341258,
+        "component_preflight": {
+          "points": 346437,
+          "components": 143901,
+          "largest_point_components": [
+            64,
+            63,
+            61,
+            61,
+            59,
+            58,
+            56,
+            56,
+            54,
+            54,
+            53,
+            53,
+            51,
+            51,
+            49,
+            49,
+            49,
+            49,
+            45,
+            44
+          ],
+          "minimum_largest_component_workspace_bytes": 9437184,
+          "workspace_budget_bytes": 134217728,
+          "bound": "6 current scalars per connected point; excludes additional states/latents"
+        },
+        "resource_result": "fits lower bound only; actual graph may be larger",
+        "points": {
+          "8444": {
+            "source": [
+              0,
+              0,
+              151962
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  282,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.427461862564087,
+                "winner_z": 3.4273588334329204,
+                "count": 7
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  231,
+                  232
+                ],
+                "winner": 8444,
+                "winner_source": [
+                  0,
+                  0,
+                  151962
+                ],
+                "projected_z": 3.7549285130444785,
+                "winner_z": 3.7549285130444785,
+                "count": 8
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  239,
+                  226
+                ],
+                "winner": 45044,
+                "winner_source": [
+                  0,
+                  1,
+                  146868
+                ],
+                "projected_z": 4.233347232446362,
+                "winner_z": 3.6020091188172585,
+                "count": 27
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  287,
+                  223
+                ],
+                "winner": 91615,
+                "winner_source": [
+                  0,
+                  2,
+                  143059
+                ],
+                "projected_z": 4.582466823437281,
+                "winner_z": 3.633702889501054,
+                "count": 8
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  347,
+                  223
+                ],
+                "winner": 220648,
+                "winner_source": [
+                  0,
+                  5,
+                  142349
+                ],
+                "projected_z": 4.5977777645049045,
+                "winner_z": 3.4160553553719595,
+                "count": 5
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  397,
+                  226
+                ],
+                "winner": 267817,
+                "winner_source": [
+                  0,
+                  6,
+                  148217
+                ],
+                "projected_z": 4.270311114024514,
+                "winner_z": 3.9866081476722464,
+                "count": 8
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  409,
+                  232
+                ],
+                "winner": 312542,
+                "winner_source": [
+                  0,
+                  7,
+                  151380
+                ],
+                "projected_z": 3.7918923946226295,
+                "winner_z": 3.6197203201041432,
+                "count": 22
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  363,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.44277280363171,
+                "winner_z": 3.4417036823452696,
+                "count": 7
+              }
+            ]
+          },
+          "45588": {
+            "source": [
+              0,
+              1,
+              148711
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  282,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.4273588334329204,
+                "winner_z": 3.4273588334329204,
+                "count": 7
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  231,
+                  232
+                ],
+                "winner": 8444,
+                "winner_source": [
+                  0,
+                  0,
+                  151962
+                ],
+                "projected_z": 3.7557942867279053,
+                "winner_z": 3.7549285130444785,
+                "count": 8
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  239,
+                  226
+                ],
+                "winner": 45044,
+                "winner_source": [
+                  0,
+                  1,
+                  146868
+                ],
+                "projected_z": 4.234617008054177,
+                "winner_z": 3.6020091188172585,
+                "count": 27
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  287,
+                  223
+                ],
+                "winner": 91615,
+                "winner_source": [
+                  0,
+                  2,
+                  143059
+                ],
+                "projected_z": 4.583339141231199,
+                "winner_z": 3.633702889501054,
+                "count": 8
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  348,
+                  223
+                ],
+                "winner": 183654,
+                "winner_source": [
+                  0,
+                  4,
+                  143068
+                ],
+                "projected_z": 4.5976839901435484,
+                "winner_z": 3.416239023208618,
+                "count": 4
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  397,
+                  226
+                ],
+                "winner": 267817,
+                "winner_source": [
+                  0,
+                  6,
+                  148217
+                ],
+                "projected_z": 4.269248536848564,
+                "winner_z": 3.9866081476722464,
+                "count": 8
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  409,
+                  232
+                ],
+                "winner": 312542,
+                "winner_source": [
+                  0,
+                  7,
+                  151380
+                ],
+                "projected_z": 3.7904258155222914,
+                "winner_z": 3.6197203201041432,
+                "count": 22
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  363,
+                  237
+                ],
+                "winner": 45588,
+                "winner_source": [
+                  0,
+                  1,
+                  148711
+                ],
+                "projected_z": 3.4417036823452696,
+                "winner_z": 3.4417036823452696,
+                "count": 7
+              }
+            ]
+          },
+          "49199": {
+            "source": [
+              0,
+              1,
+              159695
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  382,
+                  245
+                ],
+                "winner": 9695,
+                "winner_source": [
+                  0,
+                  0,
+                  157182
+                ],
+                "projected_z": 3.7488577062126995,
+                "winner_z": 3.4321985244750977,
+                "count": 26
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  335,
+                  249
+                ],
+                "winner": 96327,
+                "winner_source": [
+                  0,
+                  2,
+                  158995
+                ],
+                "projected_z": 3.541867256164551,
+                "winner_z": 3.5391226718133257,
+                "count": 9
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  276,
+                  248
+                ],
+                "winner": 49199,
+                "winner_source": [
+                  0,
+                  1,
+                  159695
+                ],
+                "projected_z": 3.615526636789137,
+                "winner_z": 3.615526636789137,
+                "count": 4
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  248,
+                  242
+                ],
+                "winner": 49199,
+                "winner_source": [
+                  0,
+                  1,
+                  159695
+                ],
+                "projected_z": 3.9266871819125777,
+                "winner_z": 3.9266871819125777,
+                "count": 10
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  265,
+                  237
+                ],
+                "winner": 185565,
+                "winner_source": [
+                  0,
+                  4,
+                  151945
+                ],
+                "projected_z": 4.2930752642769665,
+                "winner_z": 3.424489974975586,
+                "count": 41
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  307,
+                  235
+                ],
+                "winner": 310382,
+                "winner_source": [
+                  0,
+                  7,
+                  144870
+                ],
+                "projected_z": 4.500065714325117,
+                "winner_z": 3.383236289916912,
+                "count": 8
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  355,
+                  236
+                ],
+                "winner": 222807,
+                "winner_source": [
+                  0,
+                  5,
+                  148864
+                ],
+                "projected_z": 4.4264063337005295,
+                "winner_z": 3.6221963209320927,
+                "count": 7
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  387,
+                  240
+                ],
+                "winner": 9353,
+                "winner_source": [
+                  0,
+                  0,
+                  155840
+                ],
+                "projected_z": 4.115245788577089,
+                "winner_z": 3.6044851418175825,
+                "count": 8
+              }
+            ]
+          },
+          "262894": {
+            "source": [
+              0,
+              6,
+              132069
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  269,
+                  201
+                ],
+                "winner": 305369,
+                "winner_source": [
+                  0,
+                  7,
+                  128995
+                ],
+                "projected_z": 4.555280189819835,
+                "winner_z": 3.4061821134100585,
+                "count": 76
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  334,
+                  200
+                ],
+                "winner": 132804,
+                "winner_source": [
+                  0,
+                  3,
+                  126967
+                ],
+                "projected_z": 4.668063292409359,
+                "winner_z": 3.505073260181166,
+                "count": 11
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  394,
+                  202
+                ],
+                "winner": 133923,
+                "winner_source": [
+                  0,
+                  3,
+                  130246
+                ],
+                "projected_z": 4.386692004056404,
+                "winner_z": 3.587092027901126,
+                "count": 8
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  421,
+                  204
+                ],
+                "winner": 181411,
+                "winner_source": [
+                  0,
+                  4,
+                  132857
+                ],
+                "projected_z": 3.8759898094157412,
+                "winner_z": 3.8083365636060105,
+                "count": 9
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  386,
+                  207
+                ],
+                "winner": 134229,
+                "winner_source": [
+                  0,
+                  3,
+                  130984
+                ],
+                "projected_z": 3.4351191277741666,
+                "winner_z": 3.4040396821181167,
+                "count": 21
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  299,
+                  208
+                ],
+                "winner": 262894,
+                "winner_source": [
+                  0,
+                  6,
+                  132069
+                ],
+                "projected_z": 3.3223360251846437,
+                "winner_z": 3.3223360251846437,
+                "count": 7
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  229,
+                  206
+                ],
+                "winner": 217802,
+                "winner_source": [
+                  0,
+                  5,
+                  133419
+                ],
+                "projected_z": 3.6037073135375977,
+                "winner_z": 3.6036752434548855,
+                "count": 21
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  224,
+                  203
+                ],
+                "winner": 262894,
+                "winner_source": [
+                  0,
+                  6,
+                  132069
+                ],
+                "projected_z": 4.114409508178261,
+                "winner_z": 4.114409508178261,
+                "count": 8
+              }
+            ]
+          },
+          "205921": {
+            "source": [
+              0,
+              4,
+              244805
+            ],
+            "camera_projections": [
+              {
+                "camera": 0,
+                "pixel": [
+                  315,
+                  332
+                ],
+                "winner": 64466,
+                "winner_source": [
+                  0,
+                  1,
+                  207611
+                ],
+                "projected_z": 4.688554033897374,
+                "winner_z": 3.484421507764244,
+                "count": 9
+              },
+              {
+                "camera": 1,
+                "pixel": [
+                  370,
+                  337
+                ],
+                "winner": 162221,
+                "winner_source": [
+                  0,
+                  3,
+                  218522
+                ],
+                "projected_z": 4.539761215978404,
+                "winner_z": 3.8408022575106813,
+                "count": 8
+              },
+              {
+                "camera": 2,
+                "pixel": [
+                  402,
+                  352
+                ],
+                "winner": 66250,
+                "winner_source": [
+                  0,
+                  1,
+                  212891
+                ],
+                "projected_z": 4.13362684198319,
+                "winner_z": 3.681875448876129,
+                "count": 22
+              },
+              {
+                "camera": 3,
+                "pixel": [
+                  388,
+                  371
+                ],
+                "winner": 205782,
+                "winner_source": [
+                  0,
+                  4,
+                  244164
+                ],
+                "projected_z": 3.708058920052221,
+                "winner_z": 3.7031690345611885,
+                "count": 4
+              },
+              {
+                "camera": 4,
+                "pixel": [
+                  325,
+                  382
+                ],
+                "winner": 205921,
+                "winner_source": [
+                  0,
+                  4,
+                  244805
+                ],
+                "projected_z": 3.5123493671417236,
+                "winner_z": 3.5123493671417236,
+                "count": 2
+              },
+              {
+                "camera": 5,
+                "pixel": [
+                  257,
+                  374
+                ],
+                "winner": 205921,
+                "winner_source": [
+                  0,
+                  4,
+                  244805
+                ],
+                "projected_z": 3.6611421850606933,
+                "winner_z": 3.6611421850606933,
+                "count": 6
+              },
+              {
+                "camera": 6,
+                "pixel": [
+                  235,
+                  355
+                ],
+                "winner": 250228,
+                "winner_source": [
+                  0,
+                  5,
+                  235822
+                ],
+                "projected_z": 4.067276559055907,
+                "winner_z": 3.6980137154285995,
+                "count": 21
+              },
+              {
+                "camera": 7,
+                "pixel": [
+                  263,
+                  338
+                ],
+                "winner": 289618,
+                "winner_source": [
+                  0,
+                  6,
+                  222375
+                ],
+                "projected_z": 4.492844480986876,
+                "winner_z": 3.926087414632508,
+                "count": 10
+              }
+            ]
+          }
+        },
+        "CPU_CUDA_owner_disagreement_pixels": 0,
+        "cuda_peak_allocated_bytes": 829992960
+      }
+    ],
+    "seconds": 25.634508678980637,
+    "max_rss_bytes": 2062135296,
+    "device": "cuda"
+  },
+  "datasets": [
+    {
+      "scene": "USB_100109",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    },
+    {
+      "scene": "blade_103706",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    },
+    {
+      "scene": "foldchair_102255",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    },
+    {
+      "scene": "fridge_10905",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    },
+    {
+      "scene": "laptop_10211",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    },
+    {
+      "scene": "oven_101917",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    },
+    {
+      "scene": "scissor_11100",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    },
+    {
+      "scene": "stapler_103111",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    },
+    {
+      "scene": "storage_45135",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    },
+    {
+      "scene": "washer_103776",
+      "frames": 60,
+      "fps": 59.0,
+      "time_source": "metadata/timing.json:fps",
+      "time_units": "seconds",
+      "cameras": 8,
+      "warp_noise_found": false
+    }
+  ],
+  "visual_output": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_validation_rbylqk6a/storage_geometry_preflight/temporal/index.html",
+  "acceptance": "NOT_SATISFIED",
+  "blockers": [
+    "MISSING_TEMPORAL_WARP_NOISE in all ten scenes",
+    "Existing full-suite failures in archive/legacy paths",
+    "Real temporal estimation, post-update graph sizes, runtime and accuracy not validated"
+  ]
+}

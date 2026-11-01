@@ -44,7 +44,13 @@ STAGE_SOURCES = {
     'joint': ['joint_reduction/joint_projective.py', 'joint_reduction/bidirectional.py', 'rigeuler_ref/rigid_trajectory_reduction.py',
               'rigeuler_ref/joint_manifold.py', 'rigeuler_ref/manifold.py', 'configs/image_joint_policy.json'],
     'support': ['joint_reduction/support_projective.py'],
+    'free_temporal': ['estimator/temporal_phase1.py', 'estimator/ieks_point_trajectory.py', 'estimator/rts_point_smoother.py', 'estimator/block_tridiagonal.py',
+                      'estimator/temporal_history.py', 'estimator/temporal_observability.py', 'configs/temporal_phase1.json'],
 }
+STAGE_SOURCES['free_temporal_rgbd'] = [
+    'estimator/temporal_zbuffer.py', 'estimator/temporal_reference.py', 'estimator/temporal_rgbd_terms.py',
+    'estimator/temporal_full_graph.py', 'estimator/temporal_simplified_iekf.py', 'estimator/temporal_noise.py',
+    'estimator/temporal_run.py', 'debug/temporal_debug.py', 'debug/projective_debug.py', 'debug/assets/projective_common.js', 'train.py']
 DIRS = {'forward': 'forward', 'backward': 'backward'}
 
 
@@ -78,6 +84,22 @@ def parse(argv=None):
                          'configs/example_mask_image_noise.json (UNCALIBRATED)')
     for old in ('--geometry-constraints', '--geometry-depth-mode', '--geometry-posterior-mean'):    # removed, never aliased
         io.add_argument(old, dest=old.strip('-').replace('-', '_'), help=argparse.SUPPRESS)
+    io.add_argument('--free-solver', choices=['directional', 'temporal-ieks'], default='directional',
+                    help='directional (default): the original free F1/B1 filter. temporal-ieks: the opt-in Phase-1 joint initial-geometry and motion '
+                         'smoother (RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md), F1 only, writes free_forward_temporal/; downstream stages '
+                         'have no adapter yet, so it requires --stop-after free')
+    io.add_argument('--temporal-config', type=Path, default=REPO/'configs/temporal_phase1.json', help='declared numerics of --free-solver temporal-ieks')
+    tm = ap.add_argument_group('depth-sorted temporal RGB-D (opt-in; legacy is unchanged)')
+    tm.add_argument('--observation-model', choices=['legacy', 'temporal-rgbd'], default='legacy')
+    tm.add_argument('--temporal-mode', choices=['full', 'simplified'], default='full')
+    tm.add_argument('--temporal-lag-frames', type=int, default=3)
+    tm.add_argument('--temporal-reference-policy', choices=['latest-valid'], default='latest-valid')
+    tm.add_argument('--temporal-warp-noise', choices=['measured', 'config', 'ideal'], default='measured')
+    tm.add_argument('--temporal-warp-noise-config', type=Path)
+    tm.add_argument('--temporal-runtime-budget-seconds',type=float,help='explicit full-graph diagnostic budget; exceeding it is FULL_RUNTIME_LIMIT, not success')
+    tm.add_argument('--temporal-diagnostic-original-point-ids',type=lambda s:[int(x) for x in s.replace(',', ' ').split()],help='FOCAL CONTROL ONLY: selected original canonical IDs, all cameras/images; not a full-cloud validation')
+    tm.add_argument('--temporal-component-workspace-mib', type=float, default=512,
+                    help='exact full component dense-factor workspace ceiling; not a point partition or physical threshold')
     st = ap.add_argument_group('stages')
     st.add_argument('--direction', choices=['forward', 'backward', 'both'], default='both')
     st.add_argument('--stage', choices=INFERENCE+['debug', 'all'], default='all',
@@ -114,6 +136,19 @@ def parse(argv=None):
     bt.add_argument('--only', nargs='*'); bt.add_argument('--exclude', nargs='*', default=[])
     bt.add_argument('--frame-limit', type=int, help='TEST prefix of frames only')
     a = ap.parse_args(argv)
+    given = sys.argv[1:] if argv is None else argv
+    new_temporal_flags = ('--temporal-mode', '--temporal-lag-frames', '--temporal-reference-policy', '--temporal-warp-noise',
+                          '--temporal-warp-noise-config', '--temporal-component-workspace-mib','--temporal-runtime-budget-seconds','--temporal-diagnostic-original-point-ids')
+    if a.observation_model == 'legacy' and any(arg.split('=')[0] in new_temporal_flags for arg in given):
+        ap.error('new --temporal-* options require --observation-model temporal-rgbd; the legacy default is never silently promoted')
+    if a.temporal_lag_frames < 2: ap.error('--temporal-lag-frames must be >= 2')
+    if a.temporal_runtime_budget_seconds is not None and not 0<a.temporal_runtime_budget_seconds<float('inf'):ap.error('runtime budget must be positive finite')
+    if not 0 < a.temporal_component_workspace_mib < float('inf'): ap.error('--temporal-component-workspace-mib must be positive finite')
+    if a.observation_model == 'temporal-rgbd':
+        if a.free_solver != 'directional': ap.error('temporal-rgbd is independent of --free-solver temporal-ieks; choose directional')
+        if a.rendered_mask_measurement not in (None, 'off'): ap.error('temporal-rgbd requires --rendered-mask-measurement off; no unified mask objective is derived')
+        if a.covariance_precision != 'float64': ap.error('temporal-rgbd currently requires --covariance-precision float64')
+        if a.temporal_warp_noise == 'config' and a.temporal_warp_noise_config is None: ap.error('--temporal-warp-noise config requires --temporal-warp-noise-config')
     if a.cuda_backend == 'triton': ap.error('--cuda-backend triton is not implemented; the verified implementation is the PyTorch CUDA reference')
     if a.pcd_subsample_factor < 1: ap.error('--pcd-subsample-factor must be >= 1')
     for old in ('geometry_constraints', 'geometry_depth_mode', 'geometry_posterior_mean'):
@@ -122,6 +157,12 @@ def parse(argv=None):
                      '(RGBDiekf_Codex_Rendered_Binary_Mask_IEKF_Replacement.md); it is not aliased to the new measurement')
     if a.rendered_mask_measurement == 'on' and a.mask_image_noise_config is None:
         ap.error('--rendered-mask-measurement on needs a DECLARED mask variance: --mask-image-noise-config (no default weight is chosen for you)')
+    if a.free_solver == 'temporal-ieks':
+        if a.stop_after != 'free': ap.error('--free-solver temporal-ieks: downstream stages have no adapter yet (spec P1.9): use --stop-after free')
+        if a.direction != 'forward': ap.error('--free-solver temporal-ieks runs F1 only until F1 is validated (spec 0.1): use --direction forward')
+        if a.velocity_prior_speed99 is not None: ap.error('--free-solver temporal-ieks uses no speed percentile (spec 0.4): remove --velocity-prior-speed99')
+        if a.rendered_mask_measurement not in (None, 'off'): ap.error('--free-solver temporal-ieks: the rendered pseudomask stays off (G6.5)')
+        if a.stage not in ('all', 'free') or a.resume_from is not None: ap.error('--free-solver temporal-ieks has no resume path')
     if a.stage != 'all' and a.stage != 'free' and a.resume_from is None: ap.error('--stage after free needs --resume-from')
     if a.stage not in ('all', 'debug') and INFERENCE.index(a.stage) > INFERENCE.index(a.stop_after): ap.error('--stage is after --stop-after')
     return ap, a
@@ -207,6 +248,16 @@ def run_scene(ap, a):
         max_iters = a.max_iekf_iters or int(policy['max_iekf_iters'])
         data = Dataset(a.scene, a.frame_limit, None, fps=a.fps, dt_seconds=a.dt_seconds, timestamps_file=a.timestamps_file)
         config = load_config(a.noise_config)
+        temporal_options = None
+        if a.observation_model == 'temporal-rgbd':
+            from estimator.temporal_noise import load_warp_noise
+            if policy['rendered_mask_measurement']['mode'] != 'off': raise ValueError('temporal-rgbd requires the effective rendered-mask policy off, including configuration overrides')
+            if policy.get('depth_interpolation', 'metric') != 'metric': raise ValueError('temporal-rgbd specifies metric-depth bilinear latents; inverse interpolation is a different model')
+            wc, wp = load_warp_noise(a.scene, a.temporal_warp_noise, a.temporal_warp_noise_config)
+            temporal_options = {'mode': a.temporal_mode, 'lag': a.temporal_lag_frames, 'reference_policy': a.temporal_reference_policy,
+                                'warp_covariance': wc.tolist(), 'warp_provenance': wp,
+                                'runtime_budget_seconds':a.temporal_runtime_budget_seconds,'diagnostic_original_point_ids':a.temporal_diagnostic_original_point_ids,
+                                'workspace_bytes': int(a.temporal_component_workspace_mib*1024**2)}
         if a.velocity_prior_speed99 is not None:
             from scene.noise_calibration import velocity_prior
             config.velocity_covariance, sv = velocity_prior(a.velocity_prior_speed99)
@@ -216,10 +267,15 @@ def run_scene(ap, a):
         if a.sensor_noise == 'measured':
             from scene.noise_calibration import calibrate
             t0 = time.time()
-            config, policy, calib = calibrate(data, config, policy, a.device)
+            if temporal_options is not None:
+                from estimator.temporal_noise import temporal_sensor_only
+                config,policy,calib=temporal_sensor_only(data,config,policy)
+            else:config, policy, calib = calibrate(data, config, policy, a.device)
             calib['seconds'] = time.time()-t0
             json_write(root/'noise_calibration.json', serial(calib))
-            print(f"[noise] measured R: rgb var {[f'{v:.2e}' for v in calib['result']['rgb_variance']]} + model {calib['result']['rgb_model_variance']:.2e}, "
+            if temporal_options is not None:
+                print(f"[noise] conditional temporal sensor estimate: {calib['result']}; cross-camera mismatch not used; {temporal_options['warp_provenance']['assumption_class']}",flush=True)
+            else:print(f"[noise] measured R: rgb var {[f'{v:.2e}' for v in calib['result']['rgb_variance']]} + model {calib['result']['rgb_model_variance']:.2e}, "
                   f"depth var {calib['result']['depth_variance_m2']:.2e} + {calib['result']['depth_squared_variance']:.2e} z^2 + model {calib['result']['depth_model_variance_m2']:.2e} "
                   f"({calib['seconds']:.0f} s)", flush=True)
         K = len(data.times)
@@ -238,6 +294,12 @@ def run_scene(ap, a):
                     'ground_truth_used_in_inference': False, 'correspondences_used': False, 'renderer_used': False,
                     'hardware': {'torch': torch.__version__, 'cuda': torch.version.cuda,
                                  'gpu': torch.cuda.get_device_name(0) if torch.cuda.is_available() else None}}
+        manifest['observation_model'] = a.observation_model
+        if temporal_options is not None:
+            manifest.update({'observation_model_version': 1, 'temporal': temporal_options,
+                             'renderer_used': 'hard nearest-integer first-hit point zbuffer',
+                             'correspondences_used': 'camera-local temporal warp with hard first-hit ownership',
+                             'downstream_observation_model': 'TEMPORAL_FREE_WITH_LEGACY_RIGID'})
         first = 'free' if a.stage == 'all' else a.stage
         reused, folders = check_resume(a, manifest, first, directions) if a.resume_from else ([], [])
         manifest['reused_stages'] = {'from': str(a.resume_from.resolve()) if a.resume_from else None, 'stages': reused, 'folders': folders}
@@ -247,9 +309,24 @@ def run_scene(ap, a):
         # ---- F1 / B1
         from estimator.free_projective_run import run_free
         for d in directions:
+            if a.free_solver == 'temporal-ieks':
+                from estimator.free_projective_run import run_free_temporal
+                t0 = time.time()
+                tcfg = json.loads(a.temporal_config.read_text())
+                stages[f'free_{d}_temporal'] = run_free_temporal(data, config, policy, tcfg, d, root/f'free_{d}_temporal', a.device, sub, a.debug_point_ids,
+                                                                 lambda m: print(m, flush=True), {'git_commit': manifest['git_commit'], 'source_hashes': manifest['source_hashes'],
+                                                                                                  'temporal_config_file': str(a.temporal_config.resolve())})
+                timings[f'free_{d}_temporal'] = time.time()-t0
+                continue
             if want('free'):
                 t0 = time.time()
-                stages[f'free_{d}'] = run_free(data, config, policy, d, root/f'free_{d}', a.device, sub, a.covariance_precision, max_iters,
+                if temporal_options is not None:
+                    from estimator.temporal_run import run_temporal_free
+                    stages[f'free_{d}'] = run_temporal_free(data, config, policy, d, root/f'free_{d}', a.device, sub, temporal_options,
+                                                          debug_frames, a.debug_point_ids, max_iters, float(policy['iekf_step_tolerance']),
+                                                          a.save_full_covariance or a.debug == 'full', a.save_state_interval, report)
+                else:
+                    stages[f'free_{d}'] = run_free(data, config, policy, d, root/f'free_{d}', a.device, sub, a.covariance_precision, max_iters,
                                                float(policy['iekf_step_tolerance']), a.point_chunk_size, debug_frames, a.debug_point_ids,
                                                a.save_full_covariance or a.debug == 'full', a.save_state_interval, report, a.pixel_reuse_assignment, mask_noise)
                 timings[f'free_{d}'] = time.time()-t0
@@ -309,6 +386,10 @@ def run_scene(ap, a):
         result = {'status': 'COMPLETE' if complete else 'INCOMPLETE_OR_UNRESOLVED', 'stages': stages, 'stage_seconds': timings,
                   'runtime_seconds': time.time()-t_start}
         json_write(root/'result.json', serial(result))
+        if a.free_solver == 'temporal-ieks' and (a.debug != 'none' or not a.no_evaluate or not a.no_qa):
+            result['debug_evaluation_qa'] = {'status': 'SKIPPED', 'reason': 'temporal-ieks: debug pages / evaluate_projective_gt read free_forward/; use '
+                                                                             'tools/evaluate_temporal_phase1.py (spec: avoid coupling the solver to debug pages)'}
+            a.debug, a.no_evaluate, a.no_qa = 'none', True, True
         if a.debug != 'none':
             t0 = time.time()
             from debug.projective_debug import write_debug
@@ -327,7 +408,7 @@ def run_scene(ap, a):
         return 0 if complete else 3
     except BaseException as err:
         (root/'failure.log').write_text(traceback.format_exc())
-        (root/'failure.json').write_text(json.dumps({'status': 'FAILED', 'reason': str(err), 'stages': {k: (v.get('status') if isinstance(v, dict) else v) for k, v in stages.items()}}, indent=1, default=str))
+        (root/'failure.json').write_text(json.dumps({'status': getattr(err, 'status', 'FAILED'), 'reason': str(err), 'stages': {k: (v.get('status') if isinstance(v, dict) else v) for k, v in stages.items()}}, indent=1, default=str))
         raise
     finally:
         fcntl.flock(lock, fcntl.LOCK_UN); lock.close(); (root/'run.lock').unlink(missing_ok=True)
@@ -374,13 +455,16 @@ def check_resume(a, manifest, first, directions):
     mapping, calibration, timestamps, cameras, noise, policy and the implementation hashes of every reused stage."""
     src = a.resume_from.resolve()
     old = json.loads((src/'run_manifest.json').read_text())
+    if old.get('observation_model', 'legacy') != manifest.get('observation_model', 'legacy'): raise ValueError('Rejected resume: observation model differs')
+    if old.get('temporal') != manifest.get('temporal'): raise ValueError('Rejected resume: temporal model/noise/lag differs')
     if old.get('entry') != 'train.py' or 'four-pass' not in old.get('pipeline', ''): raise ValueError('Rejected resume: not a four-pass projective run')
     norm = lambda v: json.loads(json.dumps(v, default=str))
     for key in ('dataset', 'cameras', 'noise', 'policy', 'subsample', 'mask_noise'):
         if norm(old.get(key)) != norm(manifest[key]): raise ValueError(f'Rejected resume: {key} differs')
     stages = ORDER[:ORDER.index(first)]
     for s in stages:
-        for f in STAGE_SOURCES[s]:
+        extra = STAGE_SOURCES['free_temporal_rgbd'] if s == 'free' and manifest.get('observation_model') == 'temporal-rgbd' else []
+        for f in STAGE_SOURCES[s]+extra:
             if old['source_hashes'].get(f) != manifest['source_hashes'][f]: raise ValueError(f'Rejected resume: {f} changed since stage {s} ran')
     reused = []
     for s in stages:

@@ -75,3 +75,54 @@ scene folder | dataset root
 ## Tests
 
 `tests/test_projective_camera.py`, `test_projective_measurement.py`, `test_point_kalman_cuda.py`, `test_rigid_kalman_cuda.py`, `test_canonical_subsample.py`, `test_joint_projective.py`, `test_four_passes.py`, and `test_coherence_parity.py` (unchanged extractor). Run with `python -m unittest discover -s tests -t .`.
+
+## Opt-in depth-sorted temporal RGB-D F1/B1 (2026-10-30)
+
+- `train.py`: explicit observation model/mode/noise/lag flags; legacy default;
+  per-mode manifests, source hashes and incompatible-resume rejection.
+- `estimator/temporal_zbuffer.py`: shared torch CPU/CUDA stable first-hit renderer
+  and independent NumPy oracle. No measured appearance/depth chooses an owner.
+- `estimator/temporal_reference.py`: camera-local accepted references, source
+  identity preservation, bootstrap and processing-order age.
+- `estimator/temporal_rgbd_terms.py`: common hard-valid raw keys, bilinear weights,
+  temporal prediction, both state Jacobians and clean-pixel derivatives.
+- `estimator/temporal_noise.py`: separate warp covariance and provenance; no
+  inference of temporal warp noise from unrelated cross-camera residuals.
+- `estimator/temporal_simplified_iekf.py`: fixed-reference conditional 6D IEKF.
+- `estimator/temporal_full_graph.py`: unique pixel registry, coupled source
+  backprojection, sparse J/JT, connected components, exact feasible-component
+  Gaussian solve/covariance, correlated innovation and complete FEJ Schur prior.
+- `estimator/temporal_run.py`: signed-time F1/B1, preserved output schema, graph
+  preflight, per-camera diagnostics, selected cross blocks, live debug output.
+- `debug/temporal_debug.py`: file-compatible live image/3D/convergence dashboard;
+  `debug/projective_debug.py` still supplies the full existing viewer.
+- `tools/test_temporal_rgbd.py`: machine-readable tiny CPU/CUDA gate results;
+  `tools/verify_temporal_legacy_parity.py` reconstructs the captured dirty baseline
+  in /tmp and compares every legacy array/full covariance snapshot.
+- `tools/audit_temporal_inputs.py`: clearly labeled geometry/resource preflight,
+  not reconstruction; can inspect actual entire point clouds without a warp R.
+- `tools/run_temporal_rgbd_critical.sh` / `.py`: operator-run all-scene driver.
+- `tools/evaluate_temporal_rgbd.py` / `compare_temporal_modes.py`: separate
+  diagnostics and opt-in post-hoc GT; never imported by the estimator.
+
+Limitations and implementation equations are in
+`TEMPORAL_RGBD_IEKF_MATHEMATICAL_CONTRACT.md`. Full-scale temporal estimation is
+not validated; the full-scene component sizes after actual state updates and their computational
+costs remain unvalidated. No simplified fallback occurs.
+
+Temporal next-actions validation tools:
+
+- `tools/calibrate_temporal_warp_noise.py`: separate GT-free identifiability study;
+  per-camera conditional sensor estimates from calibration-block frames only,
+  robust 4x4 candidate differences and disjoint held-out temporal blocks. No
+  usable warp covariance is emitted when discrepancy is not identifiable.
+- `tools/audit_temporal_regressions.py`: isolated captured pre-edit/active runs of
+  the seven failures, with complete assertion hashes and preserved tracebacks.
+- `tools/audit_temporal_saved_linearizations.py`: independent SciPy dense QR on
+  actual saved bounded components, cached real CPU/CUDA geometry/warp parity.
+- `tools/evaluate_temporal_points_gt.py`: post-inference only, original-ID motion
+  errors and conditional NEES; never imported by inference or calibration.
+- `tools/qa_temporal_debug.py`: browser checks of actual estimated point data,
+  plotted trajectory/speed/covariance pixels, 3D frame and camera controls.
+- `tools/report_temporal_next_validation.py`: seven required reports and the
+  actual-results HTML index; incomplete runs and focal approximations stay explicit.
