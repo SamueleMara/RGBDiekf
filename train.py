@@ -51,6 +51,9 @@ STAGE_SOURCES['free_temporal_rgbd'] = [
     'estimator/temporal_zbuffer.py', 'estimator/temporal_reference.py', 'estimator/temporal_rgbd_terms.py',
     'estimator/temporal_full_graph.py', 'estimator/temporal_simplified_iekf.py', 'estimator/temporal_noise.py',
     'estimator/temporal_run.py', 'debug/temporal_debug.py', 'debug/projective_debug.py', 'debug/assets/projective_common.js', 'train.py']
+STAGE_SOURCES['free_temporal_rgbd'] += ['estimator/temporal_sparse_gpu.py','estimator/temporal_sparse_solve.py',
+    'estimator/temporal_sparse_marginalization.py','estimator/temporal_sparse_nonlinear.py',
+    'estimator/temporal_sparse_run.py','estimator/temporal_cudss.py','utils/temporal_output.py']
 DIRS = {'forward': 'forward', 'backward': 'backward'}
 
 
@@ -97,6 +100,7 @@ def parse(argv=None):
     tm.add_argument('--temporal-warp-noise', choices=['measured', 'config', 'ideal'], default='measured')
     tm.add_argument('--temporal-warp-noise-config', type=Path)
     tm.add_argument('--temporal-runtime-budget-seconds',type=float,help='explicit full-graph diagnostic budget; exceeding it is FULL_RUNTIME_LIMIT, not success')
+    tm.add_argument('--temporal-output-headroom-mib',type=float,default=128.,help='operational disk headroom, not a statistical parameter')
     tm.add_argument('--temporal-diagnostic-original-point-ids',type=lambda s:[int(x) for x in s.replace(',', ' ').split()],help='FOCAL CONTROL ONLY: selected original canonical IDs, all cameras/images; not a full-cloud validation')
     tm.add_argument('--temporal-component-workspace-mib', type=float, default=512,
                     help='exact full component dense-factor workspace ceiling; not a point partition or physical threshold')
@@ -138,11 +142,12 @@ def parse(argv=None):
     a = ap.parse_args(argv)
     given = sys.argv[1:] if argv is None else argv
     new_temporal_flags = ('--temporal-mode', '--temporal-lag-frames', '--temporal-reference-policy', '--temporal-warp-noise',
-                          '--temporal-warp-noise-config', '--temporal-component-workspace-mib','--temporal-runtime-budget-seconds','--temporal-diagnostic-original-point-ids')
+                          '--temporal-warp-noise-config', '--temporal-component-workspace-mib','--temporal-runtime-budget-seconds','--temporal-diagnostic-original-point-ids','--temporal-output-headroom-mib')
     if a.observation_model == 'legacy' and any(arg.split('=')[0] in new_temporal_flags for arg in given):
         ap.error('new --temporal-* options require --observation-model temporal-rgbd; the legacy default is never silently promoted')
     if a.temporal_lag_frames < 2: ap.error('--temporal-lag-frames must be >= 2')
     if a.temporal_runtime_budget_seconds is not None and not 0<a.temporal_runtime_budget_seconds<float('inf'):ap.error('runtime budget must be positive finite')
+    if not 0<=a.temporal_output_headroom_mib<float('inf'):ap.error('output headroom must be nonnegative finite')
     if not 0 < a.temporal_component_workspace_mib < float('inf'): ap.error('--temporal-component-workspace-mib must be positive finite')
     if a.observation_model == 'temporal-rgbd':
         if a.free_solver != 'directional': ap.error('temporal-rgbd is independent of --free-solver temporal-ieks; choose directional')
@@ -170,6 +175,10 @@ def parse(argv=None):
 
 def main(argv=None):
     ap, a = parse(argv)
+    if a.observation_model=='temporal-rgbd' and a.temporal_mode=='full' and (a.frame_limit is None or a.frame_limit>3):
+        from tools.temporal_batch_runtime import require_three_frame_full_cloud_gate
+        try:require_three_frame_full_cloud_gate(REPO)
+        except ValueError as error:ap.error(str(error))
     if a.output is None: a.output = RESULTS_ROOT/f"projective_{a.scene.resolve().name}_{time.strftime('%Y%m%d_%H%M')}"
     if a.output.expanduser().resolve().is_relative_to(REPO): ap.error(f'{a.output} is inside the code tree {REPO}: results go to a separate output folder')
     if not is_scene(a.scene): return run_root(a, list(sys.argv[1:] if argv is None else argv))
@@ -257,6 +266,7 @@ def run_scene(ap, a):
             temporal_options = {'mode': a.temporal_mode, 'lag': a.temporal_lag_frames, 'reference_policy': a.temporal_reference_policy,
                                 'warp_covariance': wc.tolist(), 'warp_provenance': wp,
                                 'runtime_budget_seconds':a.temporal_runtime_budget_seconds,'diagnostic_original_point_ids':a.temporal_diagnostic_original_point_ids,
+                                'output_headroom_bytes':int(a.temporal_output_headroom_mib*1024**2),
                                 'workspace_bytes': int(a.temporal_component_workspace_mib*1024**2)}
         if a.velocity_prior_speed99 is not None:
             from scene.noise_calibration import velocity_prior
@@ -321,7 +331,10 @@ def run_scene(ap, a):
             if want('free'):
                 t0 = time.time()
                 if temporal_options is not None:
-                    from estimator.temporal_run import run_temporal_free
+                    if a.temporal_mode == 'full':
+                        from estimator.temporal_sparse_run import run_temporal_sparse_free as run_temporal_free
+                    else:
+                        from estimator.temporal_run import run_temporal_free
                     stages[f'free_{d}'] = run_temporal_free(data, config, policy, d, root/f'free_{d}', a.device, sub, temporal_options,
                                                           debug_frames, a.debug_point_ids, max_iters, float(policy['iekf_step_tolerance']),
                                                           a.save_full_covariance or a.debug == 'full', a.save_state_interval, report)

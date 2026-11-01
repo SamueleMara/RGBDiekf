@@ -1,0 +1,20 @@
+{
+  "evidence_directory": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_sparse_gpu_evidence_20261101_opp86jxn",
+  "verdict": "FULL_SPARSE_GPU_NOT_ACCEPTED",
+  "tests_passed": 60,
+  "complete_filtering_passed": false,
+  "full_cloud_profile": "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_sparse_gpu_profiles_verified_9wehtewh/USB_assembly/assembly_profiles.json",
+  "production_batches": [
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_172133_a6468f0b",
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_172523_3235bbfb",
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_172926_9e82c7f4",
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_174537_30e2d0c6",
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_180202_743cb49b",
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_180334_1381d3fc",
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_180517_b474c9b2",
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_180725_4e6f9ef6",
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_181027_02771684",
+    "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_181742_48304ebe"
+  ],
+  "source_snapshots_copied": false
+}

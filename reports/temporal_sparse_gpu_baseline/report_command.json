@@ -1,0 +1,20 @@
+[
+  "/home/samuelemara/miniconda3/envs/rigeuler3dgs/bin/python",
+  "-B",
+  "tools/report_temporal_sparse_gpu.py",
+  "--batch",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_172133_a6468f0b",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_172523_3235bbfb",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_172926_9e82c7f4",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_174537_30e2d0c6",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_180202_743cb49b",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_180334_1381d3fc",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_180517_b474c9b2",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_180725_4e6f9ef6",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_181027_02771684",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_rgbd_20261101_181742_48304ebe",
+  "--test-report",
+  "reports/temporal_sparse_gpu_baseline/staged_tests_final.json",
+  "--profile-report",
+  "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf/temporal_sparse_gpu_profiles_verified_9wehtewh/USB_assembly/assembly_profiles.json"
+]

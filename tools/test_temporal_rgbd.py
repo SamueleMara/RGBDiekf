@@ -66,9 +66,11 @@ def witnesses():
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=Path('tests/temporal_test_results.json'));a=ap.parse_args()
-    modules=['tests.test_temporal_warp','tests.test_temporal_full_graph','tests.test_temporal_rgbd_pipeline','tests.test_temporal_motion']
+    modules=['tests.test_temporal_warp','tests.test_temporal_full_graph','tests.test_temporal_rgbd_pipeline','tests.test_temporal_motion',
+             'tests.test_temporal_sparse_gpu','tests.test_temporal_sparse_marginalization','tests.test_temporal_sparse_runtime_safety']
     import train
-    source_paths=sorted(set(train.STAGE_SOURCES['free']+train.STAGE_SOURCES['free_temporal_rgbd']+[m.replace('.','/')+'.py' for m in modules]+['tools/test_temporal_rgbd.py']))
+    source_paths=sorted(set(train.STAGE_SOURCES['free']+train.STAGE_SOURCES['free_temporal_rgbd']+[m.replace('.','/')+'.py' for m in modules]+
+        ['tools/test_temporal_rgbd.py','tools/temporal_batch_runtime.py','tools/run_temporal_rgbd_critical.py','tools/report_temporal_sparse_gpu.py']))
     before_hashes={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in source_paths}
     suite=unittest.defaultTestLoader.loadTestsFromNames(modules)
     started=time.perf_counter();result=unittest.TextTestRunner(verbosity=2,resultclass=RecordedResult).run(suite)
@@ -89,6 +91,10 @@ def main():
     report['motion_witnesses']=MOTION_WITNESSES
     from tests.test_temporal_full_graph import IDEAL_ORACLE_WITNESSES
     report['ideal_warp_oracle_witnesses']=IDEAL_ORACLE_WITNESSES
+    from tests.test_temporal_sparse_gpu import SPARSE_WITNESSES
+    from tests.test_temporal_sparse_marginalization import MARGINAL_WITNESSES
+    report['sparse_gpu_witnesses']=SPARSE_WITNESSES
+    report['sparse_marginal_witnesses']=MARGINAL_WITNESSES
     report['source_sha256']=before_hashes
     report['sources_changed_during_tests']=[p for p,h in before_hashes.items() if hashlib.sha256(Path(p).read_bytes()).hexdigest()!=h]
     json_write(a.output,serial(report));return 0 if result.wasSuccessful() and not report['sources_changed_during_tests'] else 1

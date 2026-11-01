@@ -75,138 +75,56 @@ Outputs of one run:
 | `docs/`, `reports/` | code map, specifications, audits and validation reports |
 | `attic/` | earlier pipelines, ignored by git |
 
-## Depth-sorted temporal RGB-D (opt-in, validation incomplete)
+## Depth-sorted temporal RGB-D — sparse GPU acceptance pending
 
-The default legacy estimator is preserved. The new F1/B1 path is selected with
-`--observation-model temporal-rgbd --temporal-mode full|simplified`.
-`full` uses shared clean-pixel variables and exact local component marginalization;
-`simplified` is the explicitly approximate fixed-reference ablation. This is
-separate from the earlier `--free-solver temporal-ieks` experiment.
+The default legacy estimator is preserved. Full mode selects typed SoA GPU factors,
+exact clean-pixel constraint substitution, sparse cuDSS factorization, joint selected
+covariances and full FEJ Schur marginalization. The old dense graph is a bounded
+**test oracle**. Simplified mode remains a separate fixed-reference ablation.
+No full-mode resource failure switches estimators.
 
-Read [the implemented mathematical contract](docs/TEMPORAL_RGBD_IEKF_MATHEMATICAL_CONTRACT.md)
-and [actual filtering, validation and limitations](reports/temporal_rgbd_next_validation.md) first.
-The ideal diagnostic mode now runs without a covariance file: only the additional
-warp discrepancy is zero, while sensor/reference/state uncertainty remains active.
-It is explicitly IDEAL_WARP_ASSUMPTION_UNCALIBRATED. Data-based discrepancy
-calibration has not been identified from the supplied observations.
-The exact component backend has a resource guard; its full-scene inference
-feasibility is not yet established. Missing inputs or resource failures never count
-as successful reconstruction.
-
-Run numerical, CPU/CUDA and small integration tests in the existing environment:
-
-```bash
-conda activate rigeuler3dgs
-python -B tools/test_temporal_rgbd.py
-```
-
-The batch tool automatically discovers **all** scene folders with `rgb/` and
-`metadata/` under the synthetic root (currently ten). A dry run creates no output:
-
-```bash
-bash tools/run_temporal_rgbd_critical.sh --mode full,simplified --dry-run
-```
-
-For human use AFTER reviewing the failed scientific gates, the diagnostic command
-for all frames, cameras, directions and synthetic scenes is (not production-cleared):
-
-```bash
-bash tools/run_temporal_rgbd_critical.sh \
-  --data-root "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear" \
-  --output-root "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf" \
-  --mode full,simplified --direction both \
-  --temporal-warp-noise ideal --temporal-runtime-budget-seconds 120
-```
-
-No calibrated covariance file was fabricated. Config/measured files, when genuinely
-available, use [the strict schema](configs/temporal_warp_noise.schema.json) and
-represent only additional conditional warp discrepancy. All ten existing scenes
-have automatic 59 Hz metadata; no FPS argument is needed. The full graph currently
-hits the explicit budget on full clouds; this is a failure, not successful inference.
-
-For the required pilot add `--frame-limit 11 --direction forward`. A truncated
-backward test starts at the prefix endpoint, not original frame 59. The full
-command above is provided for reproduction, **not cleared for successful full-mode
-production**: ideal full-cloud attempts failed runtime budgets, and actual focal
-filtering still shows serious tracking/convergence failures. Changing interpolation
-weights can also merge components during inference.
-`--mode simplified` is a distinct approximation, never a hidden fallback.
-
-Every batch uses a new timestamped directory; exact commands, exit codes and logs
-are preserved. Live visual debug is at
-`SCENE_MODE/free_DIRECTION/temporal/index.html`; it includes orbitable point clouds,
-frame playback, prior/posterior comparison, camera-specific measured panels,
-warped predictions, residuals, ownership, missing coverage, reference/bootstrap
-state, nonlinear objectives, speed and covariance evolution. The complete
-existing point/measurement viewer remains at `SCENE_MODE/debug/index.html`.
-No source snapshots are copied into result folders.
-
-Independent diagnostics, comparison and optional **post-hoc only** GT:
-
-```bash
-python tools/evaluate_temporal_rgbd.py --run "/absolute/run"
-python tools/compare_temporal_modes.py --root "/absolute/batch"
-python tools/evaluate_temporal_rgbd.py --run "/absolute/run" --scene "/absolute/scene" --with-gt
-```
-
-### Ideal-warp diagnostic validation (next-actions amendment)
-
-The separate additive warp discrepancy can now be exactly zero without removing
-sensor/reference/state uncertainty. **This assumption is uncalibrated.** No JSON
-is needed:
-
-```bash
-bash tools/run_temporal_rgbd_critical.sh \
-  --mode full,simplified --direction forward --frame-limit 3 \
-  --scenes storage_45135,USB_100109 --temporal-warp-noise ideal \
-  --temporal-runtime-budget-seconds 120
-```
-
-The scene list accepts comma-separated or space-separated names. Full graph budget
-exhaustion is `FULL_RUNTIME_LIMIT`, never success and never a simplified fallback.
-`--focal-controls` is a separately labeled reduced-cloud diagnostic with exact
-original point IDs; it changes the occlusion catalogue and is not full-scene
-validation. For complete results, failure classifications and conditional 60-frame
-commands, read [the next-actions validation report](reports/temporal_rgbd_next_validation.md).
-
-Data-only calibration analysis (no GT and no automatic calibration assertion):
-
-```bash
-python -B tools/calibrate_temporal_warp_noise.py \
-  --scene "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/storage_45135" \
-  --output "/tmp/new_temporal_calibration_study"
-```
-
-A `MODEL_DISCREPANCY_NOT_IDENTIFIABLE` analysis is not a usable warp-noise file.
-
-### Execute every existing pipeline stage
-
-The batch runner defaults to `--stop-after free` for temporal validation. Use
-`--stop-after support` to request F1/B1, coherence, F2/B2, joint fitting,
-forward/backward joint comparison and support completion, with HTML debug.
-F1/B1 use the selected temporal estimator; downstream rigid stages retain their
-existing projective objective (`TEMPORAL_FREE_WITH_LEGACY_RIGID`). Unresolved
-coherence/joints remain explicit; downstream stages cannot create a reliable
-joint from failed free trajectories.
+Read the [mathematical contract](docs/TEMPORAL_RGBD_IEKF_MATHEMATICAL_CONTRACT.md),
+[implementation evidence](reports/temporal_sparse_gpu_exact_implementation.md), and
+[machine-readable acceptance report](reports/temporal_sparse_gpu_validation.json).
+A passing numerical test is not full-cloud reconstruction acceptance.
 
 ```bash
 cd /home/samuelemara/Joint3DGS/RGBDekf
 conda activate rigeuler3dgs
+python -B tools/test_temporal_rgbd.py
 bash tools/run_temporal_rgbd_critical.sh \
-  --data-root "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear" \
-  --output-root "/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf" \
-  --mode full,simplified --direction both --stop-after support \
-  --device cuda --pcd-subsample-factor 1 --debug full \
-  --temporal-warp-noise ideal --temporal-runtime-budget-seconds 900
+  --mode full --direction forward --frame-limit 3 \
+  --scenes USB_100109,blade_103706 --pcd-subsample-factor 1 \
+  --temporal-warp-noise ideal --stop-after free \
+  --temporal-runtime-budget-seconds 120
 ```
 
-This requests all ten scenes, all 60 frames and all eight cameras. To run only
-Blade add `--scenes blade_103706`. Add `--dry-run` to inspect commands without
-starting estimation. A new timestamped SSD folder contains each invocation's
-logs, `commands.jsonl`, `batch_summary.json`, per-run live temporal pages and
-the completed `debug/index.html` pages. Batch GT evaluation and browser QA are
-disabled; these are separate analyses, not inference stages. Existing full-cloud
-full-mode runs exceeded their runtime budgets, and tracking accuracy failed;
-this command is an experimental execution request, not a validated production
-result. The 900-second full-graph budget returns an explicit failure; it never
-switches to simplified mode. Omitting the budget requests unbounded runtime.
+The sparse backend requires the pinned dependency in
+[requirements-temporal-sparse.txt](configs/requirements-temporal-sparse.txt),
+installed in `rigeuler3dgs`. `ideal` means exactly zero **additional** warp-model
+error, with sensor and reference uncertainty active. It is explicitly labeled
+`IDEAL_WARP_ASSUMPTION_UNCALIBRATED`; it is not a calibration result. Scene timing
+is read from metadata. No ground-truth motion or labels enter inference.
+
+Each invocation creates a unique SSD result directory under
+`/media/samuelemara/Extreme SSD/Samuele/results_11_10_26/RGBDekf`.
+The runner enforces a hard process-group deadline and fail-fast by default.
+`batch_summary.json` and an independent `/tmp` journal preserve failures.
+Uncomputed trajectory slots are NaN and invalid. Only checksummed, committed
+frames in `completed_frames.json` can be displayed or evaluated. Live diagnostics
+are at `SCENE_full/free_forward/temporal/index.html`; a frame-0 panel is only
+initialization. No code snapshots are copied into result folders.
+
+Full workloads beyond three frames or two scenes are blocked until source-matched
+USB/Blade full-cloud acceptance evidence exists. Do not run 60-frame/ten-scene
+experiments before that gate and the subsequent eleven-frame validation pass.
+A dry run prints commands without creating outputs:
+
+```bash
+bash tools/run_temporal_rgbd_critical.sh --mode full --temporal-warp-noise ideal --dry-run
+```
+
+To regenerate numerical and runtime reports from existing evidence, use
+`python -B tools/report_temporal_sparse_gpu.py --help`. Performance-only nested
+point-cloud assembly profiles use `tools/profile_temporal_sparse_gpu.py`; reduced
+benchmarks never count as full-cloud motion-estimation acceptance.

@@ -14,6 +14,7 @@ from scipy.spatial.transform import Rotation
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from utils.run_paths import stage_dir
+from utils.temporal_output import require_valid_frame
 
 
 def ply(path):
@@ -88,6 +89,7 @@ def main():
         r = {'canonical_frame': k0, 'points': int(len(P0)), 'gt_moving_points': int(lab.sum()), 'labelled_within_1cm_fraction': float((dist < .01).mean())}
         per = []
         for k in range(K):
+            require_valid_frame(fd,k)
             T = gt_transform(kind, axis, point, q[k]-q[k0]); tp = P0.copy(); tp[lab] = P0[lab]@T[:3, :3].T+T[:3, 3]     # static part stays
             e = np.linalg.norm(np.asarray(X[k], float)-tp, axis=1); mot = np.linalg.norm(tp-P0, axis=1)
             per.append({'frame': k, 'true_motion_m_median_moving': float(np.median(mot[lab])) if lab.any() else None,

@@ -124,6 +124,9 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
     V = np.load(fd/'velocity.npy', mmap_mode='r'); S = np.load(fd/'point_status.npy', mmap_mode='r'); NV = np.load(fd/'valid_cameras.npy', mmap_mode='r')
     CR = np.load(fd/'camera_reason.npy', mmap_mode='r'); IM = np.load(fd/'information_min_eig.npy', mmap_mode='r'); PV = np.load(fd/'position_variance_diag.npy', mmap_mode='r')
     K, N = X.shape[:2]
+    if man.get('observation_model') == 'temporal-rgbd':
+        from utils.temporal_output import require_valid_frame
+        for k in range(K):require_valid_frame(fd,k)
     traced = man['debug_point_ids']
     k0 = int(can['canonical_frame']); k_end = man['processing_order'][-1]
     tids, tgroup, disp = tracked_points(root, d, can['canonical_xyz'], X, k0, k_end, traced)

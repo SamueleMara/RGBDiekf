@@ -1,0 +1,40 @@
+[
+  {
+    "argv": [
+      "tools/run_temporal_rgbd_critical.py",
+      "--mode",
+      "full",
+      "--frame-limit",
+      "60",
+      "--scenes",
+      "USB_100109",
+      "--temporal-warp-noise",
+      "ideal"
+    ],
+    "returncode": 2,
+    "stderr": "usage: run_temporal_rgbd_critical.py [-h] [--data-root DATA_ROOT]\n                                     [--output-root OUTPUT_ROOT] [--mode MODE]\n                                     [--stop-after {free,coherence,rigid,joint,support}]\n                                     [--frame-limit FRAME_LIMIT]\n                                     [--direction {forward,backward,both}]\n                                     [--scenes SCENES [SCENES ...]]\n                                     [--point-ids POINT_IDS]\n                                     [--device {cpu,cuda}] [--fps FPS]\n                                     [--temporal-lag-frames TEMPORAL_LAG_FRAMES]\n                                     [--temporal-component-workspace-mib TEMPORAL_COMPONENT_WORKSPACE_MIB]\n                                     [--temporal-runtime-budget-seconds TEMPORAL_RUNTIME_BUDGET_SECONDS]\n                                     [--terminate-grace-seconds TERMINATE_GRACE_SECONDS]\n                                     [--continue-on-error]\n                                     [--temporal-output-headroom-mib TEMPORAL_OUTPUT_HEADROOM_MIB]\n                                     [--pcd-subsample-factor PCD_SUBSAMPLE_FACTOR]\n                                     [--focal-controls]\n                                     [--temporal-warp-noise {measured,config,ideal}]\n                                     [--temporal-warp-noise-config TEMPORAL_WARP_NOISE_CONFIG]\n                                     [--sensor-noise {measured,config}]\n                                     [--debug {light,full}] [--dry-run]\nrun_temporal_rgbd_critical.py: error: FULL_SPARSE_GPU_NOT_ACCEPTED: only bounded <=3-frame pilots on at most two scenes are enabled until USB and Blade full-cloud eight-camera filtering and real-component oracle parity pass for these sources. See /home/samuelemara/Joint3DGS/RGBDekf/reports/temporal_sparse_gpu_validation.json\n",
+    "inference_started": false
+  },
+  {
+    "argv": [
+      "train.py",
+      "--scene",
+      "/media/samuelemara/Extreme SSD/Samuele/Backup_09_10_26/Sapien/output/preparation_8cams/partnet_subset_fixed_render_linear/USB_100109",
+      "--observation-model",
+      "temporal-rgbd",
+      "--temporal-mode",
+      "full",
+      "--temporal-warp-noise",
+      "ideal",
+      "--rendered-mask-measurement",
+      "off",
+      "--covariance-precision",
+      "float64",
+      "--frame-limit",
+      "60"
+    ],
+    "returncode": 2,
+    "stderr": "usage: train.py [-h] --scene SCENE [--output OUTPUT] [--device {cuda,cpu}]\n                [--fps FPS] [--timestamps-file TIMESTAMPS_FILE]\n                [--dt-seconds DT_SECONDS] [--noise-config NOISE_CONFIG]\n                [--sensor-noise {measured,config}]\n                [--velocity-prior-speed99 M_PER_S]\n                [--policy-override [KEY=VALUE ...]]\n                [--rendered-mask-measurement {off,diagnostic,on}]\n                [--mask-image-noise-config MASK_IMAGE_NOISE_CONFIG]\n                [--free-solver {directional,temporal-ieks}]\n                [--temporal-config TEMPORAL_CONFIG]\n                [--observation-model {legacy,temporal-rgbd}]\n                [--temporal-mode {full,simplified}]\n                [--temporal-lag-frames TEMPORAL_LAG_FRAMES]\n                [--temporal-reference-policy {latest-valid}]\n                [--temporal-warp-noise {measured,config,ideal}]\n                [--temporal-warp-noise-config TEMPORAL_WARP_NOISE_CONFIG]\n                [--temporal-runtime-budget-seconds TEMPORAL_RUNTIME_BUDGET_SECONDS]\n                [--temporal-output-headroom-mib TEMPORAL_OUTPUT_HEADROOM_MIB]\n                [--temporal-diagnostic-original-point-ids TEMPORAL_DIAGNOSTIC_ORIGINAL_POINT_IDS]\n                [--temporal-component-workspace-mib TEMPORAL_COMPONENT_WORKSPACE_MIB]\n                [--direction {forward,backward,both}]\n                [--stage {free,coherence,rigid,joint,support,debug,all}]\n                [--stop-after {free,coherence,rigid,joint,support}]\n                [--resume-from RESUME_FROM] [--no-evaluate] [--no-qa]\n                [--pcd-subsample-factor PCD_SUBSAMPLE_FACTOR]\n                [--pcd-subsample-method {spatial-stratified,seeded-uniform}]\n                [--pcd-subsample-seed PCD_SUBSAMPLE_SEED]\n                [--pcd-subsample-boundary-preserve PCD_SUBSAMPLE_BOUNDARY_PRESERVE]\n                [--pcd-subsample-report PCD_SUBSAMPLE_REPORT]\n                [--cuda-backend {torch,triton}]\n                [--covariance-precision {float64,float32,mixed}]\n                [--pixel-reuse-assignment {per-frame,per-iteration}]\n                [--point-chunk-size POINT_CHUNK_SIZE]\n                [--max-iekf-iters MAX_IEKF_ITERS]\n                [--coherence-count COHERENCE_COUNT]\n                [--coherence-knn COHERENCE_KNN]\n                [--coherence-folds COHERENCE_FOLDS]\n                [--coherence-weighting {pinned_raw,measurement_supported}]\n                [--joint-q-filter JOINT_Q_FILTER] [--debug {none,light,full}]\n                [--debug-frames DEBUG_FRAMES]\n                [--debug-point-ids DEBUG_POINT_IDS]\n                [--save-state-interval SAVE_STATE_INTERVAL]\n                [--save-full-covariance] [--only [ONLY ...]]\n                [--exclude [EXCLUDE ...]] [--frame-limit FRAME_LIMIT]\ntrain.py: error: FULL_SPARSE_GPU_NOT_ACCEPTED: only bounded <=3-frame pilots on at most two scenes are enabled until USB and Blade full-cloud eight-camera filtering and real-component oracle parity pass for these sources. See /home/samuelemara/Joint3DGS/RGBDekf/reports/temporal_sparse_gpu_validation.json\n",
+    "inference_started": false
+  }
+]

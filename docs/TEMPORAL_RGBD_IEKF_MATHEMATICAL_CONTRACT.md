@@ -53,7 +53,7 @@ and depth translation; it does not assume a rigid 3D patch.
 
 ## Full path
 
-`temporal_full_graph.TemporalWindowGraph` has unique raw pixel keys
+`temporal_sparse_gpu.TemporalSoAGraph` has unique raw pixel keys
 `('pixel', camera, frame, flat_pixel)` and six-dimensional non-anchor state keys.
 Every touched pixel gets exactly one sensor likelihood `y-ell ~ N(0,R_sensor)`.
 Warp factors are `ell_current - h(states,ell_reference) ~ N(0,R_warp)`.
@@ -79,46 +79,57 @@ local backprojection covariance AND nonzero Cov(x_anchor, ell_source.depth).
 There is no additional independent Pxx likelihood. The product of pixel error
 and clean depth is nonlinear; all published Gaussian covariances are local.
 
-Whitened Jacobian J is a torch sparse COO operator on CPU/CUDA. Jv and J-transpose-v
-are sparse matrix operations. The graph computes true connected components;
-shared reference pixels connect points. Components cannot be partitioned across
-an edge. For feasible components only, dense local square-root QR solves the chosen
-linearized system without squaring its condition number. Current covariance and selected cross blocks are extracted
-from the inverse JOINT component precision. They are not inverse conditional
-6x6 blocks. No global dense point covariance is allocated. Only exactly nonzero Jacobian
-blocks connect the chosen linearized components; no small nonzero coupling is
-thresholded away. Components are rebuilt after nonlinear relinearization.
+Whitened Jacobian J and exact equality C are sorted sparse GPU COO operators,
+with sparse Jv/J-transpose-v. Full production never invokes the bounded
+`TemporalWindowGraphDenseOracle` or an independent-point update. Current clean
+pixels with +I4 hard-constraint pivots are algebraically substituted, including
+all consumers and source-depth coupling. Repeated or conflicting pivots fail.
 
-Window sliding consumes all factors incident on expired variables, eliminating
-expired variables exactly by Schur. Unaffected nonlinear factors remain. The
-complete induced boundary prior is retained as a frozen Gaussian factor (FEJ),
-with its linearization point recorded. Weak positive eigenmodes are retained;
-the old-variable column space is projected out by QR, followed by QR compression
-of the retained Gaussian factor. No eigenvalue truncation or diagonal jitter is
-used. Numerically unresolved rank fails explicitly instead of inventing a prior.
+The sparse solve uses invertible source/process/sensor innovation coordinates
+built from the actual supplied covariances and F. Algebraically identity prior
+rows are eliminated from the augmented residual system into their true Gaussian
+information and gradient. This is a numerical change of coordinates, not a new
+prior or a loss of correlations. cuDSS factors the remaining augmented KKT
+without forming current measurement normal equations, without jitter or pivot
+perturbation. Iterative refinement and entrywise primal/backward-error checks
+certify each solve. Failure is explicit. Selected joint covariance queries reuse
+that factorization; RHS colors combine only genuinely disconnected components.
+No global covariance, global dense nullspace or inverse local information block
+is substituted for a joint marginal.
 
-References outside the lag are unusable; historical state information still
-persists through the Schur prior. This is a finite-lag local Gaussian method,
-not full-sequence nonlinear smoothing or globally exact Bayesian inference. The
-existing trajectory arrays publish each current filtered marginal at processing
-time; internally refined old states remain in the lag graph and its traces.
+Nonlinear acceptance uses the complete stochastic objective and exact equalities,
+full depth-competitor rerendering, valid foreground/reference support and a fixed
+common measurement domain. Complete true variable components can backtrack at
+different rates; no factor is removed. Rejected/frozen components and failure to
+converge are reported. The historical no-new-outside-foreground policy is retained:
+preexisting outside projections are diagnosed, not retroactively called feasible
+foreground measurements. They never supply raw sensor values.
 
-### Resource limit
+Window sliding consumes factors touching expired variables and retains unaffected
+nonlinear warps. Sparse Schur retains every induced information/gradient edge,
+linearization, residual constant and surviving equality. A single batched CPU
+symbolic bipartite matching identifies constraint pivots; numerical elimination,
+fill and selected solves are CUDA. FEJ constructs normal information for this
+reduction, so QR parity and conditioning tests remain essential; it is not claimed
+to have square-root conditioning. Numeric rank failure is not repaired by jitter
+or discarded eigenmodes. Induced fill and workspace can still be resource limits.
 
-The current exact backend uses dense factorization INSIDE an independent
-component, with an explicit workspace budget (default 512 MiB). It is not a
-scalable sparse Cholesky backend for a giant connected surface. Preflight rejects
-large actual components BEFORE building their dense system. `FULL_RESOURCE_LIMIT`
-is a failure, never successful reconstruction, and never triggers simplified mode.
-Increasing the workspace flag is not a solution when the bound is tens of TB.
-Storage's zero-motion, nonzero-weight initial footprint preflight has a largest
-component of 64 points; a previous four-neighbor overcount was corrected and its
-276 TB estimate withdrawn. This does NOT measure components after actual motion
-updates. Production streams exact current marginals component by component and
-keeps full component covariance only for requested traces. Cross blocks can also
-be refactored on demand. A giant component, if formed during inference, still
-needs a more scalable sparse selected-inverse/marginalization backend. Matrix-free
-Jv alone does not solve that covariance problem.
+This is exact for the chosen local linearized operator and frozen FEJ boundary,
+not globally exact nonlinear Bayesian inference or full-sequence smoothing.
+Signed physical timestamps determine both forward and backward dynamics. Stored
+trajectories are each current filtered marginal, not retroactively smoothed old
+publications. Numerical witnesses include source/state/pixel cross-covariance,
+shared raw pixels and full Schur fill.
+
+### Resource and acceptance status
+
+The CUDA backend is real and exercised by numerical/integration tests. Production
+acceptance remains governed by USB/Blade all-cloud frames 0–2 and actual recorded
+component oracle parity; tests or assembly profiles alone cannot pass it. See
+`reports/temporal_sparse_gpu_exact_implementation.md` and its JSON for actual runs,
+failures, stage timings and limitations. Larger full-mode jobs are blocked pending
+source-matched three-frame evidence. The dense oracle has a 4096-scalar hard ceiling
+and is never a production fallback.
 
 ## Simplified path
 

@@ -1,0 +1,2 @@
+# Additional dependency for the existing CUDA 12 rigeuler3dgs environment.
+nvidia-cudss-cu12==1.0.0.35

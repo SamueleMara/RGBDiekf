@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 import torch
 from tests.test_temporal_warp import rig,frame
-from estimator.temporal_run import run_temporal_free
+from estimator.temporal_run import run_temporal_free,run_temporal_dense_reference
 from estimator.temporal_noise import load_warp_noise
 from scene.config import load_config
 import train
@@ -92,7 +92,8 @@ class PipelineTests(unittest.TestCase):
         for mode in ('full','simplified'):
             with self.subTest(mode=mode),tempfile.TemporaryDirectory() as tmp:
                 options={'mode':mode,'lag':3,'warp_covariance':cov.tolist(),'warp_provenance':doc,'workspace_bytes':128*1024**2}
-                run_temporal_free(TinyDataset(),cfg,policy,'forward',tmp,'cpu',sub,options,[],[0],max_iters=3)
+                runner=run_temporal_dense_reference if mode=='full' else run_temporal_free
+                runner(TinyDataset(),cfg,policy,'forward',tmp,'cpu',sub,options,[],[0],max_iters=3)
                 P=np.load(Path(tmp)/'position_variance_diag.npy')
                 self.assertTrue((P>0).all())
                 records=json.loads((Path(tmp)/'temporal/traced_points/0.json').read_text())['frames']
@@ -109,7 +110,7 @@ class PipelineTests(unittest.TestCase):
         options={'mode':'full','lag':3,'warp_covariance':np.eye(4).tolist(),'warp_provenance':{'class':'test-only'},'workspace_bytes':128*1024**2}
         sub={'factor':1,'method':'spatial-stratified','seed':0,'boundary_preserve':False,'report':False}
         with tempfile.TemporaryDirectory() as tmp:
-            run_temporal_free(NoLaterMasks(),cfg,policy,'forward',tmp,'cpu',sub,options,[],[0],max_iters=2)
+            run_temporal_dense_reference(NoLaterMasks(),cfg,policy,'forward',tmp,'cpu',sub,options,[],[0],max_iters=2)
             trace=json.loads((Path(tmp)/'temporal/traced_points/0.json').read_text())['frames']
             for record in trace:
                 np.testing.assert_array_equal(record['s_minus'],record['s_plus'])
@@ -155,7 +156,26 @@ class PipelineTests(unittest.TestCase):
     def check_pipeline(self,mode,direction,device,tmp,config,policy,sub):
         options={'mode':mode,'lag':3,'warp_covariance':np.diag([.01,.01,.01,.001]).tolist(),
                  'warp_provenance':{'class':'synthetic-fixture-only'},'workspace_bytes':128*1024**2}
-        status=run_temporal_free(TinyDataset(),config,policy,direction,Path(tmp),device,sub,options,[0,1,3],[0,4],max_iters=2)
+        runner=run_temporal_dense_reference if mode=='full' and device=='cpu' else run_temporal_free
+        from contextlib import ExitStack
+        from unittest.mock import patch
+        spies=[]
+        with ExitStack() as stack:
+            if mode=='full' and device=='cuda':
+                from estimator.temporal_sparse_gpu import TemporalSoAGraph,UniquePixelTableGPU
+                from estimator.temporal_sparse_solve import SparseJointFactorization
+                from utils.temporal_output import VerifiedFrameOutput
+                for cls,name in [(UniquePixelTableGPU,'build_or_update_unique_pixel_table_gpu'),
+                    (TemporalSoAGraph,'pack_source_process_warp_factors_gpu'),
+                    (TemporalSoAGraph,'assemble_sparse_linearized_problem_gpu'),
+                    (TemporalSoAGraph,'marginalize_lag_boundary_sparse_gpu'),
+                    (SparseJointFactorization,'solve_constrained_sparse_joint_gpu'),
+                    (SparseJointFactorization,'extract_joint_selected_marginals_gpu'),
+                    (VerifiedFrameOutput,'publish_verified_frame')]:
+                    original=getattr(cls,name)
+                    spies.append((name,stack.enter_context(patch.object(cls,name,autospec=True,side_effect=original))))
+            status=runner(TinyDataset(),config,policy,direction,Path(tmp),device,sub,options,[0,1,3],[0,4],max_iters=2)
+        for name,spy in spies:self.assertGreater(spy.call_count,0,name+' was not called by production full mode')
         self.assertEqual(status['status'],'COMPLETE')
         X=np.load(Path(tmp)/'posterior_xyz.npy');P=np.load(Path(tmp)/'position_variance_diag.npy')
         self.assertEqual(X.shape,(4,18,3));self.assertTrue(np.isfinite(X).all());self.assertTrue((P>0).all())
@@ -177,9 +197,20 @@ class PipelineTests(unittest.TestCase):
                 warp=root/'warp.json';warp.write_text(json.dumps({'covariance_rgbd':np.diag([.01,.01,.01,.001]).tolist(),
                     'assumption_class':'synthetic-fixture-only','method':'declared fixture only, never production default','units':['encoded_rgb_0_1']*3+['m']}))
                 out=root/'run'
-                rc=train.main(['--scene',str(scene),'--output',str(out),'--device','cpu','--direction','both','--stop-after','free',
+                device='cuda' if mode=='full' and torch.cuda.is_available() else 'cpu'
+                arguments=['--scene',str(scene),'--output',str(out),'--device',device,'--direction','both','--stop-after','free',
                     '--sensor-noise','config','--observation-model','temporal-rgbd','--temporal-mode',mode,'--temporal-warp-noise','config',
-                    '--temporal-warp-noise-config',str(warp),'--debug','light','--debug-frames','0,1,3','--max-iekf-iters','2','--no-evaluate','--no-qa'])
+                    '--temporal-warp-noise-config',str(warp),'--debug','light','--debug-frames','0,1,2','--max-iekf-iters','2','--no-evaluate','--no-qa','--frame-limit','3']
+                if mode=='full' and device=='cpu':
+                    with self.assertRaisesRegex(ValueError,'REQUIRES_CUDA'):train.main(arguments)
+                    continue
+                from unittest.mock import patch
+                from contextlib import ExitStack
+                with ExitStack() as stack:
+                    if mode=='full':
+                        stack.enter_context(patch('estimator.temporal_full_graph.TemporalWindowGraphDenseOracle.__init__',side_effect=AssertionError('Production called dense oracle')))
+                        stack.enter_context(patch('estimator.temporal_simplified_iekf.update_points_temporal_simplified',side_effect=AssertionError('Full called simplified')))
+                    rc=train.main(arguments)
                 self.assertEqual(rc,0)
                 self.assertTrue((out/'debug/free_forward_3d.html').is_file());self.assertTrue((out/'debug/free_backward_rgbd.html').is_file())
                 self.assertIn('Temporal forward',(out/'debug/index.html').read_text())

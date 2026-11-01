@@ -48,7 +48,7 @@ class UniquePixelRegistry:
         return key
 
 
-class TemporalWindowGraph:
+class TemporalWindowGraphDenseOracle:
     # shortcut: generic Python factor assembly is not full-scene validated;
     # use batched sparse assembly before removing the explicit resource guards.
     def __init__(self, device='cpu', workspace_bytes=128*1024**2):
@@ -63,6 +63,7 @@ class TemporalWindowGraph:
         self.current_covariances=None;self._one_component_cache=None
         self.profile=[]
         self.deadline=None
+        self.oracle_scalar_count=0
 
     def check_budget(self):
         if self.deadline is not None and time.perf_counter()>self.deadline:
@@ -154,7 +155,11 @@ class TemporalWindowGraph:
     def add_variable(self,key,value):
         if len(self.values)%256==0:self.check_budget()
         if key in self.values: raise ValueError(f'duplicate variable {key}')
+        value=self.tensor(value)
+        if self.oracle_scalar_count+value.numel()>4096:
+            raise FullResourceLimit('DENSE_ORACLE_SIZE_LIMIT: dense reference is restricted to 4096 scalar unknowns; production full uses sparse CUDA')
         self.values[key] = self.tensor(value).clone()
+        self.oracle_scalar_count+=value.numel()
         return key
 
     def add_gaussian(self,key,mean,covariance,tag='prior'):
@@ -582,7 +587,9 @@ class TemporalWindowGraph:
                                              'constant_residual_cost':constant,
                                              'policy':'FEJ; square-root QR projection equivalent to complete Schur; no eigenvalue truncation'})
         self.factors=untouched+priors
-        for k in expired:del self.values[k]
+        for k in expired:
+            self.oracle_scalar_count-=self.values[k].numel()
+            del self.values[k]
         retired=[k for k in expired if k[0]=='pixel']
         for k in retired:
             self.pixels.sensor_counts.pop(k,None);self.pixels.retired_pixels.add(k)
@@ -592,3 +599,7 @@ class TemporalWindowGraph:
         self.pixels.retired_pixels={k for k in self.pixels.retired_pixels if k[2] not in self.pixels.retired_frames}
         self.anchors={k:v for k,v in self.anchors.items() if v[0] not in expired}
         self.posterior=[]
+
+
+# Historical imports are numerical-oracle compatibility only; train.py never selects this class.
+TemporalWindowGraph = TemporalWindowGraphDenseOracle

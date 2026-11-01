@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from tqdm.auto import tqdm
 from utils.io import json_write,serial
+from utils.temporal_output import VerifiedFrameOutput
 from estimator.projective_camera import CameraRig
 from estimator.projective_sensor import MeasuredFrame,SensorNoise,REASONS
 from estimator.free_projective_run import build_catalogue,_store
@@ -114,7 +115,7 @@ def refresh_full_reference_support(graph,frames,rig,noise,policy):
     return True
 
 
-def run_temporal_free(dataset,config,policy,direction,root,device,sub,options,debug_frames=(),debug_point_ids=None,
+def run_temporal_dense_reference(dataset,config,policy,direction,root,device,sub,options,debug_frames=(),debug_point_ids=None,
                       max_iters=10,tol=1e-8,save_full_covariance=False,save_state_interval=0,progress=None):
     root=Path(root);numeric=root/'numeric';temporal=root/'temporal'
     numeric.mkdir(parents=True,exist_ok=True);temporal.mkdir(exist_ok=True)
@@ -146,8 +147,8 @@ def run_temporal_free(dataset,config,policy,direction,root,device,sub,options,de
     for name,dt in [('valid_cameras','uint8'),('point_status','uint8'),('converged','bool'),('iekf_iterations','uint8'),
                     ('nis','float32'),('nis_dof','uint8'),('information_min_eig','float32'),('information_max_eig','float32'),
                     ('update_acceptance','uint8'),('posterior_cost','float32'),('posterior_cost_dof','uint8')]:specs[name]=((K,N),dt)
-    mm={name:np.lib.format.open_memmap(root/f'{name}.npy',mode='w+',dtype=dt,shape=sh) for name,(sh,dt) in specs.items()}
-    for arr in mm.values():arr[:]=0
+    publication=VerifiedFrameOutput(root,specs,order,options.get('output_headroom_bytes',128*1024**2))
+    mm=publication.arrays
     s=torch.zeros((N,6),dtype=dtype,device=dev);s[:,:3]=torch.as_tensor(xyz[sel],device=dev)
     P=torch.zeros((N,6,6),dtype=dtype,device=dev);P[:,:3,:3]=torch.as_tensor(cov[sel],device=dev);P[:,3:,3:]=torch.as_tensor(config.velocity_covariance,device=dev)
     refs=ReferenceTable(C,N,device,dtype)
@@ -191,6 +192,7 @@ def run_temporal_free(dataset,config,policy,direction,root,device,sub,options,de
     json_write(temporal/'anchor_source_ownership.json',serial(anchor_records))
     from debug.temporal_debug import temporal_frame_debug,write_temporal_dashboard
     if k0 in debug_frames:temporal_frame_debug(root,frames[k0],owners,s,s,rig,None,k0)
+    publication.publish_verified_frame(k0)
     write_temporal_dashboard(root,manifest,[])
     history=[]
     try:
@@ -454,6 +456,7 @@ def run_temporal_free(dataset,config,policy,direction,root,device,sub,options,de
             summary['seconds_including_export']=time.perf_counter()-t0
             append_csv(temporal/'timing_memory.csv',{'frame':k,'seconds':summary['seconds_including_export'],**stage_times,'cuda_peak_bytes':torch.cuda.max_memory_allocated() if dev.type=='cuda' else 0,'cpu_max_rss_bytes':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024})
             json_write(temporal/f'frame_{k:04d}.json',serial(summary))
+            publication.publish_verified_frame(k,temporal/f'frame_{k:04d}.json')
             write_temporal_dashboard(root,manifest,history)
             for arr in mm.values():arr.flush()
             if progress:print(f'[{direction}] {ordinal}/{K-1} frame {k} rows {len(rows)} observed {int(observed.sum())}/{N} '
@@ -475,3 +478,11 @@ def run_temporal_free(dataset,config,policy,direction,root,device,sub,options,de
         json_write(root/'status.json',failure)
         write_temporal_dashboard(root,manifest,history,str(err))
         raise
+
+
+def run_temporal_free(*args,**kwargs):
+    options=kwargs.get('options',args[7] if len(args)>7 else None)
+    if options['mode']=='full':
+        from estimator.temporal_sparse_run import run_temporal_sparse_free
+        return run_temporal_sparse_free(*args,**kwargs)
+    return run_temporal_dense_reference(*args,**kwargs)

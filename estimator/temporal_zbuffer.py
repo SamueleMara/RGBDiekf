@@ -24,7 +24,7 @@ class OwnerMap:
     timing: dict = None
 
 
-def first_hit_pixel_owner(points, rig, frame, point_ids=None, dense=True):
+def first_hit_pixel_owner(points, rig, frame, point_ids=None, dense=True, projection_cache=None):
     C, N = rig.count, len(points)
     H, W = frame.H, frame.W
     dev = points.device
@@ -33,7 +33,7 @@ def first_hit_pixel_owner(points, rig, frame, point_ids=None, dense=True):
     start=time.perf_counter();events=None
     if dev.type=='cuda':
         events=[torch.cuda.Event(enable_timing=True) for _ in range(3)];events[0].record(torch.cuda.current_stream(dev))
-    pr = rig.project(points, jacobian=False)
+    pr = rig.project(points, jacobian=False) if projection_cache is None else projection_cache
     projected=time.perf_counter()
     if events:events[1].record(torch.cuda.current_stream(dev))
     uv = torch.round(torch.nan_to_num(pr.uv)).long()  # ties to even, same as numpy.rint
@@ -81,6 +81,29 @@ def selected_owners(owners):
     if owners.selected_camera is not None:return owners.selected_camera,owners.selected_point,owners.selected_pixel
     c,y,x=torch.where(owners.owner_id>=0)
     return c,owners.owner_id[c,y,x],y*owners.owner_id.shape[-1]+x
+
+
+def incremental_first_hit_pixel_owner(points, previous, cached, rig, frame, dense=False):
+    """Refresh changed projections; all competitors still participate in depth sort."""
+    from estimator.projective_camera import Projection
+    dirty=torch.where((points!=previous).any(1))[0]
+    uv,z=cached.uv.clone(),cached.z.clone()
+    if len(dirty):
+        change=rig.project(points[dirty],jacobian=False)
+        uv[:,dirty]=change.uv;z[:,dirty]=change.z
+    projection=Projection(None,uv,z,None,rig.R[:,2,:])
+    return first_hit_pixel_owner(points,rig,frame,dense=dense,projection_cache=projection)
+
+
+def owners_at_gpu(owners,camera,pixel):
+    c,p,pp=selected_owners(owners);_,H,W=owners.image_shape
+    keys=c*(H*W)+pp;target=camera*(H*W)+pixel
+    out=torch.full_like(target,-1)
+    if len(keys):
+        at=torch.searchsorted(keys,target);valid=at<len(keys)
+        valid&=keys[at.clamp_max(len(keys)-1)]==target
+        out[valid]=p[at[valid]]
+    return out
 
 
 def owner_at(owners,camera,pixel):

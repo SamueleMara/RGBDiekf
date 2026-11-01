@@ -68,10 +68,17 @@ def temporal_frame_debug(root,frame,owners,state,prior,rig,rows,k):
 def write_temporal_dashboard(root,manifest,history,failure=None):
     root=Path(root);td=root/'temporal';td.mkdir(exist_ok=True)
     data={'manifest':manifest,'history':history,'failure':failure,'debug_frames':[int(p.name.split('_')[1]) for p in sorted((td/'debug_frames').glob('*_cam0.png'))]}
+    if (root/'completed_frames.json').exists():
+        from utils.temporal_output import require_valid_frame
+        completed=json.loads((root/'completed_frames.json').read_text())['completed_frames']
+        for k in completed:require_valid_frame(root,k)
+        data['debug_frames']=[k for k in data['debug_frames'] if k in completed]
+        data['history']=[h for h in history if h['frame'] in completed]
     data['point_traces']={}
     for p in (td/'traced_points').glob('*.json'):
         trace=json.loads(p.read_text());records=[]
         for f in trace['frames']:
+            if (root/'completed_frames.json').exists() and f['frame'] not in completed:continue
             P=np.asarray(f['P_plus']);records.append({'frame':f['frame'],'state':f['s_plus'],'source':f['source'],
               'position_std_m':[float(np.sqrt(v)) if v>=0 else None for v in np.diag(P)[:3]],'covariance_min_eigenvalue_mixed_units':float(np.linalg.eigvalsh(P).min()),'rows':len(f['rows']),
               'measurement_update_accepted':f.get('measurement_update_accepted'),'converged':f['solver']['converged'],

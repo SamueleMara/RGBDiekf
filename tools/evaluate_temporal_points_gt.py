@@ -12,6 +12,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from tools.evaluate_projective_gt import gt_joint,labelled_endpoints,gt_transform
 from utils.io import json_write,serial
 from scene.dataset import Dataset
+from utils.temporal_output import require_valid_frame
 
 def evaluate(run,scene):
  cameras=Dataset(scene).cameras
@@ -34,6 +35,7 @@ def evaluate(run,scene):
   X=np.load(root/'posterior_xyz.npy',mmap_mode='r');acceptance=np.load(root/'update_acceptance.npy',mmap_mode='r');valid=np.load(root/'valid_cameras.npy',mmap_mode='r')
   summaries=[]
   for k in range(len(times)):
+   require_valid_frame(root,k)
    T=gt_transform(kind,axis,origin,q[k]-q[k0]);truth=can['canonical_xyz'].copy();truth[moving]=truth[moving]@T[:3,:3].T+T[:3,3]
    error=np.linalg.norm(np.asarray(X[k])-truth,axis=1)
    record={'frame':k,'point_count':len(moving),'GT_moving_points':int(moving.sum()),'eligible_measurement_points':int((valid[k]>0).sum()),'accepted_update_points':int((acceptance[k]>0).sum())}

@@ -10,8 +10,10 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import uuid
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from estimator.temporal_noise import load_warp_noise
+from tools.temporal_batch_runtime import execute_batch,persist_batch_summary,require_three_frame_full_cloud_gate
 
 REPO=Path(__file__).resolve().parents[1]
 BASE=Path('/media/samuelemara/Extreme SSD/Samuele')
@@ -40,6 +42,9 @@ def main():
     ap.add_argument('--device',choices=['cpu','cuda'],default='cuda');ap.add_argument('--fps',type=float)
     ap.add_argument('--temporal-lag-frames',type=int,default=3);ap.add_argument('--temporal-component-workspace-mib',type=float,default=512)
     ap.add_argument('--temporal-runtime-budget-seconds',type=float)
+    ap.add_argument('--terminate-grace-seconds',type=float,default=2.,help='operational process-group termination grace')
+    ap.add_argument('--continue-on-error',action='store_true',help='explicitly continue after failed scene; default is fail-fast')
+    ap.add_argument('--temporal-output-headroom-mib',type=float,default=128.)
     ap.add_argument('--pcd-subsample-factor',type=int,default=1)
     ap.add_argument('--focal-controls',action='store_true',help='DIAGNOSTIC reduced clouds of exact original traced IDs; not full-cloud validation')
     ap.add_argument('--temporal-warp-noise',choices=['measured','config','ideal'],default='measured');ap.add_argument('--temporal-warp-noise-config',type=Path)
@@ -52,10 +57,15 @@ def main():
     if a.focal_controls and a.stop_after!='free':ap.error('focal controls require --stop-after free; reduced occlusion catalogues are not complete reconstruction inputs')
     if a.pcd_subsample_factor<1:ap.error('pcd subsample factor must be >=1')
     if a.temporal_runtime_budget_seconds is not None and not 0<a.temporal_runtime_budget_seconds<float('inf'):ap.error('runtime budget must be positive finite')
+    if not 0<=a.terminate_grace_seconds<float('inf'):ap.error('termination grace must be nonnegative finite')
+    if not 0<=a.temporal_output_headroom_mib<float('inf'):ap.error('output headroom must be nonnegative finite')
     if a.frame_limit is not None and a.frame_limit<1:ap.error('--frame-limit must be positive')
     if a.fps is not None and (not math.isfinite(a.fps) or a.fps<=0):ap.error('--fps must be finite and positive')
     names=[name for item in (a.scenes or []) for name in item.split(',') if name]
     scenes=discover(a.data_root,names or None)
+    if 'full' in modes and not a.dry_run and (a.frame_limit is None or a.frame_limit>3 or len(scenes)>2):
+        try:require_three_frame_full_cloud_gate(REPO)
+        except ValueError as error:ap.error(str(error))
     missing=[]
     if any(m!='legacy' for m in modes):
         for scene in scenes:
@@ -66,10 +76,10 @@ def main():
     else:
         if missing:
             print(json.dumps({'status':'INPUT_MODEL_INCOMPLETE','errors':missing},indent=2),file=sys.stderr);return 2
-        a.output_root.mkdir(parents=True,exist_ok=True);out=Path(tempfile.mkdtemp(prefix=f'temporal_rgbd_{stamp}_',dir=a.output_root))
+        out=a.output_root/f'temporal_rgbd_{stamp}_{uuid.uuid4().hex[:8]}'
     commands=[]
-    for mode in modes:
-        for scene in scenes:
+    for scene in scenes:
+        for mode in modes:
             target=out/f'{scene.name}_{mode}'
             cmd=[sys.executable,'-B',str(REPO/'train.py'),'--scene',str(scene),'--output',str(target),'--device',a.device,
                  '--direction',a.direction,'--stop-after',a.stop_after,'--pcd-subsample-factor',str(a.pcd_subsample_factor),'--covariance-precision','float64',
@@ -80,6 +90,7 @@ def main():
                       '--temporal-warp-noise',a.temporal_warp_noise,'--temporal-component-workspace-mib',str(a.temporal_component_workspace_mib)]
                 if a.temporal_warp_noise_config:cmd+=['--temporal-warp-noise-config',str(a.temporal_warp_noise_config.resolve())]
                 if a.temporal_runtime_budget_seconds:cmd+=['--temporal-runtime-budget-seconds',str(a.temporal_runtime_budget_seconds)]
+                cmd+=['--temporal-output-headroom-mib',str(a.temporal_output_headroom_mib)]
             else:cmd+=['--observation-model','legacy']
             if a.frame_limit:cmd+=['--frame-limit',str(a.frame_limit)]
             if a.fps:cmd+=['--fps',str(a.fps)]
@@ -90,20 +101,20 @@ def main():
                 cmd+=['--temporal-diagnostic-original-point-ids',ids]
             if ids:cmd+=['--debug-point-ids',ids]
             print(shlex.join(cmd),flush=True)
-            record={'scene':scene.name,'mode':mode,'argv':cmd,'command':shlex.join(cmd),'output':str(target)}
-            if not a.dry_run:
-                log=out/f'{scene.name}_{mode}.log'
-                with log.open('w') as f:
-                    proc=subprocess.Popen(cmd,cwd=REPO,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1,env={**os.environ,'PYTHONUNBUFFERED':'1'})
-                    for line in proc.stdout:sys.stdout.write(line);sys.stdout.flush();f.write(line);f.flush()
-                    record['returncode']=proc.wait()
-                with (out/'commands.jsonl').open('a') as f:f.write(json.dumps(record)+'\n')
+            record={'scene':scene.name,'mode':mode,'argv':cmd,'command':shlex.join(cmd),'output':str(target),
+                    'log':f'{scene.name}_{mode}.log','status':'NOT_RUN','returncode':None}
             commands.append(record)
     if a.dry_run:
         print(json.dumps({'scenes':[p.name for p in scenes],'input_errors':missing,'executed':False},indent=2))
         return 2 if missing else 0
-    (out/'batch_summary.json').write_text(json.dumps(commands,indent=2))
-    print(f'Results and HTML diagnostics: {out}')
-    return 1 if any(r['returncode'] for r in commands) else 0
+    if a.continue_on_error:print('WARNING: explicit --continue-on-error; failed estimation is never success',file=sys.stderr)
+    fallback=Path(tempfile.mkdtemp(prefix='rgbd_temporal_batch_status_'))
+    print(f'Results: {out}\nIndependent failure journal: {fallback}',flush=True)
+    try:out.mkdir(parents=True)
+    except OSError as error:
+        commands[0].update(status='OUTPUT_INITIALIZATION_FAILURE',returncode=1,reason=str(error))
+        print(f'Output creation failed; summary: {persist_batch_summary(out,fallback,commands)}',file=sys.stderr)
+        return 1
+    return execute_batch(commands,out,fallback,REPO,a.temporal_runtime_budget_seconds,a.terminate_grace_seconds,a.continue_on_error)
 
 if __name__=='__main__':raise SystemExit(main())
