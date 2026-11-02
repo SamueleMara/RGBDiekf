@@ -22,6 +22,23 @@ def independent_qr(A,r,C,c):
 
 
 class SparseMarginalizationTests(unittest.TestCase):
+    def test_symmetric_indefinite_native_solve_multiple_RHS_no_perturbation(self):
+        from estimator.temporal_cudss import CudaSparseFactor
+        if not torch.cuda.is_available():raise RuntimeError('Actual CUDA is required')
+        A=torch.tensor([[1.,2.,.2],[.3,-.5,1.]],device='cuda',dtype=torch.float64)
+        K=torch.cat((torch.cat((torch.eye(2,device='cuda',dtype=torch.float64),A),1),
+                     torch.cat((A.T,-torch.eye(3,device='cuda',dtype=torch.float64)),1)),0)
+        rhs=torch.arange(15,device='cuda',dtype=torch.float64).reshape(5,3)/10
+        expected=np.linalg.solve(K.cpu().numpy(),rhs.cpu().numpy())
+        with CudaSparseFactor(K.to_sparse_csr()) as factor:
+            actual=factor.solve(rhs)
+            np.testing.assert_allclose(actual.cpu(),expected,atol=2e-13,rtol=2e-13)
+            self.assertEqual(factor.profile['algorithm'],'symmetric_nd')
+            self.assertEqual(factor.profile['perturbed_pivots'],0)
+            self.assertIsNone(factor.profile['max_LU_nnz_capacity'])
+        K[0,1]=.1
+        with self.assertRaisesRegex(SparseNumericalFailure,'nonsymmetric'):CudaSparseFactor(K.to_sparse_csr())
+
     def test_GPU_MAP_marginal_and_source_cross_match_independent_QR(self):
         if not torch.cuda.is_available():raise RuntimeError('CUDA numerical acceptance must be executed on the actual GPU')
         for ideal in [False,True]:

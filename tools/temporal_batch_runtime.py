@@ -14,7 +14,7 @@ from utils.temporal_output import atomic_json
 SPARSE_PRODUCTION_SOURCES = tuple('estimator/'+name+'.py' for name in (
     'temporal_sparse_gpu','temporal_sparse_solve','temporal_cudss','temporal_sparse_marginalization',
     'temporal_sparse_nonlinear','temporal_sparse_run','temporal_zbuffer','temporal_rgbd_terms','temporal_reference',
-    'point_kalman_cuda','projective_sensor')) + ('train.py','tools/run_temporal_rgbd_critical.py',
+    'point_kalman_cuda','projective_sensor','temporal_selected_inverse_gpu')) + ('cuda/temporal_selected_symbolic.cpp','train.py','tools/run_temporal_rgbd_critical.py',
     'tools/temporal_batch_runtime.py','utils/temporal_output.py')
 
 

@@ -67,7 +67,8 @@ def witnesses():
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=Path('tests/temporal_test_results.json'));a=ap.parse_args()
     modules=['tests.test_temporal_warp','tests.test_temporal_full_graph','tests.test_temporal_rgbd_pipeline','tests.test_temporal_motion',
-             'tests.test_temporal_sparse_gpu','tests.test_temporal_sparse_marginalization','tests.test_temporal_sparse_runtime_safety']
+             'tests.test_temporal_sparse_gpu','tests.test_temporal_sparse_marginalization','tests.test_temporal_sparse_runtime_safety',
+             'tests.test_temporal_selected_inverse_gpu','tests.test_temporal_surgical_completion']
     import train
     source_paths=sorted(set(train.STAGE_SOURCES['free']+train.STAGE_SOURCES['free_temporal_rgbd']+[m.replace('.','/')+'.py' for m in modules]+
         ['tools/test_temporal_rgbd.py','tools/temporal_batch_runtime.py','tools/run_temporal_rgbd_critical.py','tools/report_temporal_sparse_gpu.py']))

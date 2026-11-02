@@ -248,4 +248,13 @@ def solve_nonlinear_sparse_iekf_gpu(graph,frames,noise,policy,max_iters,toleranc
         raise error
     final=graph.assemble_sparse_linearized_problem_gpu()
     factor=SparseJointFactorization(final)
-    return factor,{'history':history,'converged':converged,'accepted_iterations':accepted,'objective':float(nonlinear_objective_gpu(graph)[0]),'_accepted_point_mask':accepted_points}
+    return factor,{'history':history,'converged':converged,'accepted_iterations':accepted,'objective':float(nonlinear_objective_gpu(graph)[0]),'_accepted_point_mask':accepted_points,
+                   'final_linearization_sha256':linearization_digest(graph),'final_factor_inertia':factor.profile.get('inertia'),
+                   'final_factor_expected_inertia':factor.profile.get('expected_inertia')}
+
+
+def linearization_digest(graph):
+    """SHA-256 of every variable value (anchor charts, states, clean raw pixels) and raw key at which a system is linearized."""
+    import hashlib
+    digest=hashlib.sha256(graph.flat_values().cpu().numpy().tobytes());digest.update(graph.pixels.keys.cpu().numpy().tobytes())
+    return digest.hexdigest()

@@ -53,7 +53,8 @@ STAGE_SOURCES['free_temporal_rgbd'] = [
     'estimator/temporal_run.py', 'debug/temporal_debug.py', 'debug/projective_debug.py', 'debug/assets/projective_common.js', 'train.py']
 STAGE_SOURCES['free_temporal_rgbd'] += ['estimator/temporal_sparse_gpu.py','estimator/temporal_sparse_solve.py',
     'estimator/temporal_sparse_marginalization.py','estimator/temporal_sparse_nonlinear.py',
-    'estimator/temporal_sparse_run.py','estimator/temporal_cudss.py','utils/temporal_output.py']
+    'estimator/temporal_sparse_run.py','estimator/temporal_cudss.py','utils/temporal_output.py',
+    'estimator/temporal_selected_inverse_gpu.py','cuda/temporal_selected_symbolic.cpp']
 DIRS = {'forward': 'forward', 'backward': 'backward'}
 
 

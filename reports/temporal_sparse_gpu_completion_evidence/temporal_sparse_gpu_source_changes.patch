@@ -1,0 +1,2877 @@
+diff --git a/debug/temporal_debug.py b/debug/temporal_debug.py
+index 339488d..9685f4c 100644
+--- a/debug/temporal_debug.py
++++ b/debug/temporal_debug.py
+@@ -22,7 +22,7 @@ def temporal_frame_debug(root,frame,owners,state,prior,rig,rows,k):
+     own=owners.owner_id.cpu().numpy();count=owners.counts.cpu().numpy()
+     uvp=rig.project(prior[:,:3],jacobian=False).uv.cpu().numpy();uv=owners.uv.cpu().numpy()
+     man=json.loads((root/'run_manifest.json').read_text())
+-    ids=np.union1d(np.linspace(0,len(state)-1,min(len(state),12000)).astype(int),man['debug_point_ids'])
++    ids=np.union1d(np.linspace(0,len(state)-1,min(len(state),12000)).astype(int),np.asarray(man['debug_point_ids'],dtype=int))  # empty when no traced ID survives subsampling
+     observed=np.zeros(len(state),bool)
+     if rows is not None:observed[rows.point.cpu().numpy()]=True
+     can=np.load(root/'canonical.npz')
+diff --git a/estimator/temporal_cudss.py b/estimator/temporal_cudss.py
+index 6683442..e970e57 100644
+--- a/estimator/temporal_cudss.py
++++ b/estimator/temporal_cudss.py
+@@ -29,7 +29,7 @@ def load_library():
+         'cudssCreate': [ct.POINTER(pointer)], 'cudssDestroy': [pointer],
+         'cudssConfigCreate': [ct.POINTER(pointer)], 'cudssConfigDestroy': [pointer],
+         'cudssDataCreate': [pointer, ct.POINTER(pointer)], 'cudssDataDestroy': [pointer, pointer],
+-        'cudssSetStream': [pointer, pointer],
++        'cudssSetStream': [pointer, pointer], 'cudssSetThreadingLayer': [pointer, ct.c_char_p],
+         'cudssConfigSet': [pointer, integer, pointer, size],
+         'cudssDataGet': [pointer, pointer, integer, pointer, size, ct.POINTER(size)],
+         'cudssMatrixCreateCsr': [ct.POINTER(pointer), i64, i64, i64, pointer, pointer, pointer, pointer,
+@@ -40,6 +40,7 @@ def load_library():
+     }
+     for name, arguments in signatures.items():
+         function = getattr(lib, name); function.argtypes = arguments; function.restype = integer
++    lib.threading_layer = str(distribution.locate_file('nvidia/cu12/lib/libcudss_mtlayer_gomp.so.1'))
+     return lib
+ 
+ 
+@@ -51,24 +52,54 @@ def checked(lib, name, *args):
+ 
+ 
+ class CudaSparseFactor:
+-    def __init__(self, matrix):
++    """symmetric_nd (production): the same KKT operator stored as its lower triangle, nested-dissection
++    ordering, Bunch-Kaufman pivoting inside diagonal blocks, zero pivot epsilon; the analysis knows the exact fill.
++    general_btf (diagnostic only): BTF+COLAMD LU whose fill is unknown before factorization; cuDSS bounds its
++    storage by CUDSS_CONFIG_MAX_LU_NNZ and reports a device error in CUDSS_DATA_INFO when the bound is too small.
++    max_lu_nnz overrides the VRAM-derived bound for the controlled reproduction of that error only.
++    expected_inertia=(positive, negative) certifies nonsingularity and the KKT structure for symmetric_nd."""
++    def __init__(self, matrix, algorithm='symmetric_nd', expected_inertia=None, max_lu_nnz=None):
+         if matrix.device.type != 'cuda' or matrix.dtype != torch.float64 or matrix.shape[0] != matrix.shape[1]:
+             raise ValueError('cuDSS requires a square CUDA float64 sparse matrix')
++        if algorithm not in ('general_btf','symmetric_nd'):raise ValueError('Unknown sparse factorization algorithm')
++        if max_lu_nnz is not None and algorithm!='general_btf':raise ValueError('MAX_LU_NNZ applies only to BTF/COLAMD reordering')
++        symmetric=algorithm=='symmetric_nd'
+         self.lib = load_library()
+         self.handle, self.config, self.data, self.A = (ct.c_void_p() for _ in range(4))
+         self.matrix = matrix.to_sparse_csr()
+-        self.row = self.matrix.crow_indices().long().contiguous()
++        stored=self.matrix
++        if symmetric:
++            coo=matrix.to_sparse_coo().coalesce()
++            difference=(coo-coo.T).coalesce()
++            symmetry=float(difference.values().abs().max()) if difference._nnz() else 0.
++            scale=float(coo.values().abs().max()) if coo._nnz() else 0.
++            if symmetry>64*torch.finfo(torch.float64).eps*max(1.,scale):
++                raise SparseNumericalFailure('Symmetric KKT solver received a nonsymmetric operator')
++            del difference
++            index=coo.indices();take=index[0]>=index[1]
++            stored=torch.sparse_coo_tensor(index[:,take],coo.values()[take],matrix.shape,device=matrix.device).coalesce().to_sparse_csr()
++            del coo,index,take
++        self.row = stored.crow_indices().long().contiguous()
+         if matrix.shape[0] >= 2**31:
+             raise ValueError('cuDSS 1.0 requires fewer than 2^31 matrix rows')
+-        self.column = self.matrix.col_indices().int().contiguous()
+-        self.value = self.matrix.values().contiguous()
++        self.column = stored.col_indices().int().contiguous()
++        self.value = stored.values().contiguous()
+         self.profile = {'backend': 'cuDSS-1.0.0.35', 'rows': matrix.shape[0], 'nnz': len(self.value),
+-                        'pivot_epsilon': 0., 'formed_normal_equations': False}
++                        'pivot_epsilon': 0., 'formed_normal_equations': False,'algorithm':algorithm,
++                        'matrix_type':'symmetric_indefinite' if symmetric else 'general',
++                        'ordering':'nested_dissection' if symmetric else 'BTF_COLAMD',
++                        'pivoting':'Bunch_Kaufman' if symmetric else 'global_row'}
+         self._closed = False
+         started = time.perf_counter()
+         try:
++            # cuDSS allocates natively (cudaMalloc), outside Torch's caching allocator: blocks Torch keeps reserved
++            # but unused must be returned to the driver BEFORE any native handle/workspace is created.
++            torch.cuda.empty_cache(); self.profile['VRAM_free_before_handle'] = torch.cuda.mem_get_info(matrix.device)[0]
+             checked(self.lib, 'cudssCreate', ct.byref(self.handle))
+             checked(self.lib, 'cudssSetStream', self.handle, torch.cuda.current_stream(matrix.device).cuda_stream)
++            # Host multithreading of the reordering only (the pinned package's OpenMP layer); same ordering problem.
++            checked(self.lib, 'cudssSetThreadingLayer', self.handle, self.lib.threading_layer.encode())
++            self.profile['host_threading_layer'] = Path(self.lib.threading_layer).name
+             checked(self.lib, 'cudssConfigCreate', ct.byref(self.config))
+             checked(self.lib, 'cudssDataCreate', self.handle, ct.byref(self.data))
+             # cuDSS COLAMD's default symbolic capacity estimates 100*nnz. Bound
+@@ -76,20 +107,21 @@ class CudaSparseFactor:
+             # never permission to truncate the mathematical factorization.
+             torch.cuda.empty_cache()
+             available,total=torch.cuda.mem_get_info(matrix.device)
+-            capacity=max(1,int(available//8//16))
+-            value=ct.c_int64(capacity)
+-            checked(self.lib,'cudssConfigSet',self.config,10,ct.byref(value),ct.sizeof(value))
+-            self.profile.update(VRAM_free_before_analysis=available,VRAM_total=total,max_LU_nnz_capacity=capacity,
++            capacity=max(1,int(available//8//16)) if max_lu_nnz is None else int(max_lu_nnz)
++            if not symmetric:
++                value=ct.c_int64(capacity)
++                checked(self.lib,'cudssConfigSet',self.config,10,ct.byref(value),ct.sizeof(value))
++            self.profile.update(VRAM_free_before_analysis=available,VRAM_total=total,max_LU_nnz_capacity=None if symmetric else capacity,
+                 torch_allocated_before_analysis=torch.cuda.memory_allocated(matrix.device),
+                 torch_reserved_before_analysis=torch.cuda.memory_reserved(matrix.device))
+             # Config enums are fixed by the pinned installed cudss_data_types.h.
+-            for param, value in [(0, ct.c_int(1)), (3, ct.c_int(0)), (7, ct.c_int(3)),
+-                                 (9, ct.c_double(0.)), (20, ct.c_int(0)), (24, ct.c_int(0))]:
++            for param, value in [(0, ct.c_int(4 if symmetric else 1)), (3, ct.c_int(0)), (7, ct.c_int(6 if symmetric else 3)),
++                                 (9, ct.c_double(0.)), (20, ct.c_int(1 if symmetric else 0)), (24, ct.c_int(0))]:
+                 checked(self.lib, 'cudssConfigSet', self.config, param, ct.byref(value), ct.sizeof(value))
+             n = matrix.shape[0]
+             checked(self.lib, 'cudssMatrixCreateCsr', ct.byref(self.A), n, n, len(self.value),
+                     self.row.data_ptr(), None,
+-                    self.column.data_ptr(), self.value.data_ptr(), 24, 10, 1, 0, 0, 0)
++                    self.column.data_ptr(), self.value.data_ptr(), 24, 10, 1, 1 if symmetric else 0, 1 if symmetric else 0, 0)
+             dummy = torch.zeros((n, 1), device=matrix.device, dtype=torch.float64)
+             x, b = self._dense(dummy), self._dense(dummy)
+             try:
+@@ -102,9 +134,16 @@ class CudaSparseFactor:
+                 torch.cuda.synchronize(matrix.device)
+                 self.profile['factorization_seconds'] = time.perf_counter() - started
+                 info, pivots = self._info(0, ct.c_int), self._info(2, ct.c_int)
+-                self.profile.update(info=info, perturbed_pivots=pivots, factor_nnz=self._info(1, ct.c_int64))
++                self.profile.update(info=info, perturbed_pivots=pivots, factor_nnz=self._info(1, ct.c_int64),
++                                    max_LU_nnz_capacity_source=None if symmetric else ('diagnostic_override' if max_lu_nnz is not None else 'free_VRAM/128B'))
++                if symmetric:
++                    inertia=(ct.c_int*2)();written=ct.c_size_t()
++                    checked(self.lib,'cudssDataGet',self.handle,self.data,3,ct.byref(inertia),ct.sizeof(inertia),ct.byref(written))
++                    self.profile.update(inertia=[int(inertia[0]),int(inertia[1])],expected_inertia=None if expected_inertia is None else list(expected_inertia))
+                 if info or pivots:
+                     raise SparseNumericalFailure(f'Uncertified cuDSS factorization (device error is not proof of mathematical singularity): info={info}, perturbed pivots={pivots}')
++                if symmetric and expected_inertia is not None and tuple(self.profile['inertia'])!=tuple(expected_inertia):
++                    raise SparseNumericalFailure(f'KKT inertia {self.profile["inertia"]} differs from the proper-posterior inertia {list(expected_inertia)}: singular or improper linearized posterior')
+             finally:
+                 checked(self.lib, 'cudssMatrixDestroy', x); checked(self.lib, 'cudssMatrixDestroy', b)
+         except BaseException as error:
+diff --git a/estimator/temporal_sparse_nonlinear.py b/estimator/temporal_sparse_nonlinear.py
+index 8a27ef9..71993ea 100644
+--- a/estimator/temporal_sparse_nonlinear.py
++++ b/estimator/temporal_sparse_nonlinear.py
+@@ -248,4 +248,13 @@ def solve_nonlinear_sparse_iekf_gpu(graph,frames,noise,policy,max_iters,toleranc
+         raise error
+     final=graph.assemble_sparse_linearized_problem_gpu()
+     factor=SparseJointFactorization(final)
+-    return factor,{'history':history,'converged':converged,'accepted_iterations':accepted,'objective':float(nonlinear_objective_gpu(graph)[0]),'_accepted_point_mask':accepted_points}
++    return factor,{'history':history,'converged':converged,'accepted_iterations':accepted,'objective':float(nonlinear_objective_gpu(graph)[0]),'_accepted_point_mask':accepted_points,
++                   'final_linearization_sha256':linearization_digest(graph),'final_factor_inertia':factor.profile.get('inertia'),
++                   'final_factor_expected_inertia':factor.profile.get('expected_inertia')}
++
++
++def linearization_digest(graph):
++    """SHA-256 of every variable value (anchor charts, states, clean raw pixels) and raw key at which a system is linearized."""
++    import hashlib
++    digest=hashlib.sha256(graph.flat_values().cpu().numpy().tobytes());digest.update(graph.pixels.keys.cpu().numpy().tobytes())
++    return digest.hexdigest()
+diff --git a/estimator/temporal_sparse_run.py b/estimator/temporal_sparse_run.py
+index c599095..78f02fa 100644
+--- a/estimator/temporal_sparse_run.py
++++ b/estimator/temporal_sparse_run.py
+@@ -20,8 +20,8 @@ from estimator.temporal_zbuffer import first_hit_pixel_owner, selected_owners, c
+ from estimator.temporal_reference import ReferenceTable
+ from estimator.temporal_rgbd_terms import build_temporal_rows, raw_values, sensor_covariance, temporal_prediction, TEMPORAL_REASONS
+ from estimator.temporal_sparse_gpu import TemporalSoAGraph, SparseBlockRows, sparse_coo
+-from estimator.temporal_sparse_nonlinear import solve_nonlinear_sparse_iekf_gpu, outside_mask
+-from estimator.temporal_sparse_solve import connected_columns_gpu, sparse_rows
++from estimator.temporal_sparse_nonlinear import solve_nonlinear_sparse_iekf_gpu, outside_mask, linearization_digest
++from estimator.temporal_sparse_solve import connected_columns_gpu, sparse_rows, offload_device_tensors
+ from estimator.temporal_cudss import SparseNumericalFailure
+ from debug.temporal_debug import temporal_frame_debug, write_temporal_dashboard
+ 
+@@ -217,7 +217,15 @@ def run_temporal_sparse_free(dataset,config,policy,direction,root,device,sub,opt
+             times['nonlinear_solve_seconds']=time.perf_counter()-ts
+             try:
+                 s=graph.state_and_blocks_gpu(k)[0]
+-                ts=time.perf_counter();P=factor.extract_joint_selected_marginals_gpu(graph.state_query_gpu(k));times['covariance_seconds']=time.perf_counter()-ts
++                # The published posterior must come from the FINAL accepted relinearization, not an intermediate step.
++                solver['covariance_linearization_sha256']=linearization_digest(graph)
++                if solver['covariance_linearization_sha256']!=solver['final_linearization_sha256']:
++                    raise SparseNumericalFailure('Covariance would be queried at a state other than the final accepted linearization')
++                factor.failure_archive=temporal/f'covariance_certificate_failure_{k:04d}.pt'
++                # Only if the exact inversion cannot fit beside it: the runner's own device state is parked in host
++                # memory unchanged during the inversion and restored afterwards (no value changes).
++                factor.park_caller_state=lambda:offload_device_tensors([graph,frames,refs,before])
++                ts=time.perf_counter();P=factor.all_point_marginals_selected_inverse_gpu(graph.state_query_gpu(k));times['covariance_seconds']=time.perf_counter()-ts
+                 cov_profile=dict(factor.profile['selected_marginals'])
+                 eig=batched_eigen(P)
+                 if bool((eig<=0).any()):raise SparseNumericalFailure('FULL_POSTERIOR_NOT_SPD: current free point states require positive marginal covariance')
+diff --git a/estimator/temporal_sparse_solve.py b/estimator/temporal_sparse_solve.py
+index 67e61d8..cfcdc65 100644
+--- a/estimator/temporal_sparse_solve.py
++++ b/estimator/temporal_sparse_solve.py
+@@ -92,12 +92,39 @@ def connected_columns_gpu(A, C, information=None, iteration_limit=1024):
+     raise SparseNumericalFailure('CONNECTIVITY_ITERATION_LIMIT: no component edges were dropped')
+ 
+ 
+-class SparseJointFactorization:
++def offload_device_tensors(objects, max_depth=3):
++    """Move every CUDA tensor reachable through attributes/dict values of `objects` to host memory, unchanged.
++    Returns a restore() that puts each one back where it was. Pure data movement: no value changes."""
++    moved, seen = [], set()
++    def visit(owner, depth):
++        if id(owner) in seen or depth > max_depth:return
++        seen.add(id(owner))
++        items = owner.items() if isinstance(owner, dict) else (vars(owner).items() if hasattr(owner, '__dict__') and not isinstance(owner, (torch.nn.Module, type)) else ())
++        for key, value in list(items):
++            if isinstance(value, torch.Tensor):
++                if value.is_cuda:
++                    moved.append((owner, key, value.device))
++                    if isinstance(owner, dict):owner[key] = value.cpu()
++                    else:setattr(owner, key, value.cpu())
++            elif isinstance(value, dict) or (hasattr(value, '__dict__') and not callable(value)):
++                visit(value, depth+1)
++    for obj in objects:visit(obj, 0)
++    def restore():
++        for owner, key, device in moved:
++            if isinstance(owner, dict):owner[key] = owner[key].to(device)
++            else:setattr(owner, key, getattr(owner, key).to(device))
++    restore.count = len(moved)
++    return restore
++
++
++class ReducedLinearizedSystem:
++    """Exact reduced coordinates of one linearized problem, without any factorization.
++
++    Pivot substitution, the innovation chart and unit scaling exactly as solved;
++    shared by the production factorization and the read-only S0/S2 diagnostics.
++    """
+     def __init__(self, problem):
+-        if problem.A.device.type != 'cuda':
+-            raise ValueError('The sparse direct production solver requires CUDA; CPU dense is test-only')
+         self.problem = problem
+-        start = time.perf_counter()
+         self.A, self.r, self.C, self.c, self.T, self.offset = eliminate_current_pixel_constraints_gpu(problem)
+         if problem.prior_transform is not None:
+             G=problem.prior_transform
+@@ -149,7 +176,21 @@ class SparseJointFactorization:
+         if K._nnz()<2**31:
+             K=torch.sparse_csr_tensor(K.crow_indices().int(),K.col_indices().int(),K.values(),K.shape,device=K.device,dtype=K.dtype)
+         self.K=K
+-        try:self.factor = CudaSparseFactor(self.K)
++
++    def expected_inertia(self):
++        """Sylvester inertia of [[I,A,0],[A^T,-H,C^T],[0,C,0]] for SPD H restricted to null(C), full-row-rank C:
++        congruent to diag(I_m, -(H+A^T A), Schur) = (m + p positive, n negative, 0 zero)."""
++        m, n = self.A.shape
++        return m+self.C.shape[0], n
++
++
++class SparseJointFactorization(ReducedLinearizedSystem):
++    def __init__(self, problem, algorithm='symmetric_nd'):
++        if problem.A.device.type != 'cuda':
++            raise ValueError('The sparse direct production solver requires CUDA; CPU dense is test-only')
++        start = time.perf_counter()
++        super().__init__(problem)
++        try:self.factor = CudaSparseFactor(self.K,algorithm=algorithm,expected_inertia=self.expected_inertia())
+         except SparseNumericalFailure as error:
+             error.profile={**getattr(error,'profile',{}),'original_scalar_dimension':problem.scalar_dimension,
+                 'reduced_scalar_dimension':self.A.shape[1],'stochastic_rows':self.A.shape[0],
+@@ -244,6 +285,115 @@ class SparseJointFactorization:
+             raise SparseNumericalFailure('Nonfinite selected joint marginal')
+         return (result+result.transpose(1,2))/2
+ 
++    def all_point_marginals_selected_inverse_gpu(self, query, block_width=6, certificate_blocks=32, seed=0, release=None):
++        """Q_i P_joint Q_i^T for EVERY output block from one selected inversion (Takahashi) of the same KKT.
++
++        Same operator, same constraints, no dropped coupling: the inverse entries on the symbolic factor pattern
++        (plus zero-valued query cliques) are exact functions of the full joint KKT. Certificate: each sampled
++        block is recomputed from refined cuDSS solves of the ORIGINAL operator K; blocks from the largest true
++        component are always included. Agreement is measured in correlation units
++        |dP_ab|/sqrt(P_aa P_bb) against sqrt(float64 eps), the agreement attainable by two backward-stable
++        double-precision computations of the same quantity; the measured value is always reported.
++        """
++        from estimator.temporal_selected_inverse_gpu import selected_inverse_blocks_gpu, symbolic, required_bytes, stage_entries, OPERATIONAL_HEADROOM_BYTES
++        if query.shape[1] != self.problem.scalar_dimension or query.shape[0] % block_width:
++            raise ValueError('Query dimensions must define equal-width output blocks')
++        start = time.perf_counter()
++        Q = torch.sparse.mm(query, self.T).coalesce()
++        m, n = self.A.shape; device = Q.device
++        qi = Q.indices()
++        Qk = sparse_coo(torch.stack((qi[0], qi[1]+m)), Q.values(), (Q.shape[0], self.K.shape[0]))
++        blocks = Q.shape[0]//block_width
++        # 1) certificate references from refined cuDSS solves of the original operator (before any release)
++        labels, _ = connected_columns_gpu(self.A, self.C, self.information)
++        unique, counts = torch.unique(labels, return_counts=True)
++        largest = unique[torch.argmax(counts)]
++        block_of = qi[0]//block_width
++        in_largest = torch.unique(block_of[labels[qi[1]] == largest])
++        generator = torch.Generator().manual_seed(seed)
++        chosen = torch.unique(torch.cat((in_largest[torch.randperm(len(in_largest), generator=generator)[:certificate_blocks//4].to(device)],
++                                         torch.randperm(blocks, generator=generator)[:certificate_blocks-certificate_blocks//4].to(device))))
++        references = {}
++        for part in chosen.split(1):   # one 6-column block per refined solve: bounded device workspace
++            rows = (part[:, None]*block_width+torch.arange(block_width, device=device)).flatten()
++            dense = sparse_rows(Q, rows).to_dense()
++            rhs = torch.zeros((self.K.shape[0], len(rows)), device=device, dtype=torch.float64); rhs[m:m+n] = dense.T
++            solved = self.factor.solve(rhs)[m:m+n]
++            for j, b in enumerate(part.tolist()):
++                sl = slice(j*block_width, (j+1)*block_width)
++                exact = -(dense[sl]@solved[:, sl]); references[b] = (exact+exact.T)/2
++            del rhs, solved, dense
++        del labels
++        # 2) pattern-only symbolic analysis, then the measured device workspace decides whether the cuDSS factor
++        #    must be released during the inversion (it is re-created from the same K afterwards; same operator)
++        symbolic_start = time.perf_counter(); S = symbolic(self.K, Qk, block_width); symbolic_seconds = time.perf_counter()-symbolic_start
++        del Q, qi, block_of
++        print(f"[selected inverse] KKT n={len(S['perm'])} nnz_L={len(S['ri'])} levels={len(S['lp'])-1} max_row={int(S['sizes'][0::2].max())} "
++              f"max_column={int(S['sizes'][1::2].max())} stage={stage_entries(S)} symbolic_seconds={symbolic_seconds:.1f}", flush=True)
++        need = required_bytes(len(S['ri']), len(S['perm']), stage_entries(S)); torch.cuda.empty_cache(); free = torch.cuda.mem_get_info(device)[0]
++        released = need+OPERATIONAL_HEADROOM_BYTES > free if release is None else bool(release); offloaded = []; restore_caller = None   # release=True: test of the schedule
++        if released:
++            # Exact memory schedule: the native factor is closed and every device tensor of this system, K and the
++            # query included, moves to host memory unchanged. Restored bit-identically below.
++            self.factor.close(); offloaded = self._offload(); self.K = self.K.cpu(); Qk = Qk.cpu()
++            park = getattr(self, 'park_caller_state', None)   # the caller's own device state (graph, frames, ...)
++            restore_caller = park() if park is not None else None
++            torch.cuda.empty_cache()
++        free_for_inversion = torch.cuda.mem_get_info(device)[0]
++        torch_allocated_for_inversion = torch.cuda.memory_allocated(device)
++        try:P, profile = selected_inverse_blocks_gpu(self.K, Qk, block_width, self.expected_inertia(), symbolic_arrays=S, device=device)
++        finally:
++            del S, Qk
++            if released:
++                if restore_caller is not None:restore_caller()
++                self._restore(offloaded, device); self.K = self.K.to(device)
++                self.factor = CudaSparseFactor(self.K, expected_inertia=self.expected_inertia())
++        profile.update(symbolic_seconds=symbolic_seconds, cuDSS_factor_released_during_inversion=released, workspace_free_bytes_with_factor=free,
++                       workspace_free_bytes_for_inversion=free_for_inversion, torch_allocated_bytes_during_inversion=torch_allocated_for_inversion,
++                       caller_tensors_parked=getattr(restore_caller, 'count', 0) if released else 0, host_offloaded_bytes=sum(b for _, _, b in offloaded))
++        worst = {'correlation_units': 0., 'absolute': 0., 'block': None}
++        for b, exact in references.items():
++            scale = exact.diagonal().clamp_min(0).sqrt()
++            difference = (P[b]-exact).abs()
++            correlation = float((difference/(scale[:, None]*scale[None]).clamp_min(torch.finfo(torch.float64).tiny)).max())
++            if correlation > worst['correlation_units']:worst.update(correlation_units=correlation, absolute=float(difference.max()), block=b)
++        tolerance = float(torch.finfo(torch.float64).eps)**.5
++        profile.update(certificate={'blocks_checked': len(chosen), 'largest_component_scalars': int(counts.max()),
++                                    'largest_component_blocks_checked': int(torch.isin(chosen, in_largest).sum()),
++                                    'reference': 'refined cuDSS solves of the original KKT (componentwise backward error certified)',
++                                    'max_error': worst, 'tolerance_correlation_units': tolerance},
++                       seconds=time.perf_counter()-start, method='selected inversion of the same joint KKT', output_blocks=blocks)
++        self.profile['selected_marginals'] = profile
++        if not bool(torch.isfinite(P).all()):raise SparseNumericalFailure('Nonfinite selected joint marginal')
++        if worst['correlation_units'] > tolerance:
++            archive = getattr(self, 'failure_archive', None)
++            if archive is not None:   # concise sparse evidence of the uncertified system (never a published posterior)
++                K = self.K.to_sparse_csr(); chosen_list = sorted(references)
++                torch.save({'K_crow': K.crow_indices().cpu(), 'K_col': K.col_indices().cpu(), 'K_values': K.values().cpu(), 'K_shape': tuple(K.shape),
++                            'Qk': Qk.cpu(), 'block_width': block_width, 'blocks': chosen_list, 'selected_inverse': P[chosen_list].cpu(),
++                            'cuDSS_refined_reference': torch.stack([references[b] for b in chosen_list]).cpu(),
++                            'expected_inertia': self.expected_inertia(), 'profile': profile}, archive)
++                profile['failure_archive'] = str(archive)
++            raise SparseNumericalFailure(f"Selected-inverse covariance certificate failed: {worst} > {tolerance} correlation units")
++        return P
++
++    def _offload(self):
++        moved = []
++        for owner in (self, self.problem):
++            for name, value in list(vars(owner).items()):
++                if owner is self and name in ('K', 'factor'):continue
++                if isinstance(value, torch.Tensor) and value.is_cuda:
++                    nbytes = (value._values().numel()*value.element_size()+value._indices().numel()*8) if value.layout == torch.sparse_coo else value.numel()*value.element_size()
++                    setattr(owner, name, value.cpu()); moved.append((owner, name, nbytes))
++                elif name == 'pivot_groups':
++                    setattr(owner, name, [(r.cpu(), c.cpu()) for r, c in value]); moved.append((owner, name, 0))
++        return moved
++
++    def _restore(self, moved, device):
++        for owner, name, _ in moved:
++            value = getattr(owner, name)
++            setattr(owner, name, [(r.to(device), c.to(device)) for r, c in value] if name == 'pivot_groups' else value.to(device))
++
+     def close(self):
+         self.factor.close()
+ 
+diff --git a/tests/temporal_test_results.json b/tests/temporal_test_results.json
+index 8c7843c..1eaa010 100644
+--- a/tests/temporal_test_results.json
++++ b/tests/temporal_test_results.json
+@@ -1,458 +1,584 @@
+ {
+-  "timestamp_utc": "2026-10-31T17:53:35.679300+00:00",
+-  "git_commit": "e1e663b9618d3c833e63158e65dbbb1edd732003",
++  "timestamp_utc": "2026-11-02T00:36:11.389568+00:00",
++  "git_commit": "f77492dc0c8fe3cf5f28820ba5fe1f8ed959cb58",
+   "dirty_status": [
+-    " M README.md",
+-    " M debug/assets/projective_common.js",
+-    " M debug/projective_debug.py",
+-    " M docs/PIPELINE_CODE_MAP.md",
+-    " M estimator/free_projective_run.py",
+-    " M estimator/projective_sensor.py",
+-    " M estimator/projective_terms.py",
+-    " M tools/root_cause_oracle.py",
+-    " M tools/root_cause_trace.py",
+-    " M tools/run_status.py",
++    " M debug/temporal_debug.py",
++    " M estimator/temporal_cudss.py",
++    " M estimator/temporal_sparse_nonlinear.py",
++    " M estimator/temporal_sparse_run.py",
++    " M estimator/temporal_sparse_solve.py",
++    " M tests/temporal_test_results.json",
++    " M tests/test_temporal_sparse_marginalization.py",
++    " M tools/report_temporal_sparse_gpu.py",
++    " M tools/run_temporal_rgbd_critical.py",
++    " M tools/temporal_batch_runtime.py",
++    " M tools/test_temporal_rgbd.py",
+     " M train.py",
+-    "?? RGBDiekf_Codex_Depth_Sorted_Temporal_RGBD_Full_FixedLag_IEKF.md",
+-    "?? RGBDiekf_Codex_Fifth_Pass_Source_Responsibility_Causal_Experiments.md",
+-    "?? RGBDiekf_Codex_Final_Joint_Responsibility_8444_45588_Test.md",
+-    "?? RGBDiekf_Codex_Next_Actions_Temporal_Validation_Noise_Runtime.md",
+-    "?? RGBDiekf_Codex_Static_Point_Equilibrium_Root_Cause_Audit.md",
+-    "?? RGBDiekf_Definitive_F1_Static_Drift_Causal_Forensics_Codex.md",
+-    "?? RGBDiekf_F1_Fourth_Pass_Sequential_Replay_and_Diagnostic_Bugfix_Codex.md",
+-    "?? RGBDiekf_F1_Temporal_Reference_Depth_Surface_Reacquisition_Debug_Codex.md",
+-    "?? RGBDiekf_Inner_F1_Second_Pass_Causal_Debug_Codex.md",
+-    "?? RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md",
+-    "?? RGBDiekf_Static_Drift_INNER_IEKF_Only_Codex_2026-10-30.md",
+-    "?? configs/temporal_phase1.json",
+-    "?? configs/temporal_warp_calibration_analysis.schema.json",
+-    "?? configs/temporal_warp_noise.schema.json",
+-    "?? debug/temporal_debug.py",
+-    "?? docs/TEMPORAL_RGBD_IEKF_MATHEMATICAL_CONTRACT.md",
+-    "?? estimator/block_tridiagonal.py",
+-    "?? estimator/ieks_point_trajectory.py",
+-    "?? estimator/rts_point_smoother.py",
+-    "?? estimator/temporal_full_graph.py",
+-    "?? estimator/temporal_history.py",
+-    "?? estimator/temporal_model_identification.py",
+-    "?? estimator/temporal_noise.py",
+-    "?? estimator/temporal_observability.py",
+-    "?? estimator/temporal_phase1.py",
+-    "?? estimator/temporal_reference.py",
+-    "?? estimator/temporal_rgbd_terms.py",
+-    "?? estimator/temporal_run.py",
+-    "?? estimator/temporal_simplified_iekf.py",
+-    "?? estimator/temporal_zbuffer.py",
+-    "?? reports/covariance_2x2_experiment.md",
+-    "?? reports/f1_static_drift_forensics_20261030.md",
+-    "?? reports/static_point_equilibrium/",
+-    "?? reports/static_point_equilibrium_root_cause_CURRENT.md",
+-    "?? reports/temporal_rgbd_baseline/",
+-    "?? reports/temporal_rgbd_critical_scenes.md",
+-    "?? reports/temporal_rgbd_implementation.md",
+-    "?? reports/temporal_rgbd_next_validation.json",
+-    "?? reports/temporal_rgbd_next_validation.md",
+-    "?? reports/temporal_rgbd_validation.json",
+-    "?? tests/temporal_fixtures.py",
+-    "?? tests/temporal_test_results.json",
+-    "?? tests/test_f1_definitive_drift_forensics.py",
+-    "?? tests/test_f1_diagnostic_units.py",
+-    "?? tests/test_f1_joint_responsibility_audit.py",
+-    "?? tests/test_f1_second_pass_oracles.py",
+-    "?? tests/test_f1_sequential_causal_replay.py",
+-    "?? tests/test_f1_source_responsibility.py",
+-    "?? tests/test_f1_temporal_reference_diagnostics.py",
+-    "?? tests/test_forensic_f1_oracles.py",
+-    "?? tests/test_static_equilibrium_audit.py",
+-    "?? tests/test_temporal_full_graph.py",
+-    "?? tests/test_temporal_motion.py",
+-    "?? tests/test_temporal_phase1_identification.py",
+-    "?? tests/test_temporal_phase1_masks.py",
+-    "?? tests/test_temporal_phase1_math.py",
+-    "?? tests/test_temporal_phase1_measurement.py",
+-    "?? tests/test_temporal_phase1_motion.py",
+-    "?? tests/test_temporal_phase1_pipeline.py",
+-    "?? tests/test_temporal_phase1_static.py",
+-    "?? tests/test_temporal_rgbd_pipeline.py",
+-    "?? tests/test_temporal_warp.py",
+-    "?? tools/README_f1_definitive_drift_forensics.md",
+-    "?? tools/README_f1_joint_responsibility.md",
+-    "?? tools/README_f1_source_responsibility.md",
+-    "?? tools/attribute_static_drift_channels.py",
+-    "?? tools/audit_static_equilibrium.py",
+-    "?? tools/audit_temporal_inputs.py",
+-    "?? tools/audit_temporal_regressions.py",
+-    "?? tools/audit_temporal_saved_linearizations.py",
+-    "?? tools/calibrate_temporal_warp_noise.py",
+-    "?? tools/compare_temporal_modes.py",
+-    "?? tools/evaluate_temporal_phase1.py",
+-    "?? tools/evaluate_temporal_points_gt.py",
+-    "?? tools/evaluate_temporal_rgbd.py",
+-    "?? tools/f1_definitive_drift_forensics.py",
+-    "?? tools/f1_definitive_evidence.py",
+-    "?? tools/f1_definitive_math.py",
+-    "?? tools/f1_definitive_point.py",
+-    "?? tools/f1_diagnostic_units.py",
+-    "?? tools/f1_joint_responsibility_audit.py",
+-    "?? tools/f1_second_pass.py",
+-    "?? tools/f1_sequential_causal_replay.py",
+-    "?? tools/f1_source_responsibility.py",
+-    "?? tools/f1_source_responsibility_audit.py",
+-    "?? tools/f1_source_responsibility_evaluation.py",
+-    "?? tools/f1_source_responsibility_population.py",
+-    "?? tools/f1_temporal_reference_diagnostics.py",
+-    "?? tools/forensic_f1_drift.py",
+-    "?? tools/qa_temporal_debug.py",
+-    "?? tools/report_f1_definitive_drift.py",
+-    "?? tools/report_f1_joint_responsibility.py",
+-    "?? tools/report_f1_source_responsibility.py",
+-    "?? tools/report_temporal_next_validation.py",
+-    "?? tools/report_temporal_rgbd_validation.py",
+-    "?? tools/run_temporal_rgbd_critical.py",
+-    "?? tools/run_temporal_rgbd_critical.sh",
+-    "?? tools/temporal_phase1_gate_evidence.py",
+-    "?? tools/test_temporal_rgbd.py",
+-    "?? tools/verify_temporal_legacy_parity.py"
++    "?? CODEX_RGBDiekf_SURGICAL_EXACT_TEMPORAL_RGBD_IEKF_COMPLETION_2026-11-01.md",
++    "?? cuda/",
++    "?? estimator/temporal_selected_inverse_gpu.py",
++    "?? reports/temporal_sparse_gpu_baseline/ldlt_repair_tests.json",
++    "?? reports/temporal_sparse_gpu_completion_evidence/",
++    "?? tests/test_temporal_selected_inverse_gpu.py",
++    "?? tests/test_temporal_surgical_completion.py",
++    "?? tools/replay_temporal_sparse_failure.py",
++    "?? tools/verify_temporal_full_frames.py"
+   ],
+   "python": "3.11.15 (main, Jun 11 2026, 15:20:16) [GCC 14.3.0]",
+   "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+   "torch": "2.11.0+cu128",
+   "cuda_available": true,
+   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+-  "seconds": 26.714275712991366,
++  "seconds": 36.679722736997064,
+   "checks": [
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_affine_translations_and_negative_time",
+       "status": "PASS",
+-      "seconds": 0.013737470988417044,
++      "seconds": 0.010568484023679048,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_camera_handover_stale_reference_and_occlusion",
+       "status": "PASS",
+-      "seconds": 0.015009953000117093,
++      "seconds": 0.011541390034835786,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_conservative_domain_rejects_row_deletion",
+       "status": "PASS",
+-      "seconds": 0.008384393993765116,
++      "seconds": 0.006431713001802564,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_cuda_owner_parity",
+       "status": "PASS",
+-      "seconds": 0.648992297006771,
++      "seconds": 0.6536232709768228,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_first_hit_tie_depth_swap_numpy",
+       "status": "PASS",
+-      "seconds": 0.004120812984183431,
++      "seconds": 0.004452802008017898,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_no_rows_exact_prediction",
+       "status": "PASS",
+-      "seconds": 0.004564450995530933,
++      "seconds": 0.0047088550054468215,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_random_numpy_parity",
+       "status": "PASS",
+-      "seconds": 0.04215367400320247,
++      "seconds": 0.011547288042493165,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_source_identity_and_handover_bootstrap",
+       "status": "PASS",
+-      "seconds": 0.0020929250167682767,
++      "seconds": 0.0021255200263112783,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_sparse_and_dense_owner_queries_are_identical",
+       "status": "PASS",
+-      "seconds": 0.04905930100358091,
++      "seconds": 0.0552175979828462,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_support_all_four_even_zero_weight",
+       "status": "PASS",
+-      "seconds": 0.0030924329767003655,
++      "seconds": 0.0037631369777955115,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_warp.TemporalWarpTests.test_two_time_and_latent_jacobian",
+       "status": "PASS",
+-      "seconds": 0.041896481008734554,
++      "seconds": 0.039364613010548055,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_actual_nonlinear_warp_factor_all_columns",
+       "status": "PASS",
+-      "seconds": 0.07255113101564348,
++      "seconds": 0.06806661904556677,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_conditional_is_not_marginal_and_simplified_limit",
+       "status": "PASS",
+-      "seconds": 0.008864733012160286,
++      "seconds": 0.03213960397988558,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_conditioned_reference_limit_matches_simplified",
+       "status": "PASS",
+-      "seconds": 0.04380605201004073,
++      "seconds": 0.10249732999363914,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_correlated_predictive_nis_against_dense",
+       "status": "PASS",
+-      "seconds": 0.0022315850073937327,
++      "seconds": 0.004758912022225559,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_cuda_cpu_mean_covariance",
+       "status": "PASS",
+-      "seconds": 0.23440598300658166,
++      "seconds": 0.24898417596705258,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_exact_schur_and_lag_slide",
+       "status": "PASS",
+-      "seconds": 0.02118583198171109,
++      "seconds": 0.02265335200354457,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_expired_covariance_is_not_reported_as_zero_uncertainty",
+       "status": "PASS",
+-      "seconds": 0.008839420013828203,
++      "seconds": 0.009769520023837686,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_ideal_three_frame_kkt_oracle_and_schur_cross_covariance",
+       "status": "PASS",
+-      "seconds": 0.09934930701274425,
++      "seconds": 0.11419508600374684,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_jvp_vjp",
+       "status": "PASS",
+-      "seconds": 0.001844882994191721,
++      "seconds": 0.003152178949676454,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_linear_gaussian_nees_nis_monte_carlo",
+       "status": "PASS",
+-      "seconds": 0.005487607006216422,
++      "seconds": 0.005251603026408702,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_repeated_reference_has_a_correlated_uncertainty_floor",
+       "status": "PASS",
+-      "seconds": 0.01086868898710236,
++      "seconds": 0.015282772947102785,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_resource_limit_never_cuts_component",
+       "status": "PASS",
+-      "seconds": 0.00153755399514921,
++      "seconds": 0.0020762290223501623,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_shared_latents_mean_cov_dense_and_cross",
+       "status": "PASS",
+-      "seconds": 0.007645625009899959,
++      "seconds": 0.008957938989624381,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_source_coupling_single_depth",
+       "status": "PASS",
+-      "seconds": 0.0026533990167081356,
++      "seconds": 0.005241865001153201,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_full_graph.FullGraphTests.test_zero_discrepancy_constrained_qr_matches_dense_conditioning",
+       "status": "PASS",
+-      "seconds": 0.005488069000421092,
++      "seconds": 0.005313492962159216,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='forward', device='cpu')",
+       "status": "PASS",
+-      "seconds": 0.606098998017842,
++      "seconds": 0.5708864830085076,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='forward', device='cuda')",
+       "status": "PASS",
+-      "seconds": 1.1373660160170402,
++      "seconds": 1.2797568159876391,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='backward', device='cpu')",
+       "status": "PASS",
+-      "seconds": 1.590763924003113,
++      "seconds": 1.7000840319669805,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='backward', device='cuda')",
+       "status": "PASS",
+-      "seconds": 2.030029902001843,
++      "seconds": 2.2413083909777924,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='forward', device='cpu')",
+       "status": "PASS",
+-      "seconds": 4.434768328006612,
++      "seconds": 4.609438613988459,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='forward', device='cuda')",
+       "status": "PASS",
+-      "seconds": 7.630144141003257,
++      "seconds": 6.905502136971336,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='backward', device='cpu')",
+       "status": "PASS",
+-      "seconds": 9.77447245302028,
++      "seconds": 8.525821161980275,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='backward', device='cuda')",
+       "status": "PASS",
+-      "seconds": 12.802192577015376,
++      "seconds": 10.030082965968177,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html",
+       "status": "PASS",
+-      "seconds": 12.80228132000775,
++      "seconds": 10.030164433992468,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_calibration_zero_difference_is_finite_and_not_invented",
+       "status": "PASS",
+-      "seconds": 0.042993083014152944,
++      "seconds": 0.044641386019065976,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_cli_defaults_and_invalid_combinations",
+       "status": "PASS",
+-      "seconds": 0.010255702014546841,
++      "seconds": 0.007643049000762403,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_focal_controls_preserve_original_identity",
+       "status": "PASS",
+-      "seconds": 0.3392790310026612,
++      "seconds": 0.3728095249971375,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_forensic_imports_do_not_disable_cuda",
+       "status": "PASS",
+-      "seconds": 3.0581541059946176,
++      "seconds": 3.2355721989879385,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_full_no_new_observations_is_exact_prediction",
+       "status": "PASS",
+-      "seconds": 0.7465599970018957,
++      "seconds": 0.7771459650248289,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_ideal_warp_keeps_sensor_noise_and_full_lag_covariance (mode='full')",
+       "status": "PASS",
+-      "seconds": 1.9081183619855437,
++      "seconds": 1.6820214270264842,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_ideal_warp_keeps_sensor_noise_and_full_lag_covariance (mode='simplified')",
+       "status": "PASS",
+-      "seconds": 2.2822597219783347,
++      "seconds": 2.0270238619996235,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_ideal_warp_keeps_sensor_noise_and_full_lag_covariance",
+       "status": "PASS",
+-      "seconds": 2.2825611269799992,
++      "seconds": 2.0273082030471414,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_large_covariance_diagnostics_preserve_independent_matrices",
+       "status": "PASS",
+-      "seconds": 0.12448656599735841,
++      "seconds": 0.1313431229791604,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_missing_warp_and_explicit_provenance",
+       "status": "PASS",
+-      "seconds": 0.0035241000005044043,
++      "seconds": 0.002593933022581041,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_one_invalid_point_does_not_freeze_an_independent_update",
+       "status": "PASS",
+-      "seconds": 0.2130765629990492,
++      "seconds": 0.17351982096442953,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_temporal_sensor_path_does_not_use_cross_camera_mismatch",
+       "status": "PASS",
+-      "seconds": 0.030804742011241615,
++      "seconds": 0.037343763979151845,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports (mode='full')",
+       "status": "PASS",
+-      "seconds": 3.932671696995385,
++      "seconds": 2.335130352003034,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports (mode='simplified')",
+       "status": "PASS",
+-      "seconds": 4.995001268980559,
++      "seconds": 3.2288294680183753,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports",
+       "status": "PASS",
+-      "seconds": 4.995060250977986,
++      "seconds": 3.228895436041057,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=0.1, device='cpu')",
+       "status": "PASS",
+-      "seconds": 0.07555758699891157,
++      "seconds": 0.07895828399341553,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=0.1, device='cuda')",
+       "status": "PASS",
+-      "seconds": 0.321836358984001,
++      "seconds": 0.3247003050055355,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=-0.1, device='cpu')",
+       "status": "PASS",
+-      "seconds": 0.4021976029907819,
++      "seconds": 0.41905632201815024,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=-0.1, device='cuda')",
+       "status": "PASS",
+-      "seconds": 0.6856626179942396,
++      "seconds": 0.6649263330036774,
+       "detail": null
+     },
+     {
+       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells",
+       "status": "PASS",
+-      "seconds": 0.6858144139987417,
++      "seconds": 0.6650267349905334,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_actual_GPU_motion_refreshes_interpolation_cells_without_GT_input",
++      "status": "PASS",
++      "seconds": 0.7863320789765567,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_incremental_dirty_owner_matches_brute_force_with_competitors",
++      "status": "PASS",
++      "seconds": 0.029015672975219786,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_line_search_components_keep_full_point_and_shared_pixel_blocks",
++      "status": "PASS",
++      "seconds": 0.047098578012082726,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_mask_rejection_includes_competitor_that_exposes_stationary_point",
++      "status": "PASS",
++      "seconds": 0.01453764399047941,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_nonlinear_GPU_cost_visibility_and_constrained_acceptance",
++      "status": "PASS",
++      "seconds": 0.49712439998984337,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_source_state_and_depth_cross_covariance_matches_oracle",
++      "status": "PASS",
++      "seconds": 0.06499396404251456,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_sparse_no_measurement_joint_marginal_is_exact_prediction",
++      "status": "PASS",
++      "seconds": 0.057974659954197705,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_unique_registry_reuse_retirement_and_overflow",
++      "status": "PASS",
++      "seconds": 0.0053708189516328275,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_whitened_joint_operator_matches_independent_dense_oracle",
++      "status": "PASS",
++      "seconds": 0.28794338600710034,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_GPU_MAP_marginal_and_source_cross_match_independent_QR",
++      "status": "PASS",
++      "seconds": 0.9756208999897353,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_conflicting_equalities_and_unobservable_system_fail",
++      "status": "PASS",
++      "seconds": 0.02568715502275154,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_full_schur_with_fill_and_surviving_hard_equality",
++      "status": "PASS",
++      "seconds": 0.08879586798138916,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_symmetric_indefinite_native_solve_multiple_RHS_no_perturbation",
++      "status": "PASS",
++      "seconds": 0.021841942972969264,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_temporal_source_boundary_matches_dense_schur_current_cross_covariance",
++      "status": "PASS",
++      "seconds": 0.2741128880297765,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_ENOSPC_summary_has_independent_fallback",
++      "status": "PASS",
++      "seconds": 0.01267591497162357,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_fail_fast_and_final_summary",
++      "status": "PASS",
++      "seconds": 0.04346932499902323,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_failed_diagnostic_does_not_publish_posterior",
++      "status": "PASS",
++      "seconds": 0.008031809993553907,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_hard_deadline_kills_child_group",
++      "status": "PASS",
++      "seconds": 0.30478234798647463,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_historical_failed_temporal_arrays_are_refused",
++      "status": "PASS",
++      "seconds": 0.0007026299717836082,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_large_run_gate_requires_current_three_frame_evidence",
++      "status": "PASS",
++      "seconds": 0.0026140030240640044,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_nan_tails_partial_validity_reverse_order_and_truncation",
++      "status": "PASS",
++      "seconds": 0.028782109962776303,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_viewer_filters_uncommitted_frame_and_ENOSPC_commit_is_atomic",
++      "status": "PASS",
++      "seconds": 0.016722044034395367,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_selected_inverse_gpu.SelectedInverseTests.test_indefinite_selected_blocks_match_independent_joint_inverse",
++      "status": "PASS",
++      "seconds": 0.015119571995455772,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_selected_inverse_gpu.SelectedInverseTests.test_shared_temporal_pixels_and_source_coupling_match_joint_sparse_solves",
++      "status": "PASS",
++      "seconds": 0.14595286000985652,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.BatchForwarding.test_runner_forwards_factor_method_seed_to_every_child_mode",
++      "status": "PASS",
++      "seconds": 0.18645638303132728,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.Certificates.test_btf_capacity_bound_below_fill_reports_device_info_never_a_result",
++      "status": "PASS",
++      "seconds": 0.06982678500935435,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.Certificates.test_cudss_inertia_and_selected_inverse_inertia_refuse_wrong_structure",
++      "status": "PASS",
++      "seconds": 0.06703782599652186,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.Connectivity.test_gpu_components_equal_independent_union_find_on_actual_nonzeros",
++      "status": "PASS",
++      "seconds": 0.024219001992605627,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.Connectivity.test_symbolic_line_search_ties_never_enter_the_information_operator",
++      "status": "PASS",
++      "seconds": 0.06603420904139057,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.DoubleDoubleAccuracy.test_strongly_scaled_quasi_definite_selected_inverse_beats_unpivoted_float64",
++      "status": "PASS",
++      "seconds": 9.488689597987104,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.MemorySchedule.test_released_factor_and_host_offload_are_bit_identical",
++      "status": "PASS",
++      "seconds": 0.11517154204193503,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_cross_point_covariance_appears_and_vanishes_with_pixel_reuse",
++      "status": "PASS",
++      "seconds": 0.4285912520135753,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_every_nonzero_is_traced_to_a_predicted_factor_and_coupling_follows_reuse",
++      "status": "PASS",
++      "seconds": 0.1527987799490802,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_exact_zero_weight_adds_no_coefficient",
++      "status": "PASS",
++      "seconds": 0.03437322797253728,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_key_encoding_injective_and_no_duplicate_sensor_factor",
++      "status": "PASS",
++      "seconds": 0.06566542101791129,
++      "detail": null
++    },
++    {
++      "test": "tests.test_temporal_surgical_completion.UniformDownsampling.test_seeded_uniform_identity_determinism_seed_dependence_and_original_ids",
++      "status": "PASS",
++      "seconds": 0.013864498992916197,
+       "detail": null
+     }
+   ],
+-  "tests_run": 39,
++  "tests_run": 75,
+   "failures": 0,
+   "errors": 0,
+   "skips": 0,
+@@ -478,8 +604,8 @@
+     "CUDA_mean_covariance_discrepancy": {
+       "mean_max_abs": 2.220446049250313e-16,
+       "covariance_max_abs": 2.7755575615628914e-16,
+-      "seconds": 0.03883959198719822,
+-      "peak_allocated_bytes": 155275776,
++      "seconds": 0.0259935159701854,
++      "peak_allocated_bytes": 18104832,
+       "device_total_memory_bytes": 8444575744
+     },
+     "raw_sensor_factors_per_shared_key": 1
+@@ -504,14 +630,14 @@
+       "direction": "forward",
+       "xyz_max_abs": 0.0,
+       "position_diagonal_max_abs": 0.0,
+-      "traced_covariance_max_abs": 1.1435297153639112e-14
++      "traced_covariance_max_abs": 1.040378894145988e-11
+     },
+     {
+       "mode": "full",
+       "direction": "backward",
+       "xyz_max_abs": 0.0,
+       "position_diagonal_max_abs": 0.0,
+-      "traced_covariance_max_abs": 5.329070518200751e-15
++      "traced_covariance_max_abs": 1.2789325154471953e-11
+     }
+   ],
+   "motion_witnesses": [
+@@ -588,11 +714,470 @@
+       "raw_reference_likelihood_count": 1
+     }
+   ],
++  "sparse_gpu_witnesses": [
++    {
++      "actual_sparse_motion": true,
++      "true_displacement_posthoc": 0.1,
++      "estimated_relative_displacement": 0.09967747388781743,
++      "estimated_velocity": 2.4921029541709854,
++      "new_pixels": 2
++    },
++    {
++      "actual_sparse_motion": true,
++      "true_displacement_posthoc": -0.1,
++      "estimated_relative_displacement": -0.09967744957799145,
++      "estimated_velocity": -2.492102346384825,
++      "new_pixels": 2
++    },
++    {
++      "device": "cpu",
++      "ideal": false,
++      "H_absolute": 2.842170943040401e-14,
++      "H_relative": 2.855444966570715e-20,
++      "gradient_absolute": 0.0,
++      "adjoint_absolute": 0.0,
++      "dimension": 86,
++      "nnz_A": 415,
++      "nnz_C": 0,
++      "factor_counts": {
++        "SOURCE_PRIOR": 2,
++        "RAW_PIXEL": 16,
++        "PROCESS": 2,
++        "TEMPORAL_WARP": 4
++      }
++    },
++    {
++      "device": "cpu",
++      "ideal": true,
++      "H_absolute": 0.0,
++      "H_relative": 0.0,
++      "gradient_absolute": 0.0,
++      "adjoint_absolute": 0.0,
++      "dimension": 86,
++      "nnz_A": 124,
++      "nnz_C": 163,
++      "factor_counts": {
++        "SOURCE_PRIOR": 2,
++        "RAW_PIXEL": 16,
++        "PROCESS": 2,
++        "TEMPORAL_WARP": 4
++      }
++    },
++    {
++      "device": "cuda",
++      "ideal": false,
++      "H_absolute": 8.731149137020111e-11,
++      "H_relative": 8.771926937305236e-17,
++      "gradient_absolute": 1.8189894035458565e-12,
++      "adjoint_absolute": 0.0,
++      "dimension": 86,
++      "nnz_A": 418,
++      "nnz_C": 0,
++      "factor_counts": {
++        "SOURCE_PRIOR": 2,
++        "RAW_PIXEL": 16,
++        "PROCESS": 2,
++        "TEMPORAL_WARP": 4
++      }
++    },
++    {
++      "device": "cuda",
++      "ideal": true,
++      "H_absolute": 8.731149137020111e-11,
++      "H_relative": 8.772812112336282e-17,
++      "gradient_absolute": 1.8189894035458565e-12,
++      "adjoint_absolute": 0.0,
++      "dimension": 86,
++      "nnz_A": 124,
++      "nnz_C": 172,
++      "factor_counts": {
++        "SOURCE_PRIOR": 2,
++        "RAW_PIXEL": 16,
++        "PROCESS": 2,
++        "TEMPORAL_WARP": 4
++      }
++    }
++  ],
++  "sparse_marginal_witnesses": [
++    {
++      "ideal": false,
++      "MAP_abs": 1.1299049099724186e-15,
++      "MAP_relative": 8.691572793015491e-14,
++      "joint_covariance_abs": 1.4432899320127035e-15,
++      "joint_covariance_relative": 2.0389816055885687e-15,
++      "certificate": {
++        "absolute_residual": 5.551115123125783e-17,
++        "componentwise_backward_error": 2.2429539791651097e-16,
++        "rhs_columns": 1,
++        "refinement_steps": 0,
++        "mixed_absolute_relative_certificate": true,
++        "relative_tolerance": 2e-12,
++        "absolute_tolerance": 2e-13,
++        "equality_absolute": 0.0,
++        "objective": 4.1617623062148914e-13,
++        "normal_equations_formed": false,
++        "FEJ_information_present": false
++      },
++      "profile": {
++        "eliminated_pixel_scalars": 0,
++        "free_dimension": 86,
++        "remaining_constraints": 0,
++        "nnz_A_reduced": 342,
++        "nnz_C_reduced": 0,
++        "nnz_substitution": 114,
++        "nnz_KKT": 786,
++        "setup_seconds": 0.08382814499782398,
++        "source_process_sensor_innovation_coordinates": true,
++        "exact_prior_residuals_eliminated": 86,
++        "backend": "cuDSS-1.0.0.35",
++        "rows": 102,
++        "nnz": 444,
++        "pivot_epsilon": 0.0,
++        "formed_normal_equations": false,
++        "algorithm": "symmetric_nd",
++        "matrix_type": "symmetric_indefinite",
++        "ordering": "nested_dissection",
++        "pivoting": "Bunch_Kaufman",
++        "VRAM_free_before_handle": 8197767168,
++        "host_threading_layer": "libcudss_mtlayer_gomp.so.1",
++        "VRAM_free_before_analysis": 8189378560,
++        "VRAM_total": 8444575744,
++        "max_LU_nnz_capacity": null,
++        "torch_allocated_before_analysis": 11877888,
++        "torch_reserved_before_analysis": 25165824,
++        "analysis_seconds": 0.0591267179697752,
++        "memory_estimate_query_status": 0,
++        "native_memory_estimates_bytes": [
++          392476,
++          392476,
++          21136,
++          25520,
++          392828,
++          36624,
++          2,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0
++        ],
++        "native_LU_nnz_reported": 589,
++        "factorization_seconds": 0.00023954198695719242,
++        "info": 0,
++        "perturbed_pivots": 0,
++        "factor_nnz": 589,
++        "max_LU_nnz_capacity_source": null,
++        "inertia": [
++          16,
++          86
++        ],
++        "expected_inertia": [
++          16,
++          86
++        ],
++        "solve_certificate": {
++          "absolute_residual": 5.551115123125783e-17,
++          "componentwise_backward_error": 2.2429539791651097e-16,
++          "rhs_columns": 1,
++          "refinement_steps": 0,
++          "mixed_absolute_relative_certificate": true,
++          "relative_tolerance": 2e-12,
++          "absolute_tolerance": 2e-13,
++          "equality_absolute": 0.0,
++          "objective": 4.1617623062148914e-13,
++          "normal_equations_formed": false,
++          "FEJ_information_present": false
++        },
++        "selected_marginals": {
++          "seconds": 0.30980022699804977,
++          "output_blocks": 1,
++          "query_width": 86,
++          "rhs_colors": 86,
++          "rhs_batch": 8,
++          "connectivity_iterations": 3,
++          "component_count": 7,
++          "largest_component_scalars": 80,
++          "symmetry_absolute": 1.1102230246251565e-16,
++          "method": "same augmented sparse factorization; exact component-colored RHS"
++        }
++      }
++    },
++    {
++      "ideal": true,
++      "MAP_abs": 2.040034807748725e-15,
++      "MAP_relative": 1.569256273441623e-13,
++      "joint_covariance_abs": 3.1785358734623726e-15,
++      "joint_covariance_relative": 4.491397499874284e-15,
++      "certificate": {
++        "absolute_residual": 6.938893903907228e-18,
++        "componentwise_backward_error": 2.0494601319547744e-16,
++        "rhs_columns": 1,
++        "refinement_steps": 0,
++        "mixed_absolute_relative_certificate": true,
++        "relative_tolerance": 2e-12,
++        "absolute_tolerance": 2e-13,
++        "equality_absolute": 2.168404344971009e-19,
++        "objective": 8.248401640823478e-13,
++        "normal_equations_formed": false,
++        "FEJ_information_present": false
++      },
++      "profile": {
++        "eliminated_pixel_scalars": 16,
++        "free_dimension": 70,
++        "remaining_constraints": 0,
++        "nnz_A_reduced": 206,
++        "nnz_C_reduced": 0,
++        "nnz_substitution": 304,
++        "nnz_KKT": 498,
++        "setup_seconds": 0.07997807202627882,
++        "source_process_sensor_innovation_coordinates": true,
++        "exact_prior_residuals_eliminated": 70,
++        "backend": "cuDSS-1.0.0.35",
++        "rows": 86,
++        "nnz": 292,
++        "pivot_epsilon": 0.0,
++        "formed_normal_equations": false,
++        "algorithm": "symmetric_nd",
++        "matrix_type": "symmetric_indefinite",
++        "ordering": "nested_dissection",
++        "pivoting": "Bunch_Kaufman",
++        "VRAM_free_before_handle": 8197767168,
++        "host_threading_layer": "libcudss_mtlayer_gomp.so.1",
++        "VRAM_free_before_analysis": 8189378560,
++        "VRAM_total": 8444575744,
++        "max_LU_nnz_capacity": null,
++        "torch_allocated_before_analysis": 11942400,
++        "torch_reserved_before_analysis": 25165824,
++        "analysis_seconds": 0.04781907197320834,
++        "memory_estimate_query_status": 0,
++        "native_memory_estimates_bytes": [
++          331764,
++          331764,
++          20112,
++          23152,
++          332580,
++          31312,
++          2,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0
++        ],
++        "native_LU_nnz_reported": 422,
++        "factorization_seconds": 0.00022243201965466142,
++        "info": 0,
++        "perturbed_pivots": 0,
++        "factor_nnz": 422,
++        "max_LU_nnz_capacity_source": null,
++        "inertia": [
++          16,
++          70
++        ],
++        "expected_inertia": [
++          16,
++          70
++        ],
++        "solve_certificate": {
++          "absolute_residual": 6.938893903907228e-18,
++          "componentwise_backward_error": 2.0494601319547744e-16,
++          "rhs_columns": 1,
++          "refinement_steps": 0,
++          "mixed_absolute_relative_certificate": true,
++          "relative_tolerance": 2e-12,
++          "absolute_tolerance": 2e-13,
++          "equality_absolute": 2.168404344971009e-19,
++          "objective": 8.248401640823478e-13,
++          "normal_equations_formed": false,
++          "FEJ_information_present": false
++        },
++        "selected_marginals": {
++          "seconds": 0.29522801097482443,
++          "output_blocks": 1,
++          "query_width": 86,
++          "rhs_colors": 86,
++          "rhs_batch": 8,
++          "connectivity_iterations": 3,
++          "component_count": 7,
++          "largest_component_scalars": 64,
++          "symmetry_absolute": 1.1102230246251565e-16,
++          "method": "same augmented sparse factorization; exact component-colored RHS"
++        }
++      }
++    },
++    {
++      "surviving_equality": true,
++      "Schur_profile": {
++        "possible_fill_entries": 9,
++        "actual_product_nnz": 5,
++        "rhs_colors": 3,
++        "elimination_component_count": 1,
++        "connectivity_iterations": 2,
++        "estimated_workspace_bytes": 672,
++        "backend": "cuDSS-1.0.0.35",
++        "rows": 2,
++        "nnz": 2,
++        "pivot_epsilon": 0.0,
++        "formed_normal_equations": false,
++        "algorithm": "symmetric_nd",
++        "matrix_type": "symmetric_indefinite",
++        "ordering": "nested_dissection",
++        "pivoting": "Bunch_Kaufman",
++        "VRAM_free_before_handle": 8197767168,
++        "host_threading_layer": "libcudss_mtlayer_gomp.so.1",
++        "VRAM_free_before_analysis": 8189378560,
++        "VRAM_total": 8444575744,
++        "max_LU_nnz_capacity": null,
++        "torch_allocated_before_analysis": 11810304,
++        "torch_reserved_before_analysis": 25165824,
++        "analysis_seconds": 0.013161465001758188,
++        "memory_estimate_query_status": 0,
++        "native_memory_estimates_bytes": [
++          19940,
++          26804,
++          13392,
++          13440,
++          20036,
++          13568,
++          2,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0
++        ],
++        "native_LU_nnz_reported": 4,
++        "factorization_seconds": 0.00012360600521788,
++        "info": 0,
++        "perturbed_pivots": 0,
++        "factor_nnz": 4,
++        "max_LU_nnz_capacity_source": null,
++        "inertia": [
++          1,
++          1
++        ],
++        "expected_inertia": null,
++        "last_solve": {
++          "absolute_residual": 1.3877787807814457e-17,
++          "componentwise_backward_error": 6.938893903907228e-17,
++          "rhs_columns": 1,
++          "refinement_steps": 0,
++          "mixed_absolute_relative_certificate": true,
++          "relative_tolerance": 2e-12,
++          "absolute_tolerance": 2e-13
++        },
++        "total_seconds": 0.03392427496146411,
++        "symbolic_matching_seconds": 0.0007839210447855294,
++        "eliminated_scalars": 1,
++        "retained_scalars": 2,
++        "old_constraints": 2,
++        "eliminated_constraint_rank_candidate": 1,
++        "remaining_hard_constraints": 1,
++        "FEJ_information_nnz": 4,
++        "FEJ_constraint_nnz": 2,
++        "exactness": "complete sparse Schur; numerical certification required; normal-information conditioning audited against QR"
++      },
++      "posterior_abs": 8.326672684688674e-17,
++      "objective_abs": 1.3877787807814457e-17
++    },
++    {
++      "source_marginalized": true,
++      "mean_abs": 7.018437225457473e-14,
++      "cov_abs": 2.7333690866271354e-13,
++      "Schur_profile": {
++        "possible_fill_entries": 784,
++        "actual_product_nnz": 784,
++        "rhs_colors": 28,
++        "elimination_component_count": 1,
++        "connectivity_iterations": 3,
++        "estimated_workspace_bytes": 39296,
++        "backend": "cuDSS-1.0.0.35",
++        "rows": 74,
++        "nnz": 180,
++        "pivot_epsilon": 0.0,
++        "formed_normal_equations": false,
++        "algorithm": "symmetric_nd",
++        "matrix_type": "symmetric_indefinite",
++        "ordering": "nested_dissection",
++        "pivoting": "Bunch_Kaufman",
++        "VRAM_free_before_handle": 8197767168,
++        "host_threading_layer": "libcudss_mtlayer_gomp.so.1",
++        "VRAM_free_before_analysis": 8189378560,
++        "VRAM_total": 8444575744,
++        "max_LU_nnz_capacity": null,
++        "torch_allocated_before_analysis": 11876864,
++        "torch_reserved_before_analysis": 25165824,
++        "analysis_seconds": 0.07603297202149406,
++        "memory_estimate_query_status": 0,
++        "native_memory_estimates_bytes": [
++          285300,
++          285300,
++          19088,
++          21136,
++          286204,
++          27440,
++          2,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0,
++          0
++        ],
++        "native_LU_nnz_reported": 318,
++        "factorization_seconds": 0.00024047103943303227,
++        "info": 0,
++        "perturbed_pivots": 0,
++        "factor_nnz": 318,
++        "max_LU_nnz_capacity_source": null,
++        "inertia": [
++          58,
++          16
++        ],
++        "expected_inertia": null,
++        "last_solve": {
++          "absolute_residual": 1.7763568394002505e-15,
++          "componentwise_backward_error": 3.209076275936337e-16,
++          "rhs_columns": 1,
++          "refinement_steps": 0,
++          "mixed_absolute_relative_certificate": true,
++          "relative_tolerance": 2e-12,
++          "absolute_tolerance": 2e-13
++        },
++        "total_seconds": 0.10752467002021149,
++        "symbolic_matching_seconds": 0.0007536689518019557,
++        "eliminated_scalars": 58,
++        "retained_scalars": 28,
++        "old_constraints": 16,
++        "eliminated_constraint_rank_candidate": 16,
++        "remaining_hard_constraints": 0,
++        "FEJ_information_nnz": 784,
++        "FEJ_constraint_nnz": 0,
++        "exactness": "complete sparse Schur; numerical certification required; normal-information conditioning audited against QR"
++      }
++    }
++  ],
+   "source_sha256": {
+     "configs/projective_rgbd.json": "3a1ce8cdfebbe1768a5ffc54ca894ab3e78c95385cee5ff3d95a682a5e04827d",
++    "cuda/temporal_selected_symbolic.cpp": "bed3df941b91c437c7720a5b0f762ca3c2ecb57b6ad5bd6fec6b19cbdf80e00c",
+     "debug/assets/projective_common.js": "06cfa27e076ca6d93376f90d260e4433ed6abfb5e7bfcbb0b169b8bf9ae05c6d",
+-    "debug/projective_debug.py": "f2471a0ac69a779b7e1750e29c1361f623c983805caeb47846d60793b188bb1d",
+-    "debug/temporal_debug.py": "813c5dc3c39fbd706ec73a7b6ab40074590fdb38071e95a8896d5a451d9f409b",
++    "debug/projective_debug.py": "5415a98fe1f61a215833f7761c9ae2edf56cea436b4e8753af82c61897a28ce0",
++    "debug/temporal_debug.py": "06ca4f62a5f208c6145d77902409641b7e589bccde98b816ff36eece872b58aa",
+     "estimator/free_projective_run.py": "846d2f8204660004c16018d3b52cd9fab7b08b9fd1d627efba75311470031cc4",
+     "estimator/point_kalman_cuda.py": "2f7382ca19008ec336d97a7196d21d94ecb40dea92387358954eeb415e125e31",
+     "estimator/projective_camera.py": "00d42232ae62269c385129407f0de1e5d84bc1b4a5990b5aee7c7b9ab4d91070",
+@@ -601,13 +1186,20 @@
+     "estimator/projective_visibility.py": "6e126dfdcacf387f86492ba70e8e1f3d669f9ca5236f2cda3178c1573e3294cd",
+     "estimator/rendered_mask_iekf.py": "e3efe044217482f694193a61994f7f4311b5721dd959e9d057f3e19c88d06ae7",
+     "estimator/rendered_mask_measurement.py": "32e2ef50f75574a59d552587e0d9f6dc16961945939a2e1650da8e5c002e690d",
+-    "estimator/temporal_full_graph.py": "e8ac1aadd850bd9dcf06a7fec0ccbae8949be3c530dc64f90b0d6b8133b0eb37",
++    "estimator/temporal_cudss.py": "27be6c4249493f5274529358045154207d83213262a275efd532567e632adbd8",
++    "estimator/temporal_full_graph.py": "0e6b3b77560d31dd6557acf3df338de4cd4671c6b00babebc331bc584603b4f9",
+     "estimator/temporal_noise.py": "bbc1ee9f396002e3d4ba94cc42226fcb807b72a3d0b1528c44a04662e9b07b50",
+     "estimator/temporal_reference.py": "add71cd5200fef41cbada2c8865c610cf9cd57d483e1b31c5c8af9fbfadfd5ec",
+     "estimator/temporal_rgbd_terms.py": "550e3ddc38d381ecf2a5b86bb68c8db787541cf3f0adf559f6c7a087807bc7d3",
+-    "estimator/temporal_run.py": "ce4a716b046bed1b30b087bcf933a4d8edece8df21d952dccaabd68df1b21190",
++    "estimator/temporal_run.py": "66090352041040503fe40c197cf0e40a809b03cde10d46f196b2ca4f30074a90",
++    "estimator/temporal_selected_inverse_gpu.py": "d06a4bfe3133d7b61174664444ab543901261632cf031a194a84a929200f22af",
+     "estimator/temporal_simplified_iekf.py": "8b36a423008208e37de9129189ac1db6b2d263b352e4ccb0d85c35665dafcecb",
+-    "estimator/temporal_zbuffer.py": "9fa5d2288b82c74539b683e85d276708e8372dc164c6d5de53a3c643b0031c65",
++    "estimator/temporal_sparse_gpu.py": "ac3a271982485aad3da87eb9a7fbe916319a6611ee528da4e45ae4ac074301c1",
++    "estimator/temporal_sparse_marginalization.py": "0457209efdeaf5cf024e2038cfd210ede5505069e7b09aa4a6852ce935c7af05",
++    "estimator/temporal_sparse_nonlinear.py": "3bd8de3597bde38dbc9c6528b408dc20aaa5dbda360ecdf39175adb0d1832343",
++    "estimator/temporal_sparse_run.py": "3a3abbe772dced41ce22f58a20f5f88639e3589befde78b0f4ddf8e3e32d8d56",
++    "estimator/temporal_sparse_solve.py": "dd456438d9000d75bf98b8cb710d4905c7d77ede80cd260cb608943458ac3978",
++    "estimator/temporal_zbuffer.py": "763c3d1f07ed95e2c711330cceac1e53473a0ecdf2aefe08d6b333e046085c03",
+     "scene/camera.py": "c28210295a1599e0331e21b57b809d89acd5f21da5b4799d292ddeb446dbb641",
+     "scene/canonical_subsample.py": "d1a80065812759b294bf7b07e45eb5e284ce3a0b435e6ebe74769c2ed6da92ba",
+     "scene/config.py": "43a10c46ad7391662d8022ac3a994b25f515e4b188c760551ee25dedc7d4dcb9",
+@@ -619,10 +1211,19 @@
+     "scene/timing.py": "c91fc8d9a2761f3a0ca8e7e23be14d56f28a403b58b05595a068d8963c65ca8d",
+     "tests/test_temporal_full_graph.py": "48d058ac2a414045f57d9573f2447cf6ef5e9d04d8299d6364ffb3ebbfe1321e",
+     "tests/test_temporal_motion.py": "a55d6ba95688b8a4b637be46b5f9b814e8e56c297dd02fcf4501825c0df27d37",
+-    "tests/test_temporal_rgbd_pipeline.py": "8775fbc7e2ebbcbd1ed1429c2a90be504806b28957205a216ee345572fcf9c5e",
++    "tests/test_temporal_rgbd_pipeline.py": "57574af40781b226566f546509b5dd4f1e7954db412dfa96942e6847e6d0d277",
++    "tests/test_temporal_selected_inverse_gpu.py": "c857df4fce72a262e738cfba35b47c84fd530ae43c1000578607fc88e74cfc84",
++    "tests/test_temporal_sparse_gpu.py": "e926a57d942c0fa74d7aac63334984e09096b8cfcef82fa865800985c32ca290",
++    "tests/test_temporal_sparse_marginalization.py": "9fd852758edbeaf74698aa146817f7fd7d0cd466beebfa37b0699b04f19d1aab",
++    "tests/test_temporal_sparse_runtime_safety.py": "bb2b6da69d04474317f21f0198e3f8013c36c52087a0be0799078cac529a5f14",
++    "tests/test_temporal_surgical_completion.py": "eb26d9feb42aa85c0e215fbadbac8cc7fc5a07b2c1846f61c0d0148605b5167a",
+     "tests/test_temporal_warp.py": "80b10b2b715fc9d264348c26e63e54e5bad71062cac35ed0cd54ebb46147eb9f",
+-    "tools/test_temporal_rgbd.py": "9ba89bd166d924eff7cc0e4cbce355775f2b4b7440c7aa6c46eafd389657acf6",
+-    "train.py": "331551e22bcd142eb66c3021040cb20dba5af6f236979ab0802233902c8d0127"
++    "tools/report_temporal_sparse_gpu.py": "ab23ec40b7a7989d7bda06d3a64cfdc97d2776bafbd46125e6a8b582a18d9c0f",
++    "tools/run_temporal_rgbd_critical.py": "2f21581e6b9af12773bc00c2e1f7255b3d554520d242c556bd2ff9806ebaf092",
++    "tools/temporal_batch_runtime.py": "a404dd4ea55783cc9d37c685e224248b9dd8b7986be711908fa0d9a8c4f3f27b",
++    "tools/test_temporal_rgbd.py": "68294d14fb9e051579a0a7507b9d0459eadb298b45511479d67f98c841821810",
++    "train.py": "1b7a09b8d03966ff166965a624a3b37361855ad7931b769a7e7501ab7cbb40f3",
++    "utils/temporal_output.py": "218050feecfc46b36c85d783386a7d3523a7b230e6c99571841adf24dc69fc75"
+   },
+   "sources_changed_during_tests": []
+ }
+diff --git a/tests/test_temporal_sparse_marginalization.py b/tests/test_temporal_sparse_marginalization.py
+index af7f693..70b29fa 100644
+--- a/tests/test_temporal_sparse_marginalization.py
++++ b/tests/test_temporal_sparse_marginalization.py
+@@ -22,6 +22,23 @@ def independent_qr(A,r,C,c):
+ 
+ 
+ class SparseMarginalizationTests(unittest.TestCase):
++    def test_symmetric_indefinite_native_solve_multiple_RHS_no_perturbation(self):
++        from estimator.temporal_cudss import CudaSparseFactor
++        if not torch.cuda.is_available():raise RuntimeError('Actual CUDA is required')
++        A=torch.tensor([[1.,2.,.2],[.3,-.5,1.]],device='cuda',dtype=torch.float64)
++        K=torch.cat((torch.cat((torch.eye(2,device='cuda',dtype=torch.float64),A),1),
++                     torch.cat((A.T,-torch.eye(3,device='cuda',dtype=torch.float64)),1)),0)
++        rhs=torch.arange(15,device='cuda',dtype=torch.float64).reshape(5,3)/10
++        expected=np.linalg.solve(K.cpu().numpy(),rhs.cpu().numpy())
++        with CudaSparseFactor(K.to_sparse_csr()) as factor:
++            actual=factor.solve(rhs)
++            np.testing.assert_allclose(actual.cpu(),expected,atol=2e-13,rtol=2e-13)
++            self.assertEqual(factor.profile['algorithm'],'symmetric_nd')
++            self.assertEqual(factor.profile['perturbed_pivots'],0)
++            self.assertIsNone(factor.profile['max_LU_nnz_capacity'])
++        K[0,1]=.1
++        with self.assertRaisesRegex(SparseNumericalFailure,'nonsymmetric'):CudaSparseFactor(K.to_sparse_csr())
++
+     def test_GPU_MAP_marginal_and_source_cross_match_independent_QR(self):
+         if not torch.cuda.is_available():raise RuntimeError('CUDA numerical acceptance must be executed on the actual GPU')
+         for ideal in [False,True]:
+diff --git a/tools/report_temporal_sparse_gpu.py b/tools/report_temporal_sparse_gpu.py
+index 1ac802d..7990f1d 100644
+--- a/tools/report_temporal_sparse_gpu.py
++++ b/tools/report_temporal_sparse_gpu.py
+@@ -136,6 +136,7 @@ def main():
+     (a.output_dir/'temporal_sparse_gpu_source_changes.patch').write_bytes(changes)
+     function_map={}
+     for name in SPARSE_PRODUCTION_SOURCES:
++        if not name.endswith('.py'):continue   # e.g. cuda/*.cpp: hashed, but not Python
+         tree=ast.parse((REPO/name).read_text())
+         function_map[name]={n.name:n.lineno for n in ast.walk(tree) if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
+     disk=shutil.disk_usage(a.batch[-1])
+diff --git a/tools/run_temporal_rgbd_critical.py b/tools/run_temporal_rgbd_critical.py
+index 7613f2d..b0bd9be 100644
+--- a/tools/run_temporal_rgbd_critical.py
++++ b/tools/run_temporal_rgbd_critical.py
+@@ -45,7 +45,9 @@ def main():
+     ap.add_argument('--terminate-grace-seconds',type=float,default=2.,help='operational process-group termination grace')
+     ap.add_argument('--continue-on-error',action='store_true',help='explicitly continue after failed scene; default is fail-fast')
+     ap.add_argument('--temporal-output-headroom-mib',type=float,default=128.)
+-    ap.add_argument('--pcd-subsample-factor',type=int,default=1)
++    ap.add_argument('--pcd-subsample-factor',type=int,default=1,help='same as train.py: 1 = every original point (production default)')
++    ap.add_argument('--pcd-subsample-method',choices=['spatial-stratified','seeded-uniform'],default='spatial-stratified',help='same choices/default as train.py; forwarded to every child')
++    ap.add_argument('--pcd-subsample-seed',type=int,default=0,help='same as train.py; forwarded to every child')
+     ap.add_argument('--focal-controls',action='store_true',help='DIAGNOSTIC reduced clouds of exact original traced IDs; not full-cloud validation')
+     ap.add_argument('--temporal-warp-noise',choices=['measured','config','ideal'],default='measured');ap.add_argument('--temporal-warp-noise-config',type=Path)
+     ap.add_argument('--sensor-noise',choices=['measured','config'],default='measured');ap.add_argument('--debug',choices=['light','full'],default='light')
+@@ -82,7 +84,8 @@ def main():
+         for mode in modes:
+             target=out/f'{scene.name}_{mode}'
+             cmd=[sys.executable,'-B',str(REPO/'train.py'),'--scene',str(scene),'--output',str(target),'--device',a.device,
+-                 '--direction',a.direction,'--stop-after',a.stop_after,'--pcd-subsample-factor',str(a.pcd_subsample_factor),'--covariance-precision','float64',
++                 '--direction',a.direction,'--stop-after',a.stop_after,'--pcd-subsample-factor',str(a.pcd_subsample_factor),
++                 '--pcd-subsample-method',a.pcd_subsample_method,'--pcd-subsample-seed',str(a.pcd_subsample_seed),'--covariance-precision','float64',
+                  '--sensor-noise',a.sensor_noise,'--rendered-mask-measurement','off','--debug',a.debug,
+                  '--debug-frames','0,1,2,3,5,7,10,30,59','--no-evaluate','--no-qa']
+             if mode!='legacy':
+diff --git a/tools/temporal_batch_runtime.py b/tools/temporal_batch_runtime.py
+index c76492a..d3492b5 100644
+--- a/tools/temporal_batch_runtime.py
++++ b/tools/temporal_batch_runtime.py
+@@ -14,7 +14,7 @@ from utils.temporal_output import atomic_json
+ SPARSE_PRODUCTION_SOURCES = tuple('estimator/'+name+'.py' for name in (
+     'temporal_sparse_gpu','temporal_sparse_solve','temporal_cudss','temporal_sparse_marginalization',
+     'temporal_sparse_nonlinear','temporal_sparse_run','temporal_zbuffer','temporal_rgbd_terms','temporal_reference',
+-    'point_kalman_cuda','projective_sensor')) + ('train.py','tools/run_temporal_rgbd_critical.py',
++    'point_kalman_cuda','projective_sensor','temporal_selected_inverse_gpu')) + ('cuda/temporal_selected_symbolic.cpp','train.py','tools/run_temporal_rgbd_critical.py',
+     'tools/temporal_batch_runtime.py','utils/temporal_output.py')
+ 
+ 
+diff --git a/tools/test_temporal_rgbd.py b/tools/test_temporal_rgbd.py
+index 5d5450e..62fef9d 100644
+--- a/tools/test_temporal_rgbd.py
++++ b/tools/test_temporal_rgbd.py
+@@ -67,7 +67,8 @@ def witnesses():
+ def main():
+     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=Path('tests/temporal_test_results.json'));a=ap.parse_args()
+     modules=['tests.test_temporal_warp','tests.test_temporal_full_graph','tests.test_temporal_rgbd_pipeline','tests.test_temporal_motion',
+-             'tests.test_temporal_sparse_gpu','tests.test_temporal_sparse_marginalization','tests.test_temporal_sparse_runtime_safety']
++             'tests.test_temporal_sparse_gpu','tests.test_temporal_sparse_marginalization','tests.test_temporal_sparse_runtime_safety',
++             'tests.test_temporal_selected_inverse_gpu','tests.test_temporal_surgical_completion']
+     import train
+     source_paths=sorted(set(train.STAGE_SOURCES['free']+train.STAGE_SOURCES['free_temporal_rgbd']+[m.replace('.','/')+'.py' for m in modules]+
+         ['tools/test_temporal_rgbd.py','tools/temporal_batch_runtime.py','tools/run_temporal_rgbd_critical.py','tools/report_temporal_sparse_gpu.py']))
+diff --git a/train.py b/train.py
+index fa71337..4228e19 100644
+--- a/train.py
++++ b/train.py
+@@ -53,7 +53,8 @@ STAGE_SOURCES['free_temporal_rgbd'] = [
+     'estimator/temporal_run.py', 'debug/temporal_debug.py', 'debug/projective_debug.py', 'debug/assets/projective_common.js', 'train.py']
+ STAGE_SOURCES['free_temporal_rgbd'] += ['estimator/temporal_sparse_gpu.py','estimator/temporal_sparse_solve.py',
+     'estimator/temporal_sparse_marginalization.py','estimator/temporal_sparse_nonlinear.py',
+-    'estimator/temporal_sparse_run.py','estimator/temporal_cudss.py','utils/temporal_output.py']
++    'estimator/temporal_sparse_run.py','estimator/temporal_cudss.py','utils/temporal_output.py',
++    'estimator/temporal_selected_inverse_gpu.py','cuda/temporal_selected_symbolic.cpp']
+ DIRS = {'forward': 'forward', 'backward': 'backward'}
+ 
+ 
+diff --git a/estimator/temporal_selected_inverse_gpu.py b/estimator/temporal_selected_inverse_gpu.py
+new file mode 100644
+index 0000000..b0f2a43
+--- /dev/null
++++ b/estimator/temporal_selected_inverse_gpu.py
+@@ -0,0 +1,314 @@
++"""Sparse GPU LDL and Takahashi inverse entries in double-double arithmetic; CPU symbolic ordering only.
++
++Query cliques are symbolic zero padding, never information/constraint rows.
++No global inverse, dense connected component, covariance truncation or probing.
++
++Why double-double: an UNPIVOTED LDL^T of the quasi-definite KKT [[I, A], [A^T, -H]] exists for every symmetric
++ordering, but with whitened Jacobians ||A|| ~ 1e6 its element growth is ~||A||^2. In float64 that measurably lost
++up to 1e-4 correlation units on real USB/Blade blocks against extended-precision refined references, for METIS and
++for measurement-first CAMD orderings alike. The SAME recurrences evaluated with error-free transformations
++(two-sum, FMA two-product; ~106-bit significands) reduce that loss by ~2^53. The selected entries are rounded to
++float64 only at the very end.
++
++Storage (exact layout, identical recurrences): L (hi, lo) is factored IN PLACE over the values of K (a
++level-scheduled entry reads only entries of strictly earlier elimination-tree levels and its own initial value);
++work items find their column by binary search in the per-level prefix `off`; the row structure is released after
++the factorization; Z overwrites L level by level from the root (Takahashi's column j reads only its own L column and
++Z of its ancestors), staged through a per-level buffer so no column reads a slot another program rewrites.
++"""
++import ctypes as ct
++import hashlib
++from pathlib import Path
++import subprocess
++import time
++import numpy as np
++import torch
++import triton as tr
++import triton.language as tl
++from estimator.temporal_cudss import SparseNumericalFailure,SparseResourceLimit
++
++# All double-double kernels are launched with enable_fp_fusion=False: an implicit a*b+c -> fma contraction makes
++# a product rounded in one place and fused in another, silently destroying the two-sum error terms.
++CHUNK_MAX=512    # per-program chunk width; rows/columns longer than this are walked in chunks
++BYTES_PER_FACTOR_ENTRY=28   # factor phase: L hi/lo 16 + ri 4 + rc 4 + rx 4 (inverse phase: 20 + level stage)
++OPERATIONAL_HEADROOM_BYTES=256*1024**2   # allocator/runtime headroom, not a statistical quantity
++
++
++@tr.jit
++def _two_sum(a,b):
++    s=a+b;bb=s-a
++    return s,(a-(s-bb))+(b-bb)
++
++
++@tr.jit
++def _fast_two_sum(a,b):
++    s=a+b
++    return s,b-(s-a)
++
++
++@tr.jit
++def _dd_add(ah,al,bh,bl):
++    s,e=_two_sum(ah,bh);t,f=_two_sum(al,bl)
++    e=e+t;s,e=_fast_two_sum(s,e);e=e+f
++    return _fast_two_sum(s,e)
++
++
++@tr.jit
++def _dd_mul(ah,al,bh,bl):
++    p=ah*bh;e=tl.fma(ah,bh,-p);e=e+(ah*bl+al*bh)
++    return _fast_two_sum(p,e)
++
++
++@tr.jit
++def _dd_div(ah,al,bh,bl):
++    q1=ah/bh
++    ph,pl=_dd_mul(q1,q1*0.,bh,bl);rh,rl=_dd_add(ah,al,-ph,-pl)
++    q2=rh/bh
++    ph,pl=_dd_mul(q2,q2*0.,bh,bl);rh,rl=_dd_add(rh,rl,-ph,-pl)
++    q3=rh/bh
++    s,e=_fast_two_sum(q1,q2)
++    return _dd_add(s,e,q3,q3*0.)
++
++
++@tr.jit
++def _dd_sum(h,l):
++    return tl.reduce((h,l),0,_dd_add)
++
++
++@tr.jit
++def _find(P,I,column,target,valid):
++    lo=tl.load(P+column);hi=tl.load(P+column+1)
++    end=hi
++    while tl.sum((lo<hi).to(tl.int32),0)>0:
++        active=valid&(lo<hi);middle=(lo+hi)//2
++        value=tl.load(I+middle,active,2147483647)
++        left=value<target
++        lo=tl.where(active&left,middle+1,lo);hi=tl.where(active&~left,middle,hi)
++        lo=tl.where(valid,lo,end);hi=tl.where(valid,hi,end)
++    return lo
++
++
++@tr.jit
++def _work_item(lc,off,lstart,lend,wstart,cp):
++    """Global work index -> (column j, factor position, stage index) with off[t] <= w < off[t+1] inside the level."""
++    w=wstart+tl.program_id(0).to(tl.int64)
++    lo=lstart.to(tl.int64);hi=lend.to(tl.int64)
++    while hi-lo>1:
++        middle=(lo+hi)//2
++        if tl.load(off+middle)<=w:lo=middle
++        else:hi=middle
++    j=tl.load(lc+lo)
++    return j,tl.load(cp+j)+1+(w-tl.load(off+lo)),w-wstart
++
++
++@tr.jit
++def _diag(jobs,start,cp,rp,rc,rx,Lh,Ll,Dh,Dl,flag,B:tl.constexpr):
++    j=tl.load(jobs+start+tl.program_id(0));c=tl.load(cp+j)
++    ah=tl.load(Lh+c)*0.;al=ah*0.
++    for base in range(tl.load(rp+j),tl.load(rp+j+1),B):   # fixed-width chunks: bounded registers for any row length
++        p=base+tl.arange(0,B);valid=p<tl.load(rp+j+1)
++        col=tl.load(rc+p,valid,0);valid&=col<j
++        index=tl.load(rx+p,valid,0);vh=tl.load(Lh+index,valid,0.);vl=tl.load(Ll+index,valid,0.)
++        th,tl_=_dd_mul(vh,vl,vh,vl);th,tl_=_dd_mul(th,tl_,tl.load(Dh+col,valid,0.),tl.load(Dl+col,valid,0.))
++        sh,sl=_dd_sum(th,tl_);ah,al=_dd_add(ah,al,sh,sl)
++    dh,dl=_dd_add(tl.load(Lh+c),tl.load(Ll+c),-ah,-al)
++    if (dh==0.) | (tl.abs(dh)==float('inf')) | (dh!=dh):tl.atomic_or(flag,1)
++    tl.store(Dh+j,dh);tl.store(Dl+j,dl);tl.store(Lh+c,1.);tl.store(Ll+c,0.)
++
++
++@tr.jit(do_not_specialize=['lstart','lend','wstart'])
++def _column(lc,off,lstart,lend,wstart,ri,cp,rp,rc,rx,Lh,Ll,Dh,Dl,B:tl.constexpr):
++    j,position,w=_work_item(lc,off,lstart,lend,wstart,cp);i=tl.load(ri+position)
++    ah=tl.load(Lh+position)*0.;al=ah*0.
++    for base in range(tl.load(rp+j),tl.load(rp+j+1),B):
++        p=base+tl.arange(0,B);valid=p<tl.load(rp+j+1)
++        col=tl.load(rc+p,valid,0);valid&=col<j
++        jindex=tl.load(rx+p,valid,0)
++        found=_find(rp,rc,tl.full((B,),i,tl.int32),col,valid)
++        valid&=found<tl.load(rp+i+1)
++        match=tl.load(rc+found,valid,-1)==col;valid&=match
++        ix=tl.load(rx+found,valid,0)
++        th,tl_=_dd_mul(tl.load(Lh+jindex,valid,0.),tl.load(Ll+jindex,valid,0.),tl.load(Lh+ix,valid,0.),tl.load(Ll+ix,valid,0.))
++        th,tl_=_dd_mul(th,tl_,tl.load(Dh+col,valid,0.),tl.load(Dl+col,valid,0.))
++        sh,sl=_dd_sum(th,tl_);ah,al=_dd_add(ah,al,sh,sl)
++    nh,nl=_dd_add(tl.load(Lh+position),tl.load(Ll+position),-ah,-al)
++    vh,vl=_dd_div(nh,nl,tl.load(Dh+j),tl.load(Dl+j))
++    tl.store(Lh+position,vh);tl.store(Ll+position,vl)
++
++
++@tr.jit(do_not_specialize=['lstart','lend','wstart'])
++def _inverse_column(lc,off,lstart,lend,wstart,ri,cp,Lh,Ll,Th,Tl,flag,B:tl.constexpr):
++    j,position,w=_work_item(lc,off,lstart,lend,wstart,cp);i=tl.load(ri+position)
++    ah=tl.load(Lh+position)*0.;al=ah*0.
++    for base in range(tl.load(cp+j)+1,tl.load(cp+j+1),B):
++        p=base+tl.arange(0,B);valid=p<tl.load(cp+j+1)
++        k=tl.load(ri+p,valid,0)
++        column=tl.minimum(k,i);row=tl.maximum(k,i)
++        found=_find(cp,ri,column,row,valid);ok=found<tl.load(cp+column+1)
++        matched=tl.load(ri+found,valid&ok,-1)==row;ok&=matched
++        if tl.sum((valid&~ok).to(tl.int32),0)>0:tl.atomic_or(flag,2)
++        # own column still holds L; ancestors' slots already hold Z
++        th,tl_=_dd_mul(tl.load(Lh+p,valid,0.),tl.load(Ll+p,valid,0.),tl.load(Lh+found,valid&ok,0.),tl.load(Ll+found,valid&ok,0.))
++        sh,sl=_dd_sum(th,tl_);ah,al=_dd_add(ah,al,sh,sl)
++    tl.store(Th+w,-ah);tl.store(Tl+w,-al)
++
++
++@tr.jit(do_not_specialize=['lstart','wstart'])
++def _inverse_diag(lc,off,lstart,wstart,cp,Lh,Ll,Dh,Dl,Th,Tl,B:tl.constexpr):
++    t=lstart+tl.program_id(0);j=tl.load(lc+t);c=tl.load(cp+j)
++    first=c+1;stage=tl.load(off+t)-wstart
++    ah=tl.load(Dh+j)*0.;al=ah*0.
++    for base in range(first,tl.load(cp+j+1),B):
++        p=base+tl.arange(0,B);valid=p<tl.load(cp+j+1)
++        s=stage+(p-first)
++        th,tl_=_dd_mul(tl.load(Lh+p,valid,0.),tl.load(Ll+p,valid,0.),tl.load(Th+s,valid,0.),tl.load(Tl+s,valid,0.))
++        sh,sl=_dd_sum(th,tl_);ah,al=_dd_add(ah,al,sh,sl)
++    dh=tl.load(Dh+j)
++    ih,il=_dd_div(dh*0.+1.,dh*0.,dh,tl.load(Dl+j))
++    zh,zl=_dd_add(ih,il,-ah,-al)
++    tl.store(Lh+c,zh);tl.store(Ll+c,zl)
++
++
++@tr.jit(do_not_specialize=['lstart','lend','wstart'])
++def _scatter(lc,off,lstart,lend,wstart,cp,Lh,Ll,Th,Tl):
++    j,position,w=_work_item(lc,off,lstart,lend,wstart,cp)
++    tl.store(Lh+position,tl.load(Th+w));tl.store(Ll+position,tl.load(Tl+w))
++
++
++@tr.jit
++def _query(qp,qi,qv,invperm,m,cp,ri,Zh,Zl,out,flag,B:tl.constexpr,W:tl.constexpr):
++    point=tl.program_id(0);entry=tl.program_id(1);a=entry//W;b=entry%W
++    ka=tl.load(qp+point*W+a)+tl.arange(0,B);kb=tl.load(qp+point*W+b)+tl.arange(0,B)
++    va=ka<tl.load(qp+point*W+a+1);vb=kb<tl.load(qp+point*W+b+1)
++    ia=tl.load(qi+ka,va,0)+m;ib=tl.load(qi+kb,vb,0)+m
++    ia=tl.load(invperm+ia);ib=tl.load(invperm+ib)
++    aa=tl.load(qv+ka,va,0.);bb=tl.load(qv+kb,vb,0.)
++    col=tl.minimum(ia[:,None],ib[None,:]);row=tl.maximum(ia[:,None],ib[None,:])
++    valid=va[:,None]&vb[None,:]
++    # Flatten to a vector for sparse binary search and reduction.
++    col=tl.reshape(col,(B*B,));row=tl.reshape(row,(B*B,));valid=tl.reshape(valid,(B*B,))
++    found=_find(cp,ri,col,row,valid);ok=found<tl.load(cp+col+1)
++    ok&=tl.load(ri+found,valid&ok,-1)==row
++    if tl.sum((valid&~ok).to(tl.int32),0)>0:tl.atomic_or(flag,4)
++    wa=tl.reshape(aa[:,None]+bb[None,:]*0.,(B*B,));wb=tl.reshape(aa[:,None]*0.+bb[None,:],(B*B,))
++    wh,wl=_dd_mul(wa,wa*0.,wb,wb*0.)
++    th,tl_=_dd_mul(wh,wl,tl.load(Zh+found,valid&ok,0.),tl.load(Zl+found,valid&ok,0.))
++    sh,sl=_dd_sum(th,tl_)
++    tl.store(out+point*W*W+entry,-(sh+sl))
++
++
++SMALL={'perm':0,'cp':1,'rp':3,'lp':5,'lc':6,'off':7,'sizes':8}
++LARGE={'ri':2,'rc':4,'rx':9}
++
++
++def symbolic(K,Q,width,first_block=0):
++    """CPU pattern-only CHOLMOD analysis of K plus the zero-valued query cliques; returns host arrays."""
++    source=Path(__file__).resolve().parents[1]/'cuda/temporal_selected_symbolic.cpp'
++    library=Path('/tmp')/('rgbd_selected_symbolic_'+hashlib.sha256(source.read_bytes()).hexdigest()[:16]+'.so')
++    if not library.exists():
++        subprocess.run(['g++','-std=c++17','-O3','-shared','-fPIC','-I/usr/include/suitesparse',str(source),'-lcholmod','-o',str(library)],check=True,capture_output=True)
++    lib=ct.CDLL(str(library));ptr=ct.POINTER(ct.c_int64)
++    lib.rgbd_symbolic.argtypes=[ct.c_int64,ct.c_int64,ptr,ptr,ct.c_int64,ptr,ptr,ct.c_int64];lib.rgbd_symbolic.restype=ct.c_void_p
++    lib.rgbd_symbolic_size.argtypes=[ct.c_void_p,ct.c_int];lib.rgbd_symbolic_size.restype=ct.c_int64
++    lib.rgbd_symbolic_array.argtypes=[ct.c_void_p,ct.c_int];lib.rgbd_symbolic_array.restype=ptr
++    lib.rgbd_symbolic_array32.argtypes=[ct.c_void_p,ct.c_int];lib.rgbd_symbolic_array32.restype=ct.POINTER(ct.c_int32)
++    lib.rgbd_symbolic_release32.argtypes=[ct.c_void_p,ct.c_int];lib.rgbd_symbolic_free.argtypes=[ct.c_void_p];lib.rgbd_symbolic_error.restype=ct.c_char_p
++    k=K.to_sparse_coo().coalesce();index=k.indices();take=index[0]<=index[1]
++    row,col=[np.ascontiguousarray(a.cpu().numpy(),dtype=np.int64) for a in index[:,take]]
++    del k,index,take
++    qi=Q.indices();n=K.shape[0];pair=torch.unique((qi[0]//width)*n+qi[1])
++    block=(pair//n).cpu().numpy();support=np.ascontiguousarray((pair%n).cpu().numpy(),dtype=np.int64)
++    count=np.bincount(block,minlength=Q.shape[0]//width);qp=np.r_[0,np.cumsum(count)].astype(np.int64)
++    result=lib.rgbd_symbolic(n,len(row),row.ctypes.data_as(ptr),col.ctypes.data_as(ptr),len(count),qp.ctypes.data_as(ptr),support.ctypes.data_as(ptr),int(first_block))
++    del row,col
++    if not result:raise SparseNumericalFailure(lib.rgbd_symbolic_error().decode())
++    try:
++        out={name:np.ctypeslib.as_array(lib.rgbd_symbolic_array(result,key),shape=(lib.rgbd_symbolic_size(result,key),)).copy() for name,key in SMALL.items()}
++        for name,key in LARGE.items():   # copy then release one large array at a time (bounded host peak)
++            out[name]=np.ctypeslib.as_array(lib.rgbd_symbolic_array32(result,key),shape=(lib.rgbd_symbolic_size(result,key),)).copy()
++            lib.rgbd_symbolic_release32(result,key)
++        return out
++    finally:lib.rgbd_symbolic_free(result)
++
++
++def required_bytes(nnz,n,stage=0):
++    return nnz*BYTES_PER_FACTOR_ENTRY+n*64+16*stage
++
++
++def stage_entries(S):
++    lp,off=S['lp'],S['off']
++    return int(max(off[lp[1:]]-off[lp[:-1]])) if len(lp)>1 else 0
++
++
++def selected_inverse_blocks_gpu(K,Q,width=6,expected_inertia=None,symbolic_arrays=None,first_block=0,device=None):
++    """Q is expressed in FULL KKT coordinates; return -Q K^-1 Q^T blocks (double-double evaluation).
++
++    Static (unpivoted) LDL^T exists for every symmetric ordering of a quasi-definite KKT; the counted signs of D
++    are compared with expected_inertia (Sylvester), so an indefinite/singular case is a failure, not a result.
++    symbolic_arrays: a symbolic() result for exactly this K and Q (lets the caller size memory first).
++    device: where the factor lives; K and Q may stay in host memory (only K's sorted lower-triangle keys/values are
++    uploaded, Q only for the final extraction) so that the factor can use the device memory they would occupy."""
++    start=time.perf_counter()
++    S=symbolic(K,Q,width,first_block) if symbolic_arrays is None else symbolic_arrays;symbolic_seconds=time.perf_counter()-start
++    n=len(S['perm']);nnz=len(S['ri']);lp,sizes,hoff=S['lp'],S['sizes'],S['off'];stage=stage_entries(S)
++    free=torch.cuda.mem_get_info()[0];estimated=required_bytes(nnz,n,stage)
++    if estimated+OPERATIONAL_HEADROOM_BYTES>free:
++        raise SparseResourceLimit(f'Exact double-double selected inversion needs {estimated} B (+{OPERATIONAL_HEADROOM_BYTES} B headroom); free VRAM {free} B; '
++                                  f'torch allocated {torch.cuda.memory_allocated()} B, reserved {torch.cuda.memory_reserved()} B; nnz_L={nnz}')
++    dev=K.device if device is None else torch.device(device);torch.cuda.reset_peak_memory_stats(dev)
++    as32=lambda a:torch.as_tensor(np.ascontiguousarray(a,dtype=np.int32),device=dev)
++    permutation=torch.as_tensor(S['perm'],device=dev);inverse=torch.empty_like(permutation);inverse[permutation]=torch.arange(n,device=dev)
++    cp,lc,off=as32(S['cp']),as32(S['lc']),as32(hoff);ri=as32(S['ri'])
++    # Initial values of K (permuted lower triangle) written directly into L's hi slots, chunk by chunk.
++    k=K.to_sparse_coo().coalesce();ix=inverse.to(k.device)[k.indices()];take=ix[0]>=ix[1]
++    key=ix[1,take]*n+ix[0,take];order=torch.argsort(key);key=key[order].to(dev);value=k.values()[take][order].to(dev)
++    del k,ix,take,order,permutation
++    Lh=torch.zeros(nnz,device=dev,dtype=torch.float64);placed=0
++    for begin in range(0,nnz,1<<22):
++        stop=min(nnz,begin+(1<<22));pos=torch.arange(begin,stop,device=dev)
++        column=torch.searchsorted(cp,pos.to(torch.int32),right=True).long()-1
++        target=column*n+ri[begin:stop].long()
++        at=torch.searchsorted(key,target);valid=at<len(key);safe=at.clamp_max(len(key)-1);valid&=key[safe]==target
++        Lh[begin:stop]=torch.where(valid,value[safe],0.);placed+=int(valid.sum())
++        del pos,column,target,at,valid,safe
++    if placed!=len(key):raise SparseNumericalFailure(f'{len(key)-placed} KKT entries fall outside the symbolic factor pattern')
++    del key,value
++    Ll=torch.zeros_like(Lh)
++    rp,rc,rx=as32(S['rp']),as32(S['rc']),as32(S['rx'])
++    for name in ('rc','rx'):S[name]=None
++    Dh=torch.empty(n,device=dev,dtype=torch.float64);Dl=torch.empty_like(Dh);flag=torch.zeros((),device=dev,dtype=torch.int32)
++    torch.cuda.synchronize();t0=time.perf_counter()
++    for level in range(len(lp)-1):
++        a,b=int(lp[level]),int(lp[level+1]);count=b-a;work=int(hoff[b]-hoff[a]);B=min(CHUNK_MAX,tr.next_power_of_2(int(sizes[2*level])))
++        if count:_diag[(count,)](lc,a,cp,rp,rc,rx,Lh,Ll,Dh,Dl,flag,B,enable_fp_fusion=False)
++        if work:_column[(work,)](lc,off,a,b,int(hoff[a]),ri,cp,rp,rc,rx,Lh,Ll,Dh,Dl,B,enable_fp_fusion=False)
++    torch.cuda.synchronize();factor_seconds=time.perf_counter()-t0
++    if int(flag):raise SparseNumericalFailure('Sparse static LDL zero/nonfinite pivot; no perturbation applied')
++    inertia=[int((Dh>0).sum()),int((Dh<0).sum())]
++    if expected_inertia is not None and tuple(inertia)!=tuple(expected_inertia):
++        raise SparseNumericalFailure(f'Static LDL inertia {inertia} differs from the KKT inertia {list(expected_inertia)}')
++    minimum_pivot=float(Dh.abs().min())
++    del rp,rc,rx;torch.cuda.empty_cache()
++    Th=torch.zeros(max(1,stage),device=dev,dtype=torch.float64);Tl=torch.zeros_like(Th);t0=time.perf_counter()
++    for level in range(len(lp)-2,-1,-1):
++        a,b=int(lp[level]),int(lp[level+1]);count=b-a;work=int(hoff[b]-hoff[a]);B=min(CHUNK_MAX,tr.next_power_of_2(int(sizes[2*level+1])))
++        if work:_inverse_column[(work,)](lc,off,a,b,int(hoff[a]),ri,cp,Lh,Ll,Th,Tl,flag,B,enable_fp_fusion=False)
++        if count:_inverse_diag[(count,)](lc,off,a,int(hoff[a]),cp,Lh,Ll,Dh,Dl,Th,Tl,B,enable_fp_fusion=False)
++        if work:_scatter[(work,)](lc,off,a,b,int(hoff[a]),cp,Lh,Ll,Th,Tl,enable_fp_fusion=False)
++    torch.cuda.synchronize();inverse_seconds=time.perf_counter()-t0
++    if int(flag):raise SparseNumericalFailure('Selected inverse symbolic pattern is not closed')
++    del Th,Tl,Dh,Dl
++    qr=Q.to(dev).to_sparse_csr();qwidth=int((qr.crow_indices()[1:]-qr.crow_indices()[:-1]).max())
++    out=torch.empty((Q.shape[0]//width,width,width),device=dev,dtype=torch.float64)
++    _query[(len(out),width*width)](qr.crow_indices(),qr.col_indices(),qr.values(),inverse,0,cp,ri,Lh,Ll,out,flag,tr.next_power_of_2(max(1,qwidth)),width,enable_fp_fusion=False)
++    torch.cuda.synchronize()
++    if int(flag) or not bool(torch.isfinite(out).all()):raise SparseNumericalFailure('Unavailable/nonfinite selected query entry')
++    asym=float((out-out.transpose(1,2)).abs().max())
++    return (out+out.transpose(1,2))/2,{'method':'GPU sparse LDL/Takahashi in double-double (error-free transformations); CPU pattern-only CHOLMOD',
++        'arithmetic':'double-double (two-sum, FMA two-product), rounded to float64 at output',
++        'symbolic_seconds':symbolic_seconds,'factor_seconds':factor_seconds,'inverse_seconds':inverse_seconds,
++        'total_seconds':time.perf_counter()-start,'nnz_L':nnz,'levels':len(lp)-1,'query_blocks':len(out),
++        'ordering':'CHOLMOD METIS on KKT + query cliques' if not first_block else 'CHOLMOD CAMD, measurement rows first',
++        'LDL_inertia':inertia,'expected_inertia':None if expected_inertia is None else list(expected_inertia),
++        'workspace_bytes_estimated':estimated,'level_stage_entries':stage,'peak_cuda_allocated_bytes':torch.cuda.max_memory_allocated(dev),
++        'minimum_abs_pivot':minimum_pivot,'symmetry_absolute':asym,'dense_global_matrices':False}
+diff --git a/tests/test_temporal_selected_inverse_gpu.py b/tests/test_temporal_selected_inverse_gpu.py
+new file mode 100644
+index 0000000..7163a5c
+--- /dev/null
++++ b/tests/test_temporal_selected_inverse_gpu.py
+@@ -0,0 +1,32 @@
++import unittest
++import numpy as np
++import torch
++from estimator.temporal_selected_inverse_gpu import selected_inverse_blocks_gpu
++from estimator.temporal_sparse_gpu import sparse_coo
++
++
++class SelectedInverseTests(unittest.TestCase):
++    def test_indefinite_selected_blocks_match_independent_joint_inverse(self):
++        if not torch.cuda.is_available():raise RuntimeError('Actual CUDA required')
++        rng=np.random.default_rng(62);A=rng.normal(size=(4,5));B=rng.normal(size=(5,5));H=B@B.T+np.eye(5)
++        K=np.block([[np.eye(4),A],[A.T,-H]])
++        query=np.zeros((6,9));query[np.arange(6),4+np.array([0,1,2,2,3,4])]=1.
++        expected=-query@np.linalg.inv(K)@query.T
++        actual,profile=selected_inverse_blocks_gpu(torch.tensor(K,device='cuda').to_sparse_csr(),torch.tensor(query,device='cuda').to_sparse(),3)
++        np.testing.assert_allclose(actual.cpu(),np.stack((expected[:3,:3],expected[3:,3:])),atol=5e-12,rtol=5e-12)
++        self.assertFalse(profile['dense_global_matrices'])
++
++    def test_shared_temporal_pixels_and_source_coupling_match_joint_sparse_solves(self):
++        if not torch.cuda.is_available():raise RuntimeError('Actual CUDA required')
++        from tests.test_temporal_sparse_gpu import fixture_graph
++        from estimator.temporal_sparse_solve import SparseJointFactorization
++        graph=fixture_graph('cuda',True)
++        with SparseJointFactorization(graph.assemble_sparse_linearized_problem_gpu()) as factor:
++            q=graph.state_query_gpu(1);reduced=torch.sparse.mm(q,factor.T).coalesce();ix=reduced.indices().clone();ix[1]+=factor.A.shape[0]
++            query=sparse_coo(ix,reduced.values(),(q.shape[0],factor.K.shape[0]))
++            actual,_=selected_inverse_blocks_gpu(factor.K,query,12)
++            expected=factor.extract_joint_selected_marginals_gpu(q,12)
++            torch.testing.assert_close(actual,expected,atol=5e-12,rtol=5e-12)
++
++
++if __name__=='__main__':unittest.main()
+diff --git a/tests/test_temporal_surgical_completion.py b/tests/test_temporal_surgical_completion.py
+new file mode 100644
+index 0000000..9c2c16f
+--- /dev/null
++++ b/tests/test_temporal_surgical_completion.py
+@@ -0,0 +1,245 @@
++"""CODEX_RGBDiekf_SURGICAL_EXACT_TEMPORAL_RGBD_IEKF_COMPLETION_2026-11-01.md, sections 3, 4, 7 and G1.
++
++Connectivity is algebraic dependence only: every off-point coefficient of the reduced operator must be traced to
++a reused raw pixel or a source chart, never to a motion/neighbour graph or a symbolic line-search tie.
++"""
++import json
++import math
++import subprocess
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++from types import SimpleNamespace
++import numpy as np
++import torch
++from estimator.temporal_sparse_gpu import TemporalSoAGraph, sparse_coo
++from estimator.temporal_sparse_solve import ReducedLinearizedSystem, connected_columns_gpu
++from estimator.temporal_rgbd_terms import raw_values, sensor_covariance
++from estimator.projective_sensor import SensorNoise
++from estimator.point_kalman_cuda import transition, process_noise
++from tests.test_temporal_warp import rig, frame
++from tests.test_temporal_sparse_gpu import dense_oracle_for
++from tools.replay_temporal_sparse_failure import (graph_record, column_nodes, row_node_pairs_actual, row_node_pairs_predicted,
++                                                  cpu_union_find, canonical, coupling_provenance, key_integrity)
++
++REPO = Path(__file__).resolve().parents[1]
++
++
++def two_point_graph(device, pixels, ideal=True):
++    """The fixture_graph construction with selectable source/current pixels (8x8 images, 2 cameras)."""
++    rr = rig(device); f0 = frame(device); f1 = frame(device); f1.k = 1
++    c = torch.tensor([0, 0], device=device); pix = torch.tensor(pixels, device=device)
++    uv = torch.stack((pix % 8, pix//8), -1).double()
++    noise = SensorNoise(torch.tensor([.01, .015, .02], device=device, dtype=torch.float64), .005, 0., 0., 0., 'sum_w2')
++    y = raw_values(f0, c, pix); R = sensor_covariance(y, noise)
++    g = TemporalSoAGraph(rr, 4, 2, c, pix, rr.backproject(c, uv, y[:, 3]), y, R, torch.eye(2, device=device, dtype=torch.float64)/12,
++                         torch.eye(3, device=device, dtype=torch.float64)*.7, 0)
++    g.layout(); ref = g.source_state_and_blocks_gpu()[0]
++    initial = ref.clone(); initial[:, 0] += .007; initial[:, 1] -= .003
++    points = torch.tensor([0, 1, 0, 1], device=device); cams = torch.tensor([0, 0, 1, 1], device=device)
++    current = torch.tensor(pixels*2, device=device); v = torch.stack((current % 8, current//8), -1).double()
++    q = v-rr.project_rows(initial[points, :3], cams)[0]+rr.project_rows(ref[points, :3], cams)[0]
++    cell = q.floor().long(); xy = cell[:, None, :]+torch.tensor([[0, 0], [1, 0], [0, 1], [1, 1]], device=device)
++    rows = SimpleNamespace(point=points, camera=cams, pixel=current, reference_frame=torch.zeros(4, device=device, dtype=torch.long),
++                           reference_pixels=xy[..., 1]*8+xy[..., 0], cell=cell, y=raw_values(f1, cams, current))
++    warp = torch.zeros((4, 4), device=device, dtype=torch.float64) if ideal else torch.diag(torch.tensor([.02, .03, .04, .01], device=device, dtype=torch.float64))
++    g.pack_source_process_warp_factors_gpu(0, 1, transition(.04, device=device), process_noise(.04, torch.eye(3, device=device, dtype=torch.float64)*.2),
++                                           initial, rows, {0: f0, 1: f1}, noise, warp)
++    g.layout()
++    return g
++
++
++def dense_constrained_covariance(graph, query):
++    """Independent dense oracle: original-coordinate whitened operator from the original equations, constrained KKT inverse."""
++    _, A, _, C, _, _, _ = dense_oracle_for(graph)
++    A, C = A.numpy(), C.numpy(); n = A.shape[1]; p = C.shape[0]
++    K = np.block([[A.T@A, C.T], [C, np.zeros((p, p))]])
++    return query@np.linalg.inv(K)[:n, :n]@query.T
++
++
++class Connectivity(unittest.TestCase):
++    def test_gpu_components_equal_independent_union_find_on_actual_nonzeros(self):
++        gen = torch.Generator().manual_seed(11)
++        for trial in range(5):
++            m, n, p = 40, 30, 4
++            A = torch.zeros((m, n), dtype=torch.float64)
++            for r in range(m):
++                cols = torch.randperm(n, generator=gen)[:2]; A[r, cols] = torch.randn(2, generator=gen, dtype=torch.float64)
++            A[A.abs() < .3] = 0.                     # exact zeros must never connect columns
++            C = torch.zeros((p, n), dtype=torch.float64); C[torch.arange(p), torch.randperm(n, generator=gen)[:p]] = 1.
++            labels, _ = connected_columns_gpu(A.to_sparse().coalesce(), C.to_sparse().coalesce())
++            ai, ci = A.nonzero().T.numpy(), C.nonzero().T.numpy()
++            oracle = cpu_union_find(n+m+p, [(n+ai[0], ai[1]), (n+m+ci[0], ci[1])])[:n]
++            np.testing.assert_array_equal(canonical(labels.numpy()), oracle)
++
++    def test_symbolic_line_search_ties_never_enter_the_information_operator(self):
++        from estimator.temporal_sparse_nonlinear import true_variable_block_components_gpu
++        g = two_point_graph('cpu', [27, 28]); problem = g.assemble_sparse_linearized_problem_gpu()
++        A0, info0 = problem.A.clone(), problem.information
++        labels, count = true_variable_block_components_gpu(g, problem)
++        self.assertIs(problem.information, info0); self.assertTrue(torch.equal(problem.A.indices(), A0.indices()))
++        self.assertTrue(torch.equal(problem.A.values(), A0.values()))
++        self.assertEqual(len(labels), problem.scalar_dimension)
++
++
++class PixelReuseProvenance(unittest.TestCase):
++    """G1: two points reuse one raw reference pixel (coupled) versus none (uncoupled)."""
++    def provenance(self, pixels):
++        g = two_point_graph('cpu', pixels); record = graph_record(g)
++        reduced = ReducedLinearizedSystem(g.assemble_sparse_linearized_problem_gpu())
++        node = column_nodes(reduced, record)
++        return g, record, reduced, row_node_pairs_actual(reduced, node), row_node_pairs_predicted(record)
++
++    def test_every_nonzero_is_traced_to_a_predicted_factor_and_coupling_follows_reuse(self):
++        g, record, _, actual, predicted = self.provenance([27, 28])
++        np.testing.assert_array_equal(actual, predicted)     # moved fixture state: no exact cancellation here
++        shared = coupling_provenance(record)
++        self.assertEqual(shared['largest_point_component'], 2); self.assertGreater(shared['keys_shared_as_nonzero_corner_by_2plus_points'], 0)
++        g, record, _, actual, predicted = self.provenance([9, 54])
++        np.testing.assert_array_equal(actual, predicted)
++        self.assertEqual(coupling_provenance(record)['largest_point_component'], 1)
++
++    def test_exact_zero_weight_adds_no_coefficient(self):
++        g, record, reduced, actual, predicted = self.provenance([27, 28])
++        w = record['warps'][1]
++        w['weights'][0, 1:] = 0.                         # pretend corners 1..3 were exactly zero: prediction must now DIFFER
++        self.assertFalse(np.array_equal(row_node_pairs_predicted(record), actual))
++
++    def test_key_encoding_injective_and_no_duplicate_sensor_factor(self):
++        g, record, reduced, _, _ = self.provenance([27, 28])
++        k = key_integrity(record)
++        self.assertTrue(k['encoding_injective_roundtrip']); self.assertEqual(k['unique_keys'], k['registered_keys'])
++        self.assertEqual(k['frame1_cross_camera_key_collision'], 0); self.assertTrue(k['frame1_current_keys_unique'])
++        self.assertEqual(reduced.problem.factor_counts['RAW_PIXEL'], int(g.pixels.active_likelihood.sum()))
++        self.assertEqual(reduced.problem.factor_counts['RAW_PIXEL'], dense_oracle_for(g)[0].pixels.total_sensor_factors)
++
++    @unittest.skipUnless(torch.cuda.is_available(), 'actual CUDA required')
++    def test_cross_point_covariance_appears_and_vanishes_with_pixel_reuse(self):
++        from estimator.temporal_sparse_solve import SparseJointFactorization
++        for pixels, coupled in (([27, 28], True), ([9, 54], False)):
++            g = two_point_graph('cuda', pixels)
++            q = g.state_query_gpu(1); qdense = q.to_dense().cpu().numpy()
++            with SparseJointFactorization(g.assemble_sparse_linearized_problem_gpu()) as f:
++                P = f.all_point_marginals_selected_inverse_gpu(q, 12, certificate_blocks=4)[0].cpu().numpy()
++                colored = f.extract_joint_selected_marginals_gpu(q, 12)[0].cpu().numpy()
++                self.assertEqual(tuple(f.profile['inertia']), f.expected_inertia())
++            oracle = dense_constrained_covariance(g, qdense)
++            np.testing.assert_allclose(P, oracle, atol=1e-12*np.abs(oracle).max(), rtol=0)
++            np.testing.assert_allclose(colored, oracle, atol=1e-12*np.abs(oracle).max(), rtol=0)
++            cross = np.abs(P[:6, 6:]).max()
++            if coupled:self.assertGreater(cross, 1e-9*np.abs(P).max())
++            else:self.assertEqual(cross, 0.)                # disjoint true components: exactly zero, not thresholded
++
++
++@unittest.skipUnless(torch.cuda.is_available(), 'actual CUDA required')
++class Certificates(unittest.TestCase):
++    def test_cudss_inertia_and_selected_inverse_inertia_refuse_wrong_structure(self):
++        from estimator.temporal_cudss import CudaSparseFactor, SparseNumericalFailure
++        from estimator.temporal_selected_inverse_gpu import selected_inverse_blocks_gpu
++        A = torch.tensor([[1., 2., .2], [.3, -.5, 1.]], dtype=torch.float64)
++        K = torch.cat((torch.cat((torch.eye(2, dtype=torch.float64), A), 1), torch.cat((A.T, -torch.eye(3, dtype=torch.float64)), 1)), 0).cuda()
++        with CudaSparseFactor(K.to_sparse_csr(), expected_inertia=(2, 3)) as f:self.assertEqual(f.profile['inertia'], [2, 3])
++        with self.assertRaisesRegex(SparseNumericalFailure, 'inertia'):CudaSparseFactor(K.to_sparse_csr(), expected_inertia=(3, 2))
++        Q = sparse_coo(torch.tensor([[0, 1, 2], [2, 3, 4]]).cuda(), torch.ones(3, dtype=torch.float64).cuda(), (3, 5))
++        selected_inverse_blocks_gpu(K.to_sparse_csr(), Q, 3, (2, 3))
++        with self.assertRaisesRegex(SparseNumericalFailure, 'inertia'):selected_inverse_blocks_gpu(K.to_sparse_csr(), Q, 3, (3, 2))
++
++    def test_btf_capacity_bound_below_fill_reports_device_info_never_a_result(self):
++        """Controlled reproduction of the S2 failure mechanism: BTF/COLAMD fill is unknown at analysis; a
++        MAX_LU_NNZ bound below the measured fill must fail with a device INFO, and the symmetric ND factorization
++        of the SAME operator (whose analysis knows the fill) must succeed with the exact inertia."""
++        from estimator.temporal_cudss import CudaSparseFactor, SparseNumericalFailure
++        g = torch.Generator().manual_seed(5); n = 400
++        B = torch.zeros((n, n), dtype=torch.float64)
++        for i in range(n):B[i, torch.randperm(n, generator=g)[:6]] = torch.randn(6, generator=g, dtype=torch.float64)
++        A = B[:n//2]; K = torch.cat((torch.cat((torch.eye(n//2, dtype=torch.float64), A), 1),
++                                    torch.cat((A.T, -torch.eye(n, dtype=torch.float64)), 1)), 0).cuda().to_sparse_csr()
++        with CudaSparseFactor(K, 'general_btf') as f:fill = f.profile['factor_nnz']
++        with self.assertRaises(SparseNumericalFailure) as caught:CudaSparseFactor(K, 'general_btf', max_lu_nnz=fill//4)
++        self.assertNotEqual(caught.exception.profile['info'], 0)
++        with CudaSparseFactor(K, 'symmetric_nd', expected_inertia=(n//2, n)) as f:self.assertEqual(f.profile['perturbed_pivots'], 0)
++
++
++@unittest.skipUnless(torch.cuda.is_available(), 'actual CUDA required')
++class DoubleDoubleAccuracy(unittest.TestCase):
++    def test_strongly_scaled_quasi_definite_selected_inverse_beats_unpivoted_float64(self):
++        """Whitened Jacobians up to 1e6 (as in the real scenes): unpivoted float64 LDL loses ~1e-9 here; the
++        double-double recurrences must match a refined 80-bit-residual truth to rounding level for every block and
++        both orderings. Guards against FMA contraction silently cancelling the error-free transformations."""
++        import scipy.linalg as sl
++        from estimator.temporal_selected_inverse_gpu import selected_inverse_blocks_gpu
++        m, n = 600, 300; g = np.random.default_rng(7); A = np.zeros((m, n))
++        for i in range(m):
++            c = g.choice(n, 3, replace=False); A[i, c] = g.normal(size=3)*10**g.uniform(0, 6)
++        K = np.block([[np.eye(m), A], [A.T, -np.eye(n)]]); blocks = n//6; Q = np.zeros((6*blocks, m+n)); Q[np.arange(6*blocks), m+np.arange(6*blocks)] = 1
++        lu = sl.lu_factor(K); X = sl.lu_solve(lu, Q.T).astype(np.longdouble); Kl = K.astype(np.longdouble)
++        for _ in range(8):X += sl.lu_solve(lu, (Q.T.astype(np.longdouble)-Kl@X).astype(np.float64)).astype(np.longdouble)
++        exact = -(Q@X.astype(np.float64)).reshape(blocks, 6, blocks, 6)[np.arange(blocks), :, np.arange(blocks)]
++        sd = np.sqrt(np.einsum('bii->bi', exact))
++        import estimator.temporal_selected_inverse_gpu as module
++        chunk = module.CHUNK_MAX
++        try:
++            for module.CHUNK_MAX in (chunk, 8):                 # 8: every long row/column is walked in many chunks
++                for first_block in (0, m):
++                    P, profile = selected_inverse_blocks_gpu(torch.tensor(K, device='cuda').to_sparse_csr(), torch.tensor(Q, device='cuda').to_sparse(), 6, (m, n), first_block=first_block)
++                    error = float((np.abs(P.cpu().numpy()-exact)/(sd[:, :, None]*sd[:, None, :])).max())
++                    self.assertLess(error, 1e-14, (module.CHUNK_MAX, first_block, error)); self.assertEqual(profile['LDL_inertia'], [m, n])
++        finally:module.CHUNK_MAX = chunk
++
++
++@unittest.skipUnless(torch.cuda.is_available(), 'actual CUDA required')
++class MemorySchedule(unittest.TestCase):
++    def test_released_factor_and_host_offload_are_bit_identical(self):
++        from estimator.temporal_sparse_solve import SparseJointFactorization, offload_device_tensors
++        g = two_point_graph('cuda', [27, 28]); q = g.state_query_gpu(1)
++        with SparseJointFactorization(g.assemble_sparse_linearized_problem_gpu()) as f:
++            resident = f.all_point_marginals_selected_inverse_gpu(q, 6, certificate_blocks=2, release=False)
++            A, T, problem_A = f.A.clone(), f.T.clone(), f.problem.A.clone()
++            f.park_caller_state = lambda: offload_device_tensors([g])           # the caller's graph is parked too
++            states_before = g.states[1].clone(); keys_before = g.pixels.keys.clone()
++            released = f.all_point_marginals_selected_inverse_gpu(q, 6, certificate_blocks=2, release=True)
++            self.assertGreater(f.profile['selected_marginals']['caller_tensors_parked'], 0)
++            self.assertTrue(g.states[1].is_cuda and torch.equal(g.states[1], states_before) and torch.equal(g.pixels.keys, keys_before))
++            self.assertTrue(f.profile['selected_marginals']['cuDSS_factor_released_during_inversion'])
++            self.assertGreater(f.profile['selected_marginals']['host_offloaded_bytes'], 0)
++            torch.testing.assert_close(released, resident, atol=0, rtol=0)
++            for x, y in ((f.A, A), (f.T, T), (f.problem.A, problem_A)):
++                self.assertTrue(x.is_cuda); self.assertTrue(torch.equal(x.indices(), y.indices())); self.assertTrue(torch.equal(x.values(), y.values()))
++            step, certificate = f.solve_constrained_sparse_joint_gpu()            # re-created factor is usable and certified
++            self.assertLessEqual(certificate['equality_absolute'], 2e-11)
++
++
++class BatchForwarding(unittest.TestCase):
++    def test_runner_forwards_factor_method_seed_to_every_child_mode(self):
++        with tempfile.TemporaryDirectory() as tmp:
++            for name in ('sceneA',):(Path(tmp)/name/'rgb').mkdir(parents=True); (Path(tmp)/name/'metadata').mkdir()
++            out = subprocess.run([sys.executable, '-B', str(REPO/'tools/run_temporal_rgbd_critical.py'), '--data-root', tmp, '--output-root', tmp,
++                                  '--mode', 'all', '--direction', 'forward', '--frame-limit', '3', '--pcd-subsample-factor', '8',
++                                  '--pcd-subsample-method', 'seeded-uniform', '--pcd-subsample-seed', '5', '--temporal-warp-noise', 'ideal', '--dry-run'],
++                                 cwd=REPO, capture_output=True, text=True)
++            commands = [l for l in out.stdout.splitlines() if 'train.py' in l]
++            self.assertEqual(len(commands), 3, out.stdout+out.stderr)
++            for c in commands:
++                for flag in ('--pcd-subsample-factor 8', '--pcd-subsample-method seeded-uniform', '--pcd-subsample-seed 5'):self.assertIn(flag, c)
++
++
++class UniformDownsampling(unittest.TestCase):
++    def test_seeded_uniform_identity_determinism_seed_dependence_and_original_ids(self):
++        from scene.canonical_subsample import subsample, ids_hash
++        g = np.random.default_rng(3); N = 1001
++        xyz = g.normal(size=(N, 3)); source = np.stack((np.zeros(N, int), g.integers(0, 8, N), g.integers(0, 64*64, N)), 1)
++        full, _ = subsample(xyz, source, 1, 'seeded-uniform', 0, widths=[64]*8)
++        np.testing.assert_array_equal(full, np.arange(N))
++        for factor in (2, 4, 8):
++            a, man = subsample(xyz, source, factor, 'seeded-uniform', 7, widths=[64]*8)
++            b, _ = subsample(xyz, source, factor, 'seeded-uniform', 7, widths=[64]*8)
++            c, _ = subsample(xyz, source, factor, 'seeded-uniform', 8, widths=[64]*8)
++            np.testing.assert_array_equal(a, b); self.assertFalse(np.array_equal(a, c))
++            self.assertEqual(len(a), math.ceil(N/factor)); self.assertEqual(len(np.unique(a)), len(a))
++            self.assertTrue((np.diff(a) > 0).all()); self.assertTrue(set(a.tolist()) <= set(range(N)))
++            self.assertEqual(ids_hash(a), ids_hash(b))
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/tools/replay_temporal_sparse_failure.py b/tools/replay_temporal_sparse_failure.py
+new file mode 100644
+index 0000000..89a76a9
+--- /dev/null
++++ b/tools/replay_temporal_sparse_failure.py
+@@ -0,0 +1,372 @@
++#!/usr/bin/env python3
++"""Capture a real rejected run's S0 and S2 linearizations; replay/analyze without RGB-D/filtering.
++
++Capture reuses the cached source catalogue and recorded noise/policy. It archives the first (S0) and the
++relinearized second (S2) operator with compact key maps, stops before the second factorization and never
++publishes a posterior or valid frame. Replay always uses the saved exact operator, including shared
++pixels/equalities. Analyze reports dimensions, true components, key integrity and the provenance of every
++cross-point coupling (S0 -> S2), and reproduces the general BTF capacity failure under a controlled bound.
++
++    python -B tools/replay_temporal_sparse_failure.py capture --cached-run RUN/USB_100109_full/free_forward --output OUT/capture
++    python -B tools/replay_temporal_sparse_failure.py analyze --linearization OUT/capture --output OUT/analysis
++    python -B tools/replay_temporal_sparse_failure.py replay --linearization OUT/capture/linearization.pt --output OUT/replay_nd --backend symmetric_nd
++"""
++import argparse
++from dataclasses import fields
++import hashlib
++import json
++from pathlib import Path
++import sys
++import time
++from unittest.mock import patch
++import numpy as np
++import torch
++sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
++from utils.temporal_output import atomic_json
++from estimator.temporal_sparse_gpu import TemporalSoAGraph,SparseLinearizedProblem
++
++
++def tensor_tree(value,device):
++    if isinstance(value,torch.Tensor):return value.to(device)
++    if isinstance(value,list):return [tensor_tree(v,device) for v in value]
++    if isinstance(value,tuple):return tuple(tensor_tree(v,device) for v in value)
++    if isinstance(value,dict):return {k:tensor_tree(v,device) for k,v in value.items()}
++    return value
++
++
++class CaptureComplete(Exception):
++    """Intentional diagnostic stop before any new numerical solve."""
++
++
++def graph_record(graph):
++    """Compact key maps of the current linearization (no dense matrix): raw keys, source keys, warp rows and the
++    exact bilinear weights/q used by the assembled operator at this state."""
++    from estimator.temporal_rgbd_terms import temporal_prediction
++    graph.layout()
++    record={'N':graph.N,'anchor_frame':graph.anchor_frame,'anchor_active':graph.anchor_active,'state_offsets':dict(graph.state_offsets),
++            'pixel_offset':graph.pixel_offset,'scalar_dimension':graph.scalar_dimension,'pixel_keys':graph.pixels.keys.cpu(),
++            'active_likelihood':graph.pixels.active_likelihood.cpu(),'source_keys':graph.source_keys.cpu(),
++            'encoding':[graph.pixels.frames,graph.pixels.cameras,graph.pixels.pixels],'warps':{}}
++    for current,w in graph.warps.items():
++        weights=torch.full((len(w['point']),4),float('nan'),device=graph.device,dtype=torch.float64);q=torch.full((len(w['point']),2),float('nan'),device=graph.device,dtype=torch.float64)
++        for ref in [graph.anchor_frame,*graph.states]:
++            ix=torch.where(w['reference_frame']==ref)[0]
++            if not len(ix):continue
++            p=w['point'][ix]
++            now=graph.state_and_blocks_gpu(current,p)[0];old=graph.state_and_blocks_gpu(ref,p)[0]
++            values=graph.pixels.clean[graph.pixels.lookup(w['reference_keys'][ix])]
++            _,_,_,qq,ww,_,_=temporal_prediction(graph.rig,now,old,w['camera'][ix],w['uv'][ix],values,w['cell'][ix])
++            weights[ix]=ww;q[ix]=qq
++        record['warps'][current]={**{name:w[name].cpu() for name in ('point','camera','reference_frame','reference_keys','current_keys','cell','uv')},
++                                  'weights':weights.cpu(),'q':q.cpu()}
++    return record
++
++
++def capture(cached,output):
++    from scene.config import Config
++    from scene.dataset import Dataset
++    from estimator.projective_camera import CameraRig
++    from estimator.projective_sensor import MeasuredFrame,SensorNoise
++    from estimator.temporal_reference import ReferenceTable
++    from estimator.temporal_zbuffer import first_hit_pixel_owner
++    from estimator.temporal_rgbd_terms import raw_values,sensor_covariance,build_temporal_rows
++    from estimator.temporal_sparse_nonlinear import solve_nonlinear_sparse_iekf_gpu
++    from estimator.temporal_sparse_run import signature
++    from estimator.point_kalman_cuda import transition,process_noise
++    manifest=json.loads((cached.parent/'run_manifest.json').read_text())
++    cfg=dict(manifest['noise'])
++    for name in ['qc','qx','velocity_covariance','pixel_covariance','color_covariance']:cfg[name]=np.asarray(cfg[name])
++    config=Config(**cfg);policy=manifest['policy']
++    dataset=Dataset(Path(manifest['dataset']['input']),frame_limit=3)
++    rig=CameraRig(dataset.cameras,'cuda');noise=SensorNoise.from_config(config,policy,'cuda',torch.float64)
++    with np.load(cached/'canonical.npz') as source:
++        xyz=source['canonical_xyz'];provenance=source['original_source_ids'];ids=source['point_id']
++    if not np.array_equal(ids,np.arange(len(ids))):raise ValueError('This full-cloud reproduction requires every original point')
++    frames={k:MeasuredFrame(dataset,k,'cuda',torch.float64) for k in [0,1]}
++    provenance=torch.as_tensor(provenance,device='cuda',dtype=torch.long);N=len(xyz);C=rig.count
++    value=raw_values(frames[0],provenance[:,1],provenance[:,2])
++    graph=TemporalSoAGraph(rig,3,N,provenance[:,1],provenance[:,2],torch.as_tensor(xyz,device='cuda'),value,
++        sensor_covariance(value,noise),torch.as_tensor(config.pixel_covariance,device='cuda'),torch.as_tensor(config.velocity_covariance,device='cuda'),0)
++    graph.layout();state=graph.state_and_blocks_gpu(0)[0]
++    refs=ReferenceTable(C,N,'cuda',torch.float64)
++    owners=first_hit_pixel_owner(state[:,:3],rig,frames[0]);refs.commit_accepted_references(owners,frames[0],state,0)
++    refs.initialize_from_source_catalogue(provenance.cpu().numpy(),0,state)
++    warp=torch.zeros((4,4),device='cuda',dtype=torch.float64)
++    dt=float(dataset.times[1]-dataset.times[0]);F=transition(dt,device='cuda');mean=state@F.T
++    owners=first_hit_pixel_owner(mean[:,:3],rig,frames[1],dense=False)
++    rows,_,_=build_temporal_rows(mean,owners,frames[1],refs,frames,rig,noise,policy,warp,1,3)
++    sig=signature(rows)
++    graph.pack_source_process_warp_factors_gpu(0,1,F,process_noise(dt,torch.as_tensor(config.qc,device='cuda')),mean,rows,frames,noise,warp)
++    def same_domain():
++        state=graph.state_and_blocks_gpu(1)[0]
++        old=graph.state_and_blocks_gpu(0)[0];cc,pp=torch.where(refs.frame==0);refs.state[cc,pp]=old[pp]
++        owners=first_hit_pixel_owner(state[:,:3],rig,frames[1],dense=False)
++        current,_,_=build_temporal_rows(state,owners,frames[1],refs,frames,rig,noise,policy,warp,1,3)
++        if torch.equal(signature(current),sig):return True
++        before=torch.full((C,N,2),-1,device='cuda',dtype=torch.long);after=torch.full_like(before,-1)
++        before[rows.camera,rows.point,0]=rows.pixel;before[rows.camera,rows.point,1]=rows.reference_frame
++        after[current.camera,current.point,0]=current.pixel;after[current.camera,current.point,1]=current.reference_frame
++        graph.domain_bad_points=torch.where((before!=after).any(2).any(0))[0]
++        return False
++    original=graph.assemble_sparse_linearized_problem_gpu;calls=0
++    def archive():
++        nonlocal calls
++        problem=original();calls+=1
++        if calls==1:
++            torch.save({f.name:tensor_tree(getattr(problem,f.name),'cpu') for f in fields(problem)},output/'linearization_S0.pt')
++            torch.save(graph_record(graph),output/'graph_S0.pt')
++        if calls==2:
++            record={f.name:tensor_tree(getattr(problem,f.name),'cpu') for f in fields(problem)}
++            torch.save(record,output/'linearization.pt')
++            torch.save(graph_record(graph),output/'graph_S2.pt')
++            torch.save({'candidate_state':graph.state_and_blocks_gpu(1)[0].cpu(),'predicted_state':mean.cpu(),'original_point_id':ids.tolist()},output/'uncommitted_candidate.pt')
++            atomic_json(output/'capture.json',{'status':'CAPTURED_LINEARIZATION_NOT_FILTERING_SUCCESS','cached_source':str(cached),
++                'points':N,'cameras':C,'dt':dt,'iteration':1,'scalar_dimension':problem.scalar_dimension,
++                'nonlinear_history':graph.nonlinear_history,'published_frames':[],
++                'sha256':hashlib.sha256((output/'linearization.pt').read_bytes()).hexdigest()})
++            raise CaptureComplete()
++        return problem
++    graph.assemble_sparse_linearized_problem_gpu=archive
++    try:solve_nonlinear_sparse_iekf_gpu(graph,frames,noise,policy,2,1e-8,same_domain)
++    except CaptureComplete:return
++    raise RuntimeError('The requested second linearization was not reached')
++
++
++def replay(saved,output,backend,benchmark_queries):
++    from estimator.temporal_sparse_solve import SparseJointFactorization,sparse_rows,connected_columns_gpu
++    from estimator.temporal_sparse_gpu import sparse_coo
++    from estimator.temporal_cudss import CudaSparseFactor
++    problem=SparseLinearizedProblem(**tensor_tree(torch.load(saved,map_location='cpu',weights_only=True),'cuda'))
++    def native(matrix):
++        torch.save(matrix.cpu(),output/'KKT.pt')
++        return CudaSparseFactor(matrix,algorithm=backend)
++    started=time.perf_counter()
++    try:
++        with patch('estimator.temporal_sparse_solve.CudaSparseFactor',side_effect=native):factor=SparseJointFactorization(problem)
++        try:
++            step,certificate=factor.solve_constrained_sparse_joint_gpu()
++            torch.save(step.cpu(),output/'step.pt')
++            status={'status':'REPLAY_LINEAR_SOLVE_CERTIFIED','certificate':certificate,'profile':factor.profile}
++            if benchmark_queries:
++                capture_info=json.loads((saved.parent/'capture.json').read_text());N=capture_info['points']
++                Q=sparse_rows(factor.T,torch.arange(5*N,11*N,device='cuda'))
++                labels,_=connected_columns_gpu(factor.A,factor.C,factor.information)
++                row,col=Q.indices();pair,inverse=torch.unique(row*factor.A.shape[1]+labels[col],sorted=True,return_inverse=True)
++                component=pair%factor.A.shape[1];order=torch.argsort(component,stable=True)
++                starts=torch.ones(len(order),device='cuda',dtype=torch.bool);starts[1:]=component[order[1:]]!=component[order[:-1]]
++                positions=torch.arange(len(order),device='cuda');rank=positions-torch.cummax(torch.where(starts,positions,torch.zeros_like(positions)),0).values
++                colors=torch.empty_like(rank);colors[order]=rank
++                total=int(colors.max())+1
++                bench={'required_exact_RHS_colors':total,'point_count':N,'covariance_computed':False,'batches':[]}
++                atomic_json(output/'covariance_query_benchmark.json',bench)
++                for width in [8,32]:
++                    take=colors[inverse]<width
++                    rhs=sparse_coo(torch.stack((factor.A.shape[0]+col[take],colors[inverse[take]])),Q.values()[take],(factor.K.shape[0],width)).to_dense()
++                    torch.cuda.synchronize();t0=time.perf_counter();answer=factor.factor.solve(rhs);torch.cuda.synchronize();seconds=time.perf_counter()-t0
++                    bench['batches'].append({'width':width,'seconds':seconds,'linear_solve_only_extrapolation_seconds':seconds*total/width,
++                        'certificate':dict(factor.factor.profile['last_solve'])})
++                    del rhs,answer
++                    atomic_json(output/'covariance_query_benchmark.json',bench)
++                status['query_benchmark']=bench
++        finally:factor.close()
++    except Exception as error:
++        status={'status':'REPLAY_FAILED','error':str(error),'profile':getattr(error,'profile',None)}
++    status.update(backend=backend,seconds=time.perf_counter()-started,filtering_success=False,
++        saved_operator=str(saved),saved_operator_sha256=hashlib.sha256(saved.read_bytes()).hexdigest())
++    atomic_json(output/'replay.json',status);print(json.dumps(status,indent=2))
++    return 0 if status['status']=='REPLAY_LINEAR_SOLVE_CERTIFIED' else 1
++
++
++def load_problem(path,device):
++    return SparseLinearizedProblem(**tensor_tree(torch.load(path,map_location='cpu',weights_only=True),device))
++
++
++def canonical(labels):
++    """Partition -> label = smallest member index (independent of the labelling algorithm)."""
++    labels=np.asarray(labels);smallest=np.full(labels.max()+1,np.iinfo(np.int64).max,dtype=np.int64)
++    np.minimum.at(smallest,labels,np.arange(len(labels)));return smallest[labels]
++
++
++def cpu_union_find(n,edges):
++    """Independent CPU oracle: scipy connected components of an explicit edge list over n nodes."""
++    import scipy.sparse as sp
++    from scipy.sparse.csgraph import connected_components
++    a,b=(np.concatenate(x) if x else np.empty(0,dtype=np.int64) for x in zip(*edges)) if edges else (np.empty(0,dtype=np.int64),)*2
++    graph=sp.coo_matrix((np.ones(len(a),dtype=np.int8),(a,b)),shape=(n,n))
++    return canonical(connected_components(graph,directed=False)[1])
++
++
++def column_nodes(reduced,record):
++    """Reduced (innovation) column -> semantic node: point i (anchor chart or any state of i) or N + raw-key index."""
++    problem=reduced.problem;N=record['N']
++    pivots=torch.cat([p for _,p in problem.pivot_groups]).cpu() if problem.pivot_groups else torch.empty(0,dtype=torch.long)
++    free=torch.ones(problem.scalar_dimension,dtype=torch.bool);free[pivots]=False
++    original=torch.where(free)[0].numpy()
++    node=np.empty(len(original),dtype=np.int64)
++    anchor=5*N if record['anchor_active'] else 0;pixel=record['pixel_offset']
++    a=original<anchor;st=(original>=anchor)&(original<pixel);px=original>=pixel
++    node[a]=original[a]//5
++    node[st]=((original[st]-anchor)%(6*N))//6
++    node[px]=N+(original[px]-pixel)//4
++    return node
++
++
++def row_node_pairs_actual(reduced,node):
++    """(row block, node) pairs of every nonzero coefficient of the reduced stochastic operator."""
++    ix=reduced.A.coalesce().indices().cpu().numpy();values=reduced.A.coalesce().values().cpu().numpy()
++    take=values!=0
++    return np.unique(np.stack((ix[0,take]//4,node[ix[1,take]]),1),axis=0)
++
++
++def row_node_pairs_predicted(record):
++    """Independent prediction from key maps only: the sensor row of current pixel (c,t,p) substituted by point i's
++    warp touches {i (x_t, x_r and their anchor/process innovations), i's source pixel, corners with weight != 0}."""
++    N=record['N'];keys=record['pixel_keys'].numpy();index=lambda k:np.searchsorted(keys,k)
++    current=[];sets=[]
++    for w in record['warps'].values():
++        p=w['point'].numpy();src=index(record['source_keys'].numpy()[p])+N
++        corners=index(w['reference_keys'].numpy())+N;nz=w['weights'].numpy()!=0
++        cur=w['current_keys'].numpy();current.append(cur)
++        sets.append((cur,np.stack((p,src),1),corners,nz))
++    order=np.argsort(np.concatenate(current));block=np.empty_like(order);block[order]=np.arange(len(order))
++    pairs=[];offset=0
++    for cur,ps,corners,nz in sets:
++        b=block[offset:offset+len(cur)];offset+=len(cur)
++        pairs.append(np.stack((np.repeat(b,2),ps.reshape(-1)),1))
++        rows,cols=np.nonzero(nz);pairs.append(np.stack((b[rows],corners[rows,cols]),1))
++    return np.unique(np.concatenate(pairs),axis=0)
++
++
++def trace_sets(actual,predicted,N):
++    """Every ACTUAL nonzero must be predicted by an analytical factor (no untraceable coupling). Predicted pairs with
++    no actual coefficient are exact cancellations, e.g. at x_t = x_r the current/reference Jacobians cancel on columns
++    shared by both states (anchor chart, source pixel); they are reported, never pruned."""
++    key=lambda x:x[:,0]*(1<<32)+x[:,1]
++    ka,kp=key(actual),key(predicted)
++    untraced=~np.isin(ka,kp);cancelled=~np.isin(kp,ka)
++    c=predicted[cancelled]
++    return {'every_actual_nonzero_traced_to_predicted_factor':bool(not untraced.any()),'untraced_actual_pairs':int(untraced.sum()),
++            'actual_row_node_pairs':int(len(actual)),'predicted_row_node_pairs':int(len(predicted)),
++            'predicted_without_actual_coefficient':{'total':int(cancelled.sum()),'point_nodes':int((c[:,1]<N).sum()),'raw_pixel_nodes':int((c[:,1]>=N).sum())}}
++
++
++def key_integrity(record):
++    F,C,P=record['encoding'];keys=record['pixel_keys'].numpy();N=record['N']
++    frame,rest=keys//(C*P),keys%(C*P);camera,pixel=rest//P,rest%P
++    out={'unique_keys':int(len(np.unique(keys))),'registered_keys':int(len(keys)),
++         'encoding_injective_roundtrip':bool(np.array_equal((frame*C+camera)*P+pixel,keys)),
++         'source_keys_unique':int(len(np.unique(record['source_keys'].numpy()))),'points':N}
++    used=[record['source_keys'].numpy()]
++    for k,w in record['warps'].items():
++        cur=w['current_keys'].numpy();ref=w['reference_keys'].numpy()
++        out[f'frame{k}_warp_rows']=int(len(cur));out[f'frame{k}_current_keys_unique']=bool(len(np.unique(cur))==len(cur))
++        out[f'frame{k}_all_keys_registered']=bool(np.isin(cur,keys).all() and np.isin(ref,keys).all())
++        out[f'frame{k}_cross_camera_key_collision']=int(((ref//P)%C!=w['camera'].numpy()[:,None]).sum()+((cur//P)%C!=w['camera'].numpy()).sum())
++        used+=[cur,ref.reshape(-1)]
++    out['orphan_registered_keys_used_by_no_factor']=int((~np.isin(keys,np.concatenate(used))).sum())
++    return out
++
++
++def coupling_provenance(record,weights_override=None):
++    """Point graph through shared raw keys: who couples whom, and through which analytical role."""
++    N=record['N'];keys=record['pixel_keys'].numpy();index=lambda k:np.searchsorted(keys,k)
++    src=index(record['source_keys'].numpy())
++    edges=[];corner_users=[];observed=np.zeros(N,dtype=bool)
++    for k,w in record['warps'].items():
++        p=w['point'].numpy();observed[p]=True
++        nz=(w['weights'].numpy()!=0) if weights_override is None else weights_override[k]
++        rows,cols=np.nonzero(nz);c=index(w['reference_keys'].numpy())[rows,cols]
++        edges.append((p[rows],N+c));corner_users.append(np.stack((c,p[rows]),1))
++    o=np.where(observed)[0];edges.append((o,N+src[o]))
++    labels=cpu_union_find(N+len(keys),edges)[:N]
++    _,sizes=np.unique(labels[observed],return_counts=True)
++    cu=np.unique(np.concatenate(corner_users),axis=0) if corner_users else np.empty((0,2),dtype=np.int64)
++    k_,n_=np.unique(cu[:,0],return_counts=True)
++    shared=set(k_[n_>=2].tolist());is_src_of=dict(zip(src[o].tolist(),o.tolist()))
++    corner_and_source=sum(1 for key,pt in cu.tolist() if key in is_src_of and is_src_of[key]!=pt)
++    return {'observed_points':int(observed.sum()),'largest_point_component':int(sizes.max()) if len(sizes) else 0,
++            'point_components_observed':int(len(sizes)),'keys_shared_as_nonzero_corner_by_2plus_points':len(shared),
++            'corner_uses_of_another_points_source_pixel':int(corner_and_source)}
++
++
++def analyze(capture_dir,output):
++    from estimator.temporal_sparse_solve import ReducedLinearizedSystem,connected_columns_gpu
++    from estimator.temporal_cudss import CudaSparseFactor,SparseNumericalFailure
++    device='cuda' if torch.cuda.is_available() else 'cpu'
++    report={'capture':str(capture_dir),'inputs_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(capture_dir.glob('*.pt'))},
++            'statistical_semantics':'connectivity = actual nonzero coefficients of the reduced linearized operator; no motion graph, no symbolic ties'}
++    records={}
++    for stage,problem_file in (('S0','linearization_S0.pt'),('S2','linearization.pt')):
++        record=torch.load(capture_dir/f'graph_{stage}.pt',weights_only=False);records[stage]=record
++        reduced=ReducedLinearizedSystem(load_problem(capture_dir/problem_file,device))
++        m,n=reduced.A.shape
++        gpu=canonical(connected_columns_gpu(reduced.A,reduced.C,reduced.information)[0].cpu().numpy())
++        edges=[]
++        for M,off in ((reduced.A,0),(reduced.C,m)):
++            ix=M.coalesce().indices().cpu().numpy();keep=M.coalesce().values().cpu().numpy()!=0
++            edges.append((n+off+ix[0,keep],ix[1,keep]))
++        if reduced.information is not None:
++            ix=reduced.information.coalesce().indices().cpu().numpy();edges.append((ix[0],ix[1]))
++        cpu=cpu_union_find(n+m+reduced.C.shape[0],edges)[:n]
++        _,sizes=np.unique(gpu,return_counts=True)
++        node=column_nodes(reduced,record)
++        actual,predicted=row_node_pairs_actual(reduced,node),row_node_pairs_predicted(record)
++        w=np.concatenate([x['weights'].numpy() for x in record['warps'].values()])
++        report[stage]={'scalar_dimension':reduced.problem.scalar_dimension,'reduced_free_dimension':n,'stochastic_rows':m,
++            'remaining_constraints':int(reduced.C.shape[0]),'nnz_A_reduced':int(reduced.A._nnz()),'nnz_KKT':int(reduced.K._nnz()),
++            'factor_counts':reduced.problem.factor_counts,'true_components':int(len(sizes)),'largest_component_scalars':int(sizes.max()),
++            'component_size_quantiles':np.quantile(sizes,[.5,.9,.99,.999,1]).tolist(),
++            'GPU_components_equal_independent_CPU_union_find':bool(np.array_equal(gpu,cpu)),
++            'information_matrix_present':reduced.information is not None,
++            'row_blocks':int(m//4),**trace_sets(actual,predicted,record['N']),
++            'bilinear_weights':{'exact_zero':int((w==0).sum()),'nonzero_below_1e-12':int(((w!=0)&(np.abs(w)<1e-12)).sum()),'total':int(w.size)},
++            'keys':key_integrity(record),'coupling':coupling_provenance(record)}
++        if stage=='S0':K0=reduced.K
++        else:K2=reduced.K;expected2=reduced.expected_inertia()
++        del reduced
++    w0,w2=records['S0']['warps'],records['S2']['warps'];change={}
++    hybrid={}
++    for k in w2:
++        cell=(w0[k]['cell']!=w2[k]['cell']).any(1).numpy();nz0=w0[k]['weights'].numpy()!=0;nz2=w2[k]['weights'].numpy()!=0
++        change[k]={'rows':int(len(cell)),'cell_changed':int(cell.sum()),'same_cell_corners_zero_to_nonzero':int(((~nz0)&nz2)[~cell].sum()),
++                   'same_cell_corners_nonzero_to_zero':int((nz0&~nz2)[~cell].sum()),'same_points':bool(torch.equal(w0[k]['point'],w2[k]['point']))}
++        hybrid[k]=np.where(cell[:,None],nz2,nz0)
++    report['S0_to_S2']={'per_frame':change,'S2_with_S0_activation_on_unchanged_cells':coupling_provenance(records['S2'],hybrid)}
++    if device=='cuda':
++        def attempt(K,algorithm,**kw):
++            torch.cuda.empty_cache()
++            try:
++                f=CudaSparseFactor(K,algorithm=algorithm,**kw);out={'status':'FACTORIZED',**f.profile};f.close()
++            except SparseNumericalFailure as error:out={'status':'FAILED','error':str(error).split(';')[0],**getattr(error,'profile',{})}
++            return {k:out.get(k) for k in ('status','error','rows','nnz','info','factor_nnz','max_LU_nnz_capacity','max_LU_nnz_capacity_source','inertia',
++                                         'expected_inertia','native_memory_estimates_bytes','VRAM_free_before_analysis','analysis_seconds','factorization_seconds')}
++        s0=attempt(K0,'general_btf');lu=s0.get('factor_nnz')
++        report['INFO_controlled_reproduction']={
++            'S0_general_btf_free_VRAM_bound':s0,
++            'S0_general_btf_bound_half_of_its_measured_LU_nnz':attempt(K0,'general_btf',max_lu_nnz=lu//2) if lu else None,
++            'S0_general_btf_bound_equal_measured_LU_nnz':attempt(K0,'general_btf',max_lu_nnz=lu) if lu else None,
++            'S2_general_btf_free_VRAM_bound':attempt(K2,'general_btf'),
++            'S2_symmetric_nd':attempt(K2,'symmetric_nd',expected_inertia=expected2),
++            'memory_estimate_layout':'[0] permanent device, [1] peak device, [2] permanent host, [3] peak host (bytes), [6] estimate state'}
++    atomic_json(output/'analysis.json',report);print(json.dumps(report,indent=1,default=str)[:6000])
++    return 0
++
++
++def main():
++    ap=argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter);ap.add_argument('stage',choices=['capture','replay','analyze'])
++    ap.add_argument('--cached-run',type=Path);ap.add_argument('--linearization',type=Path)
++    ap.add_argument('--output',type=Path,required=True)
++    ap.add_argument('--backend',choices=['general_btf','symmetric_nd'],default='general_btf')
++    ap.add_argument('--benchmark-queries',action='store_true')
++    a=ap.parse_args()
++    if a.output.exists():ap.error('Output already exists; never overwrite evidence')
++    a.output.mkdir(parents=True)
++    if a.stage=='capture':
++        if a.cached_run is None:ap.error('capture requires --cached-run')
++        capture(a.cached_run,a.output);return 0
++    if a.linearization is None:ap.error(f'{a.stage} requires --linearization')
++    if a.stage=='analyze':return analyze(a.linearization,a.output)
++    return replay(a.linearization,a.output,a.backend,a.benchmark_queries)
++
++
++if __name__=='__main__':raise SystemExit(main())
+diff --git a/tools/verify_temporal_full_frames.py b/tools/verify_temporal_full_frames.py
+new file mode 100644
+index 0000000..7b6ec79
+--- /dev/null
++++ b/tools/verify_temporal_full_frames.py
+@@ -0,0 +1,93 @@
++#!/usr/bin/env python3
++"""Read-only G3 verification of a finished full temporal sparse run (no GT, no inference).
++
++For every journal-committed frame after the anchor: array digests recomputed against the commit journal; finite
++states; symmetric positive-definite 6x6 joint marginals for EVERY point; physical prediction x-_k = x+_{k-1} +
++dt v+_{k-1} at the stored precision; genuine nonzero accepted corrections; per-frame rows, reference lifecycle and
++raw residual statistics; the covariance certificate, KKT inertia and final-linearization provenance recorded by
++the run. Uncommitted frames must remain NaN (never estimates).
++
++    python -B tools/verify_temporal_full_frames.py RUN/USB_100109_full/free_forward [more roots] --output verification.json
++"""
++import argparse
++import hashlib
++import json
++from pathlib import Path
++import sys
++import numpy as np
++sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
++from utils.temporal_output import atomic_json
++
++
++def eig_min(P, chunk=8192):
++    return np.concatenate([np.linalg.eigvalsh(P[i:i+chunk]).min(1) for i in range(0, len(P), chunk)])
++
++
++def verify(root):
++    root = Path(root); journal = json.loads((root/'completed_frames.json').read_text())
++    manifest = json.loads((root/'run_manifest.json').read_text()); order = journal['processing_order']
++    arrays = {name: np.load(root/f'{name}.npy', mmap_mode='r') for name in journal['frame_sha256'][str(order[0])]}
++    out = {'root': str(root), 'journal_status': journal['status'], 'completed_frames': journal['completed_frames'],
++           'point_count': manifest['point_count'], 'camera_count': manifest['camera_count'], 'frames': {}}
++    times = np.asarray(manifest['timestamps_seconds'], float); failures = []
++    for frame in journal['completed_frames']:
++        rec = {'array_digests_match_journal': all(hashlib.sha256(np.ascontiguousarray(arrays[n][frame]).tobytes()).hexdigest() == d
++                                                  for n, d in journal['frame_sha256'][str(frame)].items())}
++        x = np.asarray(arrays['posterior_xyz'][frame]); v = np.asarray(arrays['velocity'][frame]); P = np.asarray(arrays['posterior_covariance'][frame])
++        rec['finite_state_and_covariance'] = bool(np.isfinite(x).all() and np.isfinite(v).all() and np.isfinite(P).all())
++        rec['covariance_max_asymmetry'] = float(np.abs(P-P.transpose(0, 2, 1)).max())
++        e = eig_min(P); rec['points_with_nonpositive_marginal'] = int((e <= 0).sum()); rec['marginal_min_eigenvalue_mixed_units'] = float(e.min())
++        rec['position_variance_median_m2'] = float(np.median(np.diagonal(P[:, :3, :3], axis1=1, axis2=2)))
++        if frame != order[0]:
++            index = order.index(frame); prev = order[index-1]; dt = float(times[frame]-times[prev])
++            pred = np.asarray(arrays['predicted_xyz'][frame], np.float64)
++            expected = np.asarray(arrays['posterior_xyz'][prev], np.float64)+dt*np.asarray(arrays['velocity'][prev], np.float64)
++            rec['prediction_vs_constant_velocity_max_abs_m'] = float(np.abs(pred-expected).max())   # float32 storage of predicted/velocity
++            correction = np.linalg.norm(x-pred, axis=1); accepted = np.asarray(arrays['update_acceptance'][frame]).astype(bool)
++            rec.update(assimilated_points=int(accepted.sum()), points_with_nonzero_correction=int((correction > 0).sum()),
++                       correction_m_quantiles_assimilated=np.quantile(correction[accepted], [.5, .9, .99, 1]).tolist() if accepted.any() else None,
++                       correction_m_max_not_assimilated=float(correction[~accepted].max()) if (~accepted).any() else None,
++                       speed_m_s_quantiles=np.quantile(np.linalg.norm(v, axis=1), [.5, .9, .99, 1]).tolist())
++            summary = json.loads((root/'temporal'/f'frame_{frame:04d}.json').read_text())
++            profile = json.loads((root/'temporal'/f'sparse_profile_{frame:04d}.json').read_text())
++            solver = summary['solver']; marg = profile['current_marginal_profile']
++            rec.update(rows=summary['rows'], observed_points=summary['observed_points'], reference_lifecycle=summary['reference'],
++                       rgb_residual_rms=summary['rgb_residual_rms'], depth_residual_rms_m=summary['depth_residual_rms_m'],
++                       unexplained_foreground_pixels=summary['unexplained_foreground'], rendered_outside_foreground=summary['rendered_outside_foreground'],
++                       nonlinear_iterations=len(solver['history']), accepted_iterations=solver['accepted_iterations'], converged_flag=solver['converged'],
++                       objective_history=[h['objective'] for h in solver['history']]+[solver['objective']],
++                       frozen_components_last_iteration=solver['history'][-1]['frozen_components'],
++                       covariance_from_final_linearization=solver.get('covariance_linearization_sha256') is not None and solver.get('covariance_linearization_sha256') == solver.get('final_linearization_sha256'),
++                       final_KKT_inertia=solver.get('final_factor_inertia'), final_KKT_expected_inertia=solver.get('final_factor_expected_inertia'),
++                       covariance_method=marg.get('method'), covariance_certificate=marg.get('certificate'), covariance_LDL_inertia=marg.get('LDL_inertia'),
++                       covariance_seconds=summary['stage_times'].get('covariance_seconds'), frame_seconds=summary['seconds'],
++                       nnz_KKT=profile.get('nnz_KKT'), selected_inverse_nnz_L=marg.get('nnz_L'), peak_cuda_allocated_bytes=marg.get('peak_cuda_allocated_bytes'),
++                       raw_unique_sensor_keys=profile.get('raw_unique_sensor_keys'), factor_counts=profile.get('factor_counts'))
++            cert = rec['covariance_certificate'] or {}
++            checks = {'digests': rec['array_digests_match_journal'], 'finite': rec['finite_state_and_covariance'],
++                      'spd': rec['points_with_nonpositive_marginal'] == 0, 'rows': rec['rows'] > 0, 'assimilated': rec['assimilated_points'] > 0,
++                      'nonzero_corrections': rec['points_with_nonzero_correction'] > 0,
++                      'certificate': bool(cert) and cert['max_error']['correlation_units'] <= cert['tolerance_correlation_units'],
++                      'inertia': rec['covariance_LDL_inertia'] is not None and rec['covariance_LDL_inertia'] == rec['final_KKT_expected_inertia'] == rec['final_KKT_inertia'],
++                      'final_linearization': rec['covariance_from_final_linearization']}
++            rec['checks'] = checks; failures += [f'{frame}:{k}' for k, ok in checks.items() if not ok]
++        out['frames'][str(frame)] = rec
++    pending = [k for k in order if k not in journal['completed_frames']]
++    out['uncommitted_frames_all_NaN'] = all(np.isnan(np.asarray(arrays['posterior_xyz'][k])).all() for k in pending)
++    if not out['uncommitted_frames_all_NaN']:failures.append('uncommitted_frames_not_NaN')
++    out['failures'] = failures; out['verified'] = not failures and journal['status'] == 'COMPLETE'
++    return out
++
++
++def main():
++    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
++    ap.add_argument('roots', nargs='+', type=Path); ap.add_argument('--output', type=Path)
++    a = ap.parse_args()
++    if a.output is not None and a.output.exists():ap.error('Output exists; never overwrite verification evidence')
++    report = {'runs': [verify(r) for r in a.roots]}; report['all_verified'] = all(r['verified'] for r in report['runs'])
++    if a.output is not None:atomic_json(a.output, report)
++    print(json.dumps(report, indent=1, default=float)[:20000])
++    return 0 if report['all_verified'] else 1
++
++
++if __name__ == '__main__':raise SystemExit(main())

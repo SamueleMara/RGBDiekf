@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import maximum_bipartite_matching
-from estimator.temporal_cudss import CudaSparseFactor, SparseNumericalFailure
+from estimator.temporal_cudss import CudaSparseFactor, SparseNumericalFailure, SparseResourceLimit
 from estimator.temporal_sparse_gpu import sparse_coo
 from estimator.temporal_sparse_solve import connected_columns_gpu
 
@@ -54,7 +54,12 @@ def schur_product_gpu(factor, B, workspace_bytes, rhs_batch=8):
     # Induced dense fill is real mathematical fill, stored as sparse coordinates.
     required=total*(2*8+2*8)+factor.matrix.shape[0]*rhs_batch*8*3
     if required>workspace_bytes:
-        raise SparseNumericalFailure(f'FULL_SCHUR_FILL_RESOURCE_LIMIT: {total} induced entries require at least {required} bytes; budget={workspace_bytes}')
+        # Exact Schur fill is dense per eliminated component (sum of squared boundary sizes): a measured resource limit.
+        error=SparseResourceLimit(f'FULL_SCHUR_FILL_RESOURCE_LIMIT: {total} induced entries require at least {required} bytes; budget={workspace_bytes}; '
+                                  f'eliminated components with boundary rows={len(counts)}, largest boundary={int(counts.max())} rows')
+        error.profile={'induced_entries':total,'required_bytes':required,'workspace_bytes':workspace_bytes,'boundary_components':len(counts),
+                       'largest_boundary_rows':int(counts.max()),'boundary_rows':int(counts.sum()),'boundary_rows_quantiles':torch.quantile(counts.double(),torch.tensor([.5,.9,.99,1.],device=counts.device,dtype=torch.float64)).tolist()}
+        raise error
     group=torch.repeat_interleave(torch.arange(len(counts),device=device),counts.square())
     offsets=torch.cumsum(counts.square(),0)-counts.square()
     position=torch.arange(total,device=device)-torch.repeat_interleave(offsets,counts.square())

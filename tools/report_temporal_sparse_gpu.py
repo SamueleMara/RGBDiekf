@@ -136,6 +136,7 @@ def main():
     (a.output_dir/'temporal_sparse_gpu_source_changes.patch').write_bytes(changes)
     function_map={}
     for name in SPARSE_PRODUCTION_SOURCES:
+        if not name.endswith('.py'):continue   # e.g. cuda/*.cpp: hashed, but not Python
         tree=ast.parse((REPO/name).read_text())
         function_map[name]={n.name:n.lineno for n in ast.walk(tree) if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
     disk=shutil.disk_usage(a.batch[-1])

@@ -22,7 +22,7 @@ def temporal_frame_debug(root,frame,owners,state,prior,rig,rows,k):
     own=owners.owner_id.cpu().numpy();count=owners.counts.cpu().numpy()
     uvp=rig.project(prior[:,:3],jacobian=False).uv.cpu().numpy();uv=owners.uv.cpu().numpy()
     man=json.loads((root/'run_manifest.json').read_text())
-    ids=np.union1d(np.linspace(0,len(state)-1,min(len(state),12000)).astype(int),man['debug_point_ids'])
+    ids=np.union1d(np.linspace(0,len(state)-1,min(len(state),12000)).astype(int),np.asarray(man['debug_point_ids'],dtype=int))  # empty when no traced ID survives subsampling
     observed=np.zeros(len(state),bool)
     if rows is not None:observed[rows.point.cpu().numpy()]=True
     can=np.load(root/'canonical.npz')

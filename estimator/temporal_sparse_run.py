@@ -20,8 +20,8 @@ from estimator.temporal_zbuffer import first_hit_pixel_owner, selected_owners, c
 from estimator.temporal_reference import ReferenceTable
 from estimator.temporal_rgbd_terms import build_temporal_rows, raw_values, sensor_covariance, temporal_prediction, TEMPORAL_REASONS
 from estimator.temporal_sparse_gpu import TemporalSoAGraph, SparseBlockRows, sparse_coo
-from estimator.temporal_sparse_nonlinear import solve_nonlinear_sparse_iekf_gpu, outside_mask
-from estimator.temporal_sparse_solve import connected_columns_gpu, sparse_rows
+from estimator.temporal_sparse_nonlinear import solve_nonlinear_sparse_iekf_gpu, outside_mask, linearization_digest
+from estimator.temporal_sparse_solve import connected_columns_gpu, sparse_rows, offload_device_tensors
 from estimator.temporal_cudss import SparseNumericalFailure
 from debug.temporal_debug import temporal_frame_debug, write_temporal_dashboard
 
@@ -217,7 +217,15 @@ def run_temporal_sparse_free(dataset,config,policy,direction,root,device,sub,opt
             times['nonlinear_solve_seconds']=time.perf_counter()-ts
             try:
                 s=graph.state_and_blocks_gpu(k)[0]
-                ts=time.perf_counter();P=factor.extract_joint_selected_marginals_gpu(graph.state_query_gpu(k));times['covariance_seconds']=time.perf_counter()-ts
+                # The published posterior must come from the FINAL accepted relinearization, not an intermediate step.
+                solver['covariance_linearization_sha256']=linearization_digest(graph)
+                if solver['covariance_linearization_sha256']!=solver['final_linearization_sha256']:
+                    raise SparseNumericalFailure('Covariance would be queried at a state other than the final accepted linearization')
+                factor.failure_archive=temporal/f'covariance_certificate_failure_{k:04d}.pt'
+                # Only if the exact inversion cannot fit beside it: the runner's own device state is parked in host
+                # memory unchanged during the inversion and restored afterwards (no value changes).
+                factor.park_caller_state=lambda:offload_device_tensors([graph,frames,refs,before])
+                ts=time.perf_counter();P=factor.all_point_marginals_selected_inverse_gpu(graph.state_query_gpu(k));times['covariance_seconds']=time.perf_counter()-ts
                 cov_profile=dict(factor.profile['selected_marginals'])
                 eig=batched_eigen(P)
                 if bool((eig<=0).any()):raise SparseNumericalFailure('FULL_POSTERIOR_NOT_SPD: current free point states require positive marginal covariance')

@@ -45,7 +45,9 @@ def main():
     ap.add_argument('--terminate-grace-seconds',type=float,default=2.,help='operational process-group termination grace')
     ap.add_argument('--continue-on-error',action='store_true',help='explicitly continue after failed scene; default is fail-fast')
     ap.add_argument('--temporal-output-headroom-mib',type=float,default=128.)
-    ap.add_argument('--pcd-subsample-factor',type=int,default=1)
+    ap.add_argument('--pcd-subsample-factor',type=int,default=1,help='same as train.py: 1 = every original point (production default)')
+    ap.add_argument('--pcd-subsample-method',choices=['spatial-stratified','seeded-uniform'],default='spatial-stratified',help='same choices/default as train.py; forwarded to every child')
+    ap.add_argument('--pcd-subsample-seed',type=int,default=0,help='same as train.py; forwarded to every child')
     ap.add_argument('--focal-controls',action='store_true',help='DIAGNOSTIC reduced clouds of exact original traced IDs; not full-cloud validation')
     ap.add_argument('--temporal-warp-noise',choices=['measured','config','ideal'],default='measured');ap.add_argument('--temporal-warp-noise-config',type=Path)
     ap.add_argument('--sensor-noise',choices=['measured','config'],default='measured');ap.add_argument('--debug',choices=['light','full'],default='light')
@@ -82,7 +84,8 @@ def main():
         for mode in modes:
             target=out/f'{scene.name}_{mode}'
             cmd=[sys.executable,'-B',str(REPO/'train.py'),'--scene',str(scene),'--output',str(target),'--device',a.device,
-                 '--direction',a.direction,'--stop-after',a.stop_after,'--pcd-subsample-factor',str(a.pcd_subsample_factor),'--covariance-precision','float64',
+                 '--direction',a.direction,'--stop-after',a.stop_after,'--pcd-subsample-factor',str(a.pcd_subsample_factor),
+                 '--pcd-subsample-method',a.pcd_subsample_method,'--pcd-subsample-seed',str(a.pcd_subsample_seed),'--covariance-precision','float64',
                  '--sensor-noise',a.sensor_noise,'--rendered-mask-measurement','off','--debug',a.debug,
                  '--debug-frames','0,1,2,3,5,7,10,30,59','--no-evaluate','--no-qa']
             if mode!='legacy':

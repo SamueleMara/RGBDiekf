@@ -1,458 +1,587 @@
 {
-  "timestamp_utc": "2026-10-31T17:53:35.679300+00:00",
-  "git_commit": "e1e663b9618d3c833e63158e65dbbb1edd732003",
+  "timestamp_utc": "2026-11-02T00:47:12.203384+00:00",
+  "git_commit": "f77492dc0c8fe3cf5f28820ba5fe1f8ed959cb58",
   "dirty_status": [
-    " M README.md",
-    " M debug/assets/projective_common.js",
-    " M debug/projective_debug.py",
-    " M docs/PIPELINE_CODE_MAP.md",
-    " M estimator/free_projective_run.py",
-    " M estimator/projective_sensor.py",
-    " M estimator/projective_terms.py",
-    " M tools/root_cause_oracle.py",
-    " M tools/root_cause_trace.py",
-    " M tools/run_status.py",
+    " M debug/temporal_debug.py",
+    " M estimator/temporal_cudss.py",
+    " M estimator/temporal_sparse_marginalization.py",
+    " M estimator/temporal_sparse_nonlinear.py",
+    " M estimator/temporal_sparse_run.py",
+    " M estimator/temporal_sparse_solve.py",
+    " M tests/temporal_test_results.json",
+    " M tests/test_temporal_sparse_marginalization.py",
+    " M tools/report_temporal_sparse_gpu.py",
+    " M tools/run_temporal_rgbd_critical.py",
+    " M tools/temporal_batch_runtime.py",
+    " M tools/test_temporal_rgbd.py",
     " M train.py",
-    "?? RGBDiekf_Codex_Depth_Sorted_Temporal_RGBD_Full_FixedLag_IEKF.md",
-    "?? RGBDiekf_Codex_Fifth_Pass_Source_Responsibility_Causal_Experiments.md",
-    "?? RGBDiekf_Codex_Final_Joint_Responsibility_8444_45588_Test.md",
-    "?? RGBDiekf_Codex_Next_Actions_Temporal_Validation_Noise_Runtime.md",
-    "?? RGBDiekf_Codex_Static_Point_Equilibrium_Root_Cause_Audit.md",
-    "?? RGBDiekf_Definitive_F1_Static_Drift_Causal_Forensics_Codex.md",
-    "?? RGBDiekf_F1_Fourth_Pass_Sequential_Replay_and_Diagnostic_Bugfix_Codex.md",
-    "?? RGBDiekf_F1_Temporal_Reference_Depth_Surface_Reacquisition_Debug_Codex.md",
-    "?? RGBDiekf_Inner_F1_Second_Pass_Causal_Debug_Codex.md",
-    "?? RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md",
-    "?? RGBDiekf_Static_Drift_INNER_IEKF_Only_Codex_2026-10-30.md",
-    "?? configs/temporal_phase1.json",
-    "?? configs/temporal_warp_calibration_analysis.schema.json",
-    "?? configs/temporal_warp_noise.schema.json",
-    "?? debug/temporal_debug.py",
-    "?? docs/TEMPORAL_RGBD_IEKF_MATHEMATICAL_CONTRACT.md",
-    "?? estimator/block_tridiagonal.py",
-    "?? estimator/ieks_point_trajectory.py",
-    "?? estimator/rts_point_smoother.py",
-    "?? estimator/temporal_full_graph.py",
-    "?? estimator/temporal_history.py",
-    "?? estimator/temporal_model_identification.py",
-    "?? estimator/temporal_noise.py",
-    "?? estimator/temporal_observability.py",
-    "?? estimator/temporal_phase1.py",
-    "?? estimator/temporal_reference.py",
-    "?? estimator/temporal_rgbd_terms.py",
-    "?? estimator/temporal_run.py",
-    "?? estimator/temporal_simplified_iekf.py",
-    "?? estimator/temporal_zbuffer.py",
-    "?? reports/covariance_2x2_experiment.md",
-    "?? reports/f1_static_drift_forensics_20261030.md",
-    "?? reports/static_point_equilibrium/",
-    "?? reports/static_point_equilibrium_root_cause_CURRENT.md",
-    "?? reports/temporal_rgbd_baseline/",
-    "?? reports/temporal_rgbd_critical_scenes.md",
-    "?? reports/temporal_rgbd_implementation.md",
-    "?? reports/temporal_rgbd_next_validation.json",
-    "?? reports/temporal_rgbd_next_validation.md",
-    "?? reports/temporal_rgbd_validation.json",
-    "?? tests/temporal_fixtures.py",
-    "?? tests/temporal_test_results.json",
-    "?? tests/test_f1_definitive_drift_forensics.py",
-    "?? tests/test_f1_diagnostic_units.py",
-    "?? tests/test_f1_joint_responsibility_audit.py",
-    "?? tests/test_f1_second_pass_oracles.py",
-    "?? tests/test_f1_sequential_causal_replay.py",
-    "?? tests/test_f1_source_responsibility.py",
-    "?? tests/test_f1_temporal_reference_diagnostics.py",
-    "?? tests/test_forensic_f1_oracles.py",
-    "?? tests/test_static_equilibrium_audit.py",
-    "?? tests/test_temporal_full_graph.py",
-    "?? tests/test_temporal_motion.py",
-    "?? tests/test_temporal_phase1_identification.py",
-    "?? tests/test_temporal_phase1_masks.py",
-    "?? tests/test_temporal_phase1_math.py",
-    "?? tests/test_temporal_phase1_measurement.py",
-    "?? tests/test_temporal_phase1_motion.py",
-    "?? tests/test_temporal_phase1_pipeline.py",
-    "?? tests/test_temporal_phase1_static.py",
-    "?? tests/test_temporal_rgbd_pipeline.py",
-    "?? tests/test_temporal_warp.py",
-    "?? tools/README_f1_definitive_drift_forensics.md",
-    "?? tools/README_f1_joint_responsibility.md",
-    "?? tools/README_f1_source_responsibility.md",
-    "?? tools/attribute_static_drift_channels.py",
-    "?? tools/audit_static_equilibrium.py",
-    "?? tools/audit_temporal_inputs.py",
-    "?? tools/audit_temporal_regressions.py",
-    "?? tools/audit_temporal_saved_linearizations.py",
-    "?? tools/calibrate_temporal_warp_noise.py",
-    "?? tools/compare_temporal_modes.py",
-    "?? tools/evaluate_temporal_phase1.py",
-    "?? tools/evaluate_temporal_points_gt.py",
-    "?? tools/evaluate_temporal_rgbd.py",
-    "?? tools/f1_definitive_drift_forensics.py",
-    "?? tools/f1_definitive_evidence.py",
-    "?? tools/f1_definitive_math.py",
-    "?? tools/f1_definitive_point.py",
-    "?? tools/f1_diagnostic_units.py",
-    "?? tools/f1_joint_responsibility_audit.py",
-    "?? tools/f1_second_pass.py",
-    "?? tools/f1_sequential_causal_replay.py",
-    "?? tools/f1_source_responsibility.py",
-    "?? tools/f1_source_responsibility_audit.py",
-    "?? tools/f1_source_responsibility_evaluation.py",
-    "?? tools/f1_source_responsibility_population.py",
-    "?? tools/f1_temporal_reference_diagnostics.py",
-    "?? tools/forensic_f1_drift.py",
-    "?? tools/qa_temporal_debug.py",
-    "?? tools/report_f1_definitive_drift.py",
-    "?? tools/report_f1_joint_responsibility.py",
-    "?? tools/report_f1_source_responsibility.py",
-    "?? tools/report_temporal_next_validation.py",
-    "?? tools/report_temporal_rgbd_validation.py",
-    "?? tools/run_temporal_rgbd_critical.py",
-    "?? tools/run_temporal_rgbd_critical.sh",
-    "?? tools/temporal_phase1_gate_evidence.py",
-    "?? tools/test_temporal_rgbd.py",
-    "?? tools/verify_temporal_legacy_parity.py"
+    "?? CODEX_RGBDiekf_SURGICAL_EXACT_TEMPORAL_RGBD_IEKF_COMPLETION_2026-11-01.md",
+    "?? cuda/",
+    "?? estimator/temporal_selected_inverse_gpu.py",
+    "?? reports/temporal_sparse_gpu_baseline/ldlt_repair_tests.json",
+    "?? reports/temporal_sparse_gpu_completion.md",
+    "?? reports/temporal_sparse_gpu_completion_evidence/",
+    "?? tests/test_temporal_selected_inverse_gpu.py",
+    "?? tests/test_temporal_surgical_completion.py",
+    "?? tools/arbitrate_component_oracles_mp.py",
+    "?? tools/replay_temporal_sparse_failure.py",
+    "?? tools/verify_temporal_full_frames.py"
   ],
   "python": "3.11.15 (main, Jun 11 2026, 15:20:16) [GCC 14.3.0]",
   "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
   "torch": "2.11.0+cu128",
   "cuda_available": true,
   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
-  "seconds": 26.714275712991366,
+  "seconds": 35.16237085702596,
   "checks": [
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_affine_translations_and_negative_time",
       "status": "PASS",
-      "seconds": 0.013737470988417044,
+      "seconds": 0.010717274970375001,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_camera_handover_stale_reference_and_occlusion",
       "status": "PASS",
-      "seconds": 0.015009953000117093,
+      "seconds": 0.012272111955098808,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_conservative_domain_rejects_row_deletion",
       "status": "PASS",
-      "seconds": 0.008384393993765116,
+      "seconds": 0.006675309967249632,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_cuda_owner_parity",
       "status": "PASS",
-      "seconds": 0.648992297006771,
+      "seconds": 0.5241025490104221,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_first_hit_tie_depth_swap_numpy",
       "status": "PASS",
-      "seconds": 0.004120812984183431,
+      "seconds": 0.004114279989153147,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_no_rows_exact_prediction",
       "status": "PASS",
-      "seconds": 0.004564450995530933,
+      "seconds": 0.004593543999362737,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_random_numpy_parity",
       "status": "PASS",
-      "seconds": 0.04215367400320247,
+      "seconds": 0.03690182097489014,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_source_identity_and_handover_bootstrap",
       "status": "PASS",
-      "seconds": 0.0020929250167682767,
+      "seconds": 0.0022862119949422777,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_sparse_and_dense_owner_queries_are_identical",
       "status": "PASS",
-      "seconds": 0.04905930100358091,
+      "seconds": 0.053402371995616704,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_support_all_four_even_zero_weight",
       "status": "PASS",
-      "seconds": 0.0030924329767003655,
+      "seconds": 0.0036374449846334755,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_two_time_and_latent_jacobian",
       "status": "PASS",
-      "seconds": 0.041896481008734554,
+      "seconds": 0.04159565502777696,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_actual_nonlinear_warp_factor_all_columns",
       "status": "PASS",
-      "seconds": 0.07255113101564348,
+      "seconds": 0.07195324799977243,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_conditional_is_not_marginal_and_simplified_limit",
       "status": "PASS",
-      "seconds": 0.008864733012160286,
+      "seconds": 0.0181900339666754,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_conditioned_reference_limit_matches_simplified",
       "status": "PASS",
-      "seconds": 0.04380605201004073,
+      "seconds": 0.05525975301861763,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_correlated_predictive_nis_against_dense",
       "status": "PASS",
-      "seconds": 0.0022315850073937327,
+      "seconds": 0.00284155597910285,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_cuda_cpu_mean_covariance",
       "status": "PASS",
-      "seconds": 0.23440598300658166,
+      "seconds": 0.2308322279714048,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_exact_schur_and_lag_slide",
       "status": "PASS",
-      "seconds": 0.02118583198171109,
+      "seconds": 0.022378181980457157,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_expired_covariance_is_not_reported_as_zero_uncertainty",
       "status": "PASS",
-      "seconds": 0.008839420013828203,
+      "seconds": 0.008916916965972632,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_ideal_three_frame_kkt_oracle_and_schur_cross_covariance",
       "status": "PASS",
-      "seconds": 0.09934930701274425,
+      "seconds": 0.1036239400273189,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_jvp_vjp",
       "status": "PASS",
-      "seconds": 0.001844882994191721,
+      "seconds": 0.0023186629987321794,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_linear_gaussian_nees_nis_monte_carlo",
       "status": "PASS",
-      "seconds": 0.005487607006216422,
+      "seconds": 0.0034491390106268227,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_repeated_reference_has_a_correlated_uncertainty_floor",
       "status": "PASS",
-      "seconds": 0.01086868898710236,
+      "seconds": 0.012426320987287909,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_resource_limit_never_cuts_component",
       "status": "PASS",
-      "seconds": 0.00153755399514921,
+      "seconds": 0.001606867997907102,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_shared_latents_mean_cov_dense_and_cross",
       "status": "PASS",
-      "seconds": 0.007645625009899959,
+      "seconds": 0.007773483986966312,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_source_coupling_single_depth",
       "status": "PASS",
-      "seconds": 0.0026533990167081356,
+      "seconds": 0.00277867098338902,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_zero_discrepancy_constrained_qr_matches_dense_conditioning",
       "status": "PASS",
-      "seconds": 0.005488069000421092,
+      "seconds": 0.005572785041294992,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='forward', device='cpu')",
       "status": "PASS",
-      "seconds": 0.606098998017842,
+      "seconds": 0.5874577779904939,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='forward', device='cuda')",
       "status": "PASS",
-      "seconds": 1.1373660160170402,
+      "seconds": 1.3410067519871518,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='backward', device='cpu')",
       "status": "PASS",
-      "seconds": 1.590763924003113,
+      "seconds": 1.8376032990054227,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='backward', device='cuda')",
       "status": "PASS",
-      "seconds": 2.030029902001843,
+      "seconds": 2.4336943709640764,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='forward', device='cpu')",
       "status": "PASS",
-      "seconds": 4.434768328006612,
+      "seconds": 3.549638574011624,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='forward', device='cuda')",
       "status": "PASS",
-      "seconds": 7.630144141003257,
+      "seconds": 5.883352739969268,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='backward', device='cpu')",
       "status": "PASS",
-      "seconds": 9.77447245302028,
+      "seconds": 7.4746215990162455,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='backward', device='cuda')",
       "status": "PASS",
-      "seconds": 12.802192577015376,
+      "seconds": 9.024054248991888,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html",
       "status": "PASS",
-      "seconds": 12.80228132000775,
+      "seconds": 9.024155680963304,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_calibration_zero_difference_is_finite_and_not_invented",
       "status": "PASS",
-      "seconds": 0.042993083014152944,
+      "seconds": 0.060473582008853555,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_cli_defaults_and_invalid_combinations",
       "status": "PASS",
-      "seconds": 0.010255702014546841,
+      "seconds": 0.00834815000416711,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_focal_controls_preserve_original_identity",
       "status": "PASS",
-      "seconds": 0.3392790310026612,
+      "seconds": 0.30478730000322685,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_forensic_imports_do_not_disable_cuda",
       "status": "PASS",
-      "seconds": 3.0581541059946176,
+      "seconds": 3.2028822010033764,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_full_no_new_observations_is_exact_prediction",
       "status": "PASS",
-      "seconds": 0.7465599970018957,
+      "seconds": 0.9101825220277533,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_ideal_warp_keeps_sensor_noise_and_full_lag_covariance (mode='full')",
       "status": "PASS",
-      "seconds": 1.9081183619855437,
+      "seconds": 1.3773980420082808,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_ideal_warp_keeps_sensor_noise_and_full_lag_covariance (mode='simplified')",
       "status": "PASS",
-      "seconds": 2.2822597219783347,
+      "seconds": 1.7651701080030762,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_ideal_warp_keeps_sensor_noise_and_full_lag_covariance",
       "status": "PASS",
-      "seconds": 2.2825611269799992,
+      "seconds": 1.7653112460393459,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_large_covariance_diagnostics_preserve_independent_matrices",
       "status": "PASS",
-      "seconds": 0.12448656599735841,
+      "seconds": 0.10930565901799127,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_missing_warp_and_explicit_provenance",
       "status": "PASS",
-      "seconds": 0.0035241000005044043,
+      "seconds": 0.001979767985176295,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_one_invalid_point_does_not_freeze_an_independent_update",
       "status": "PASS",
-      "seconds": 0.2130765629990492,
+      "seconds": 0.14196089300094172,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_temporal_sensor_path_does_not_use_cross_camera_mismatch",
       "status": "PASS",
-      "seconds": 0.030804742011241615,
+      "seconds": 0.026816907979082316,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports (mode='full')",
       "status": "PASS",
-      "seconds": 3.932671696995385,
+      "seconds": 2.3100796249927953,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports (mode='simplified')",
       "status": "PASS",
-      "seconds": 4.995001268980559,
+      "seconds": 3.415864660986699,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports",
       "status": "PASS",
-      "seconds": 4.995060250977986,
+      "seconds": 3.415995038987603,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=0.1, device='cpu')",
       "status": "PASS",
-      "seconds": 0.07555758699891157,
+      "seconds": 0.21867168002063408,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=0.1, device='cuda')",
       "status": "PASS",
-      "seconds": 0.321836358984001,
+      "seconds": 0.5339939540135674,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=-0.1, device='cpu')",
       "status": "PASS",
-      "seconds": 0.4021976029907819,
+      "seconds": 0.6261256089783274,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=-0.1, device='cuda')",
       "status": "PASS",
-      "seconds": 0.6856626179942396,
+      "seconds": 0.8838488819892518,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells",
       "status": "PASS",
-      "seconds": 0.6858144139987417,
+      "seconds": 0.8839185619726777,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_actual_GPU_motion_refreshes_interpolation_cells_without_GT_input",
+      "status": "PASS",
+      "seconds": 0.7453561430447735,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_incremental_dirty_owner_matches_brute_force_with_competitors",
+      "status": "PASS",
+      "seconds": 0.033959408989176154,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_line_search_components_keep_full_point_and_shared_pixel_blocks",
+      "status": "PASS",
+      "seconds": 0.05352026497712359,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_mask_rejection_includes_competitor_that_exposes_stationary_point",
+      "status": "PASS",
+      "seconds": 0.013526866969186813,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_nonlinear_GPU_cost_visibility_and_constrained_acceptance",
+      "status": "PASS",
+      "seconds": 0.485313220997341,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_source_state_and_depth_cross_covariance_matches_oracle",
+      "status": "PASS",
+      "seconds": 0.06462570797884837,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_sparse_no_measurement_joint_marginal_is_exact_prediction",
+      "status": "PASS",
+      "seconds": 0.06164592399727553,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_unique_registry_reuse_retirement_and_overflow",
+      "status": "PASS",
+      "seconds": 0.005714558996260166,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_whitened_joint_operator_matches_independent_dense_oracle",
+      "status": "PASS",
+      "seconds": 0.21999581903219223,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_GPU_MAP_marginal_and_source_cross_match_independent_QR",
+      "status": "PASS",
+      "seconds": 1.006181253993418,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_conflicting_equalities_and_unobservable_system_fail",
+      "status": "PASS",
+      "seconds": 0.040132674970664084,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_full_schur_with_fill_and_surviving_hard_equality",
+      "status": "PASS",
+      "seconds": 0.11555508599849418,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_symmetric_indefinite_native_solve_multiple_RHS_no_perturbation",
+      "status": "PASS",
+      "seconds": 0.028039136028382927,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_temporal_source_boundary_matches_dense_schur_current_cross_covariance",
+      "status": "PASS",
+      "seconds": 0.26787093200255185,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_ENOSPC_summary_has_independent_fallback",
+      "status": "PASS",
+      "seconds": 0.005038712988607585,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_fail_fast_and_final_summary",
+      "status": "PASS",
+      "seconds": 0.07621519500389695,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_failed_diagnostic_does_not_publish_posterior",
+      "status": "PASS",
+      "seconds": 0.009673997003119439,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_hard_deadline_kills_child_group",
+      "status": "PASS",
+      "seconds": 0.3049648810410872,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_historical_failed_temporal_arrays_are_refused",
+      "status": "PASS",
+      "seconds": 0.0015109970117919147,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_large_run_gate_requires_current_three_frame_evidence",
+      "status": "PASS",
+      "seconds": 0.005553877970669419,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_nan_tails_partial_validity_reverse_order_and_truncation",
+      "status": "PASS",
+      "seconds": 0.013336594041902572,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_viewer_filters_uncommitted_frame_and_ENOSPC_commit_is_atomic",
+      "status": "PASS",
+      "seconds": 0.013997967005707324,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_selected_inverse_gpu.SelectedInverseTests.test_indefinite_selected_blocks_match_independent_joint_inverse",
+      "status": "PASS",
+      "seconds": 0.014963582972995937,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_selected_inverse_gpu.SelectedInverseTests.test_shared_temporal_pixels_and_source_coupling_match_joint_sparse_solves",
+      "status": "PASS",
+      "seconds": 0.12841844803187996,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.BatchForwarding.test_runner_forwards_factor_method_seed_to_every_child_mode",
+      "status": "PASS",
+      "seconds": 0.17610226501710713,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.Certificates.test_btf_capacity_bound_below_fill_reports_device_info_never_a_result",
+      "status": "PASS",
+      "seconds": 0.0801352709531784,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.Certificates.test_cudss_inertia_and_selected_inverse_inertia_refuse_wrong_structure",
+      "status": "PASS",
+      "seconds": 0.08560981100890785,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.Connectivity.test_gpu_components_equal_independent_union_find_on_actual_nonzeros",
+      "status": "PASS",
+      "seconds": 0.017016027006320655,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.Connectivity.test_symbolic_line_search_ties_never_enter_the_information_operator",
+      "status": "PASS",
+      "seconds": 0.02577736903913319,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.DoubleDoubleAccuracy.test_strongly_scaled_quasi_definite_selected_inverse_beats_unpivoted_float64",
+      "status": "PASS",
+      "seconds": 9.137386951013468,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.MemorySchedule.test_released_factor_and_host_offload_are_bit_identical",
+      "status": "PASS",
+      "seconds": 0.11865736596519127,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_cross_point_covariance_appears_and_vanishes_with_pixel_reuse",
+      "status": "PASS",
+      "seconds": 0.4311581859947182,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_every_nonzero_is_traced_to_a_predicted_factor_and_coupling_follows_reuse",
+      "status": "PASS",
+      "seconds": 0.12975278496742249,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_exact_zero_weight_adds_no_coefficient",
+      "status": "PASS",
+      "seconds": 0.035212313989177346,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_key_encoding_injective_and_no_duplicate_sensor_factor",
+      "status": "PASS",
+      "seconds": 0.06501724297413602,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_surgical_completion.UniformDownsampling.test_seeded_uniform_identity_determinism_seed_dependence_and_original_ids",
+      "status": "PASS",
+      "seconds": 0.014048903016373515,
       "detail": null
     }
   ],
-  "tests_run": 39,
+  "tests_run": 75,
   "failures": 0,
   "errors": 0,
   "skips": 0,
@@ -478,8 +607,8 @@
     "CUDA_mean_covariance_discrepancy": {
       "mean_max_abs": 2.220446049250313e-16,
       "covariance_max_abs": 2.7755575615628914e-16,
-      "seconds": 0.03883959198719822,
-      "peak_allocated_bytes": 155275776,
+      "seconds": 0.0268339270260185,
+      "peak_allocated_bytes": 18104832,
       "device_total_memory_bytes": 8444575744
     },
     "raw_sensor_factors_per_shared_key": 1
@@ -504,14 +633,14 @@
       "direction": "forward",
       "xyz_max_abs": 0.0,
       "position_diagonal_max_abs": 0.0,
-      "traced_covariance_max_abs": 1.1435297153639112e-14
+      "traced_covariance_max_abs": 1.3578027591165664e-11
     },
     {
       "mode": "full",
       "direction": "backward",
       "xyz_max_abs": 0.0,
       "position_diagonal_max_abs": 0.0,
-      "traced_covariance_max_abs": 5.329070518200751e-15
+      "traced_covariance_max_abs": 1.4003020964992174e-11
     }
   ],
   "motion_witnesses": [
@@ -588,11 +717,470 @@
       "raw_reference_likelihood_count": 1
     }
   ],
+  "sparse_gpu_witnesses": [
+    {
+      "actual_sparse_motion": true,
+      "true_displacement_posthoc": 0.1,
+      "estimated_relative_displacement": 0.09967747388781743,
+      "estimated_velocity": 2.4921029541709854,
+      "new_pixels": 2
+    },
+    {
+      "actual_sparse_motion": true,
+      "true_displacement_posthoc": -0.1,
+      "estimated_relative_displacement": -0.09967744957799145,
+      "estimated_velocity": -2.492102346384825,
+      "new_pixels": 2
+    },
+    {
+      "device": "cpu",
+      "ideal": false,
+      "H_absolute": 2.842170943040401e-14,
+      "H_relative": 2.855444966570715e-20,
+      "gradient_absolute": 0.0,
+      "adjoint_absolute": 0.0,
+      "dimension": 86,
+      "nnz_A": 415,
+      "nnz_C": 0,
+      "factor_counts": {
+        "SOURCE_PRIOR": 2,
+        "RAW_PIXEL": 16,
+        "PROCESS": 2,
+        "TEMPORAL_WARP": 4
+      }
+    },
+    {
+      "device": "cpu",
+      "ideal": true,
+      "H_absolute": 0.0,
+      "H_relative": 0.0,
+      "gradient_absolute": 0.0,
+      "adjoint_absolute": 0.0,
+      "dimension": 86,
+      "nnz_A": 124,
+      "nnz_C": 163,
+      "factor_counts": {
+        "SOURCE_PRIOR": 2,
+        "RAW_PIXEL": 16,
+        "PROCESS": 2,
+        "TEMPORAL_WARP": 4
+      }
+    },
+    {
+      "device": "cuda",
+      "ideal": false,
+      "H_absolute": 8.731149137020111e-11,
+      "H_relative": 8.771926937305236e-17,
+      "gradient_absolute": 1.8189894035458565e-12,
+      "adjoint_absolute": 0.0,
+      "dimension": 86,
+      "nnz_A": 418,
+      "nnz_C": 0,
+      "factor_counts": {
+        "SOURCE_PRIOR": 2,
+        "RAW_PIXEL": 16,
+        "PROCESS": 2,
+        "TEMPORAL_WARP": 4
+      }
+    },
+    {
+      "device": "cuda",
+      "ideal": true,
+      "H_absolute": 8.731149137020111e-11,
+      "H_relative": 8.772812112336282e-17,
+      "gradient_absolute": 1.8189894035458565e-12,
+      "adjoint_absolute": 0.0,
+      "dimension": 86,
+      "nnz_A": 124,
+      "nnz_C": 172,
+      "factor_counts": {
+        "SOURCE_PRIOR": 2,
+        "RAW_PIXEL": 16,
+        "PROCESS": 2,
+        "TEMPORAL_WARP": 4
+      }
+    }
+  ],
+  "sparse_marginal_witnesses": [
+    {
+      "ideal": false,
+      "MAP_abs": 1.1299049099724186e-15,
+      "MAP_relative": 8.691572793015491e-14,
+      "joint_covariance_abs": 1.4432899320127035e-15,
+      "joint_covariance_relative": 2.0389816055885687e-15,
+      "certificate": {
+        "absolute_residual": 5.551115123125783e-17,
+        "componentwise_backward_error": 3.2042199702358715e-16,
+        "rhs_columns": 1,
+        "refinement_steps": 0,
+        "mixed_absolute_relative_certificate": true,
+        "relative_tolerance": 2e-12,
+        "absolute_tolerance": 2e-13,
+        "equality_absolute": 0.0,
+        "objective": 4.161762306214332e-13,
+        "normal_equations_formed": false,
+        "FEJ_information_present": false
+      },
+      "profile": {
+        "eliminated_pixel_scalars": 0,
+        "free_dimension": 86,
+        "remaining_constraints": 0,
+        "nnz_A_reduced": 342,
+        "nnz_C_reduced": 0,
+        "nnz_substitution": 114,
+        "nnz_KKT": 786,
+        "setup_seconds": 0.07837854803074151,
+        "source_process_sensor_innovation_coordinates": true,
+        "exact_prior_residuals_eliminated": 86,
+        "backend": "cuDSS-1.0.0.35",
+        "rows": 102,
+        "nnz": 444,
+        "pivot_epsilon": 0.0,
+        "formed_normal_equations": false,
+        "algorithm": "symmetric_nd",
+        "matrix_type": "symmetric_indefinite",
+        "ordering": "nested_dissection",
+        "pivoting": "Bunch_Kaufman",
+        "VRAM_free_before_handle": 8197767168,
+        "host_threading_layer": "libcudss_mtlayer_gomp.so.1",
+        "VRAM_free_before_analysis": 8189378560,
+        "VRAM_total": 8444575744,
+        "max_LU_nnz_capacity": null,
+        "torch_allocated_before_analysis": 11877888,
+        "torch_reserved_before_analysis": 25165824,
+        "analysis_seconds": 0.06441142095718533,
+        "memory_estimate_query_status": 0,
+        "native_memory_estimates_bytes": [
+          392476,
+          392476,
+          21136,
+          25520,
+          392828,
+          36624,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "native_LU_nnz_reported": 589,
+        "factorization_seconds": 0.00027151196263730526,
+        "info": 0,
+        "perturbed_pivots": 0,
+        "factor_nnz": 589,
+        "max_LU_nnz_capacity_source": null,
+        "inertia": [
+          16,
+          86
+        ],
+        "expected_inertia": [
+          16,
+          86
+        ],
+        "solve_certificate": {
+          "absolute_residual": 5.551115123125783e-17,
+          "componentwise_backward_error": 3.2042199702358715e-16,
+          "rhs_columns": 1,
+          "refinement_steps": 0,
+          "mixed_absolute_relative_certificate": true,
+          "relative_tolerance": 2e-12,
+          "absolute_tolerance": 2e-13,
+          "equality_absolute": 0.0,
+          "objective": 4.161762306214332e-13,
+          "normal_equations_formed": false,
+          "FEJ_information_present": false
+        },
+        "selected_marginals": {
+          "seconds": 0.31515095103532076,
+          "output_blocks": 1,
+          "query_width": 86,
+          "rhs_colors": 86,
+          "rhs_batch": 8,
+          "connectivity_iterations": 3,
+          "component_count": 7,
+          "largest_component_scalars": 80,
+          "symmetry_absolute": 1.1102230246251565e-16,
+          "method": "same augmented sparse factorization; exact component-colored RHS"
+        }
+      }
+    },
+    {
+      "ideal": true,
+      "MAP_abs": 2.040034807748725e-15,
+      "MAP_relative": 1.569256273441623e-13,
+      "joint_covariance_abs": 3.1785358734623726e-15,
+      "joint_covariance_relative": 4.491397499874284e-15,
+      "certificate": {
+        "absolute_residual": 6.938893903907228e-18,
+        "componentwise_backward_error": 2.0494601319547744e-16,
+        "rhs_columns": 1,
+        "refinement_steps": 0,
+        "mixed_absolute_relative_certificate": true,
+        "relative_tolerance": 2e-12,
+        "absolute_tolerance": 2e-13,
+        "equality_absolute": 2.168404344971009e-19,
+        "objective": 8.248401640823348e-13,
+        "normal_equations_formed": false,
+        "FEJ_information_present": false
+      },
+      "profile": {
+        "eliminated_pixel_scalars": 16,
+        "free_dimension": 70,
+        "remaining_constraints": 0,
+        "nnz_A_reduced": 206,
+        "nnz_C_reduced": 0,
+        "nnz_substitution": 304,
+        "nnz_KKT": 498,
+        "setup_seconds": 0.08007486799033359,
+        "source_process_sensor_innovation_coordinates": true,
+        "exact_prior_residuals_eliminated": 70,
+        "backend": "cuDSS-1.0.0.35",
+        "rows": 86,
+        "nnz": 292,
+        "pivot_epsilon": 0.0,
+        "formed_normal_equations": false,
+        "algorithm": "symmetric_nd",
+        "matrix_type": "symmetric_indefinite",
+        "ordering": "nested_dissection",
+        "pivoting": "Bunch_Kaufman",
+        "VRAM_free_before_handle": 8197767168,
+        "host_threading_layer": "libcudss_mtlayer_gomp.so.1",
+        "VRAM_free_before_analysis": 8189378560,
+        "VRAM_total": 8444575744,
+        "max_LU_nnz_capacity": null,
+        "torch_allocated_before_analysis": 11942400,
+        "torch_reserved_before_analysis": 25165824,
+        "analysis_seconds": 0.06379744497826323,
+        "memory_estimate_query_status": 0,
+        "native_memory_estimates_bytes": [
+          331764,
+          331764,
+          20112,
+          23152,
+          332580,
+          31312,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "native_LU_nnz_reported": 422,
+        "factorization_seconds": 0.00023385602980852127,
+        "info": 0,
+        "perturbed_pivots": 0,
+        "factor_nnz": 422,
+        "max_LU_nnz_capacity_source": null,
+        "inertia": [
+          16,
+          70
+        ],
+        "expected_inertia": [
+          16,
+          70
+        ],
+        "solve_certificate": {
+          "absolute_residual": 6.938893903907228e-18,
+          "componentwise_backward_error": 2.0494601319547744e-16,
+          "rhs_columns": 1,
+          "refinement_steps": 0,
+          "mixed_absolute_relative_certificate": true,
+          "relative_tolerance": 2e-12,
+          "absolute_tolerance": 2e-13,
+          "equality_absolute": 2.168404344971009e-19,
+          "objective": 8.248401640823348e-13,
+          "normal_equations_formed": false,
+          "FEJ_information_present": false
+        },
+        "selected_marginals": {
+          "seconds": 0.3237422240199521,
+          "output_blocks": 1,
+          "query_width": 86,
+          "rhs_colors": 86,
+          "rhs_batch": 8,
+          "connectivity_iterations": 3,
+          "component_count": 7,
+          "largest_component_scalars": 64,
+          "symmetry_absolute": 1.1102230246251565e-16,
+          "method": "same augmented sparse factorization; exact component-colored RHS"
+        }
+      }
+    },
+    {
+      "surviving_equality": true,
+      "Schur_profile": {
+        "possible_fill_entries": 9,
+        "actual_product_nnz": 5,
+        "rhs_colors": 3,
+        "elimination_component_count": 1,
+        "connectivity_iterations": 2,
+        "estimated_workspace_bytes": 672,
+        "backend": "cuDSS-1.0.0.35",
+        "rows": 2,
+        "nnz": 2,
+        "pivot_epsilon": 0.0,
+        "formed_normal_equations": false,
+        "algorithm": "symmetric_nd",
+        "matrix_type": "symmetric_indefinite",
+        "ordering": "nested_dissection",
+        "pivoting": "Bunch_Kaufman",
+        "VRAM_free_before_handle": 8197767168,
+        "host_threading_layer": "libcudss_mtlayer_gomp.so.1",
+        "VRAM_free_before_analysis": 8189378560,
+        "VRAM_total": 8444575744,
+        "max_LU_nnz_capacity": null,
+        "torch_allocated_before_analysis": 11810304,
+        "torch_reserved_before_analysis": 25165824,
+        "analysis_seconds": 0.014069380005821586,
+        "memory_estimate_query_status": 0,
+        "native_memory_estimates_bytes": [
+          19940,
+          26804,
+          13392,
+          13440,
+          20036,
+          13568,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "native_LU_nnz_reported": 4,
+        "factorization_seconds": 0.00011803099187090993,
+        "info": 0,
+        "perturbed_pivots": 0,
+        "factor_nnz": 4,
+        "max_LU_nnz_capacity_source": null,
+        "inertia": [
+          1,
+          1
+        ],
+        "expected_inertia": null,
+        "last_solve": {
+          "absolute_residual": 1.3877787807814457e-17,
+          "componentwise_backward_error": 6.938893903907228e-17,
+          "rhs_columns": 1,
+          "refinement_steps": 0,
+          "mixed_absolute_relative_certificate": true,
+          "relative_tolerance": 2e-12,
+          "absolute_tolerance": 2e-13
+        },
+        "total_seconds": 0.05152180197183043,
+        "symbolic_matching_seconds": 0.0025971360155381262,
+        "eliminated_scalars": 1,
+        "retained_scalars": 2,
+        "old_constraints": 2,
+        "eliminated_constraint_rank_candidate": 1,
+        "remaining_hard_constraints": 1,
+        "FEJ_information_nnz": 4,
+        "FEJ_constraint_nnz": 2,
+        "exactness": "complete sparse Schur; numerical certification required; normal-information conditioning audited against QR"
+      },
+      "posterior_abs": 8.326672684688674e-17,
+      "objective_abs": 1.3877787807814457e-17
+    },
+    {
+      "source_marginalized": true,
+      "mean_abs": 7.018571404409869e-14,
+      "cov_abs": 2.7333690866271354e-13,
+      "Schur_profile": {
+        "possible_fill_entries": 784,
+        "actual_product_nnz": 784,
+        "rhs_colors": 28,
+        "elimination_component_count": 1,
+        "connectivity_iterations": 3,
+        "estimated_workspace_bytes": 39296,
+        "backend": "cuDSS-1.0.0.35",
+        "rows": 74,
+        "nnz": 180,
+        "pivot_epsilon": 0.0,
+        "formed_normal_equations": false,
+        "algorithm": "symmetric_nd",
+        "matrix_type": "symmetric_indefinite",
+        "ordering": "nested_dissection",
+        "pivoting": "Bunch_Kaufman",
+        "VRAM_free_before_handle": 8197767168,
+        "host_threading_layer": "libcudss_mtlayer_gomp.so.1",
+        "VRAM_free_before_analysis": 8189378560,
+        "VRAM_total": 8444575744,
+        "max_LU_nnz_capacity": null,
+        "torch_allocated_before_analysis": 11876864,
+        "torch_reserved_before_analysis": 25165824,
+        "analysis_seconds": 0.05940676399040967,
+        "memory_estimate_query_status": 0,
+        "native_memory_estimates_bytes": [
+          285300,
+          285300,
+          19088,
+          21136,
+          286204,
+          27440,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "native_LU_nnz_reported": 318,
+        "factorization_seconds": 0.00024069100618362427,
+        "info": 0,
+        "perturbed_pivots": 0,
+        "factor_nnz": 318,
+        "max_LU_nnz_capacity_source": null,
+        "inertia": [
+          58,
+          16
+        ],
+        "expected_inertia": null,
+        "last_solve": {
+          "absolute_residual": 1.7763568394002505e-15,
+          "componentwise_backward_error": 3.209076275936337e-16,
+          "rhs_columns": 1,
+          "refinement_steps": 0,
+          "mixed_absolute_relative_certificate": true,
+          "relative_tolerance": 2e-12,
+          "absolute_tolerance": 2e-13
+        },
+        "total_seconds": 0.10851372499018908,
+        "symbolic_matching_seconds": 0.0008355180034413934,
+        "eliminated_scalars": 58,
+        "retained_scalars": 28,
+        "old_constraints": 16,
+        "eliminated_constraint_rank_candidate": 16,
+        "remaining_hard_constraints": 0,
+        "FEJ_information_nnz": 784,
+        "FEJ_constraint_nnz": 0,
+        "exactness": "complete sparse Schur; numerical certification required; normal-information conditioning audited against QR"
+      }
+    }
+  ],
   "source_sha256": {
     "configs/projective_rgbd.json": "3a1ce8cdfebbe1768a5ffc54ca894ab3e78c95385cee5ff3d95a682a5e04827d",
+    "cuda/temporal_selected_symbolic.cpp": "bed3df941b91c437c7720a5b0f762ca3c2ecb57b6ad5bd6fec6b19cbdf80e00c",
     "debug/assets/projective_common.js": "06cfa27e076ca6d93376f90d260e4433ed6abfb5e7bfcbb0b169b8bf9ae05c6d",
-    "debug/projective_debug.py": "f2471a0ac69a779b7e1750e29c1361f623c983805caeb47846d60793b188bb1d",
-    "debug/temporal_debug.py": "813c5dc3c39fbd706ec73a7b6ab40074590fdb38071e95a8896d5a451d9f409b",
+    "debug/projective_debug.py": "5415a98fe1f61a215833f7761c9ae2edf56cea436b4e8753af82c61897a28ce0",
+    "debug/temporal_debug.py": "06ca4f62a5f208c6145d77902409641b7e589bccde98b816ff36eece872b58aa",
     "estimator/free_projective_run.py": "846d2f8204660004c16018d3b52cd9fab7b08b9fd1d627efba75311470031cc4",
     "estimator/point_kalman_cuda.py": "2f7382ca19008ec336d97a7196d21d94ecb40dea92387358954eeb415e125e31",
     "estimator/projective_camera.py": "00d42232ae62269c385129407f0de1e5d84bc1b4a5990b5aee7c7b9ab4d91070",
@@ -601,13 +1189,20 @@
     "estimator/projective_visibility.py": "6e126dfdcacf387f86492ba70e8e1f3d669f9ca5236f2cda3178c1573e3294cd",
     "estimator/rendered_mask_iekf.py": "e3efe044217482f694193a61994f7f4311b5721dd959e9d057f3e19c88d06ae7",
     "estimator/rendered_mask_measurement.py": "32e2ef50f75574a59d552587e0d9f6dc16961945939a2e1650da8e5c002e690d",
-    "estimator/temporal_full_graph.py": "e8ac1aadd850bd9dcf06a7fec0ccbae8949be3c530dc64f90b0d6b8133b0eb37",
+    "estimator/temporal_cudss.py": "27be6c4249493f5274529358045154207d83213262a275efd532567e632adbd8",
+    "estimator/temporal_full_graph.py": "0e6b3b77560d31dd6557acf3df338de4cd4671c6b00babebc331bc584603b4f9",
     "estimator/temporal_noise.py": "bbc1ee9f396002e3d4ba94cc42226fcb807b72a3d0b1528c44a04662e9b07b50",
     "estimator/temporal_reference.py": "add71cd5200fef41cbada2c8865c610cf9cd57d483e1b31c5c8af9fbfadfd5ec",
     "estimator/temporal_rgbd_terms.py": "550e3ddc38d381ecf2a5b86bb68c8db787541cf3f0adf559f6c7a087807bc7d3",
-    "estimator/temporal_run.py": "ce4a716b046bed1b30b087bcf933a4d8edece8df21d952dccaabd68df1b21190",
+    "estimator/temporal_run.py": "66090352041040503fe40c197cf0e40a809b03cde10d46f196b2ca4f30074a90",
+    "estimator/temporal_selected_inverse_gpu.py": "d06a4bfe3133d7b61174664444ab543901261632cf031a194a84a929200f22af",
     "estimator/temporal_simplified_iekf.py": "8b36a423008208e37de9129189ac1db6b2d263b352e4ccb0d85c35665dafcecb",
-    "estimator/temporal_zbuffer.py": "9fa5d2288b82c74539b683e85d276708e8372dc164c6d5de53a3c643b0031c65",
+    "estimator/temporal_sparse_gpu.py": "ac3a271982485aad3da87eb9a7fbe916319a6611ee528da4e45ae4ac074301c1",
+    "estimator/temporal_sparse_marginalization.py": "674db60ed9915934df0839b8a1d95f0af214f844b206587b2870812c4e2a681e",
+    "estimator/temporal_sparse_nonlinear.py": "3bd8de3597bde38dbc9c6528b408dc20aaa5dbda360ecdf39175adb0d1832343",
+    "estimator/temporal_sparse_run.py": "3a3abbe772dced41ce22f58a20f5f88639e3589befde78b0f4ddf8e3e32d8d56",
+    "estimator/temporal_sparse_solve.py": "dd456438d9000d75bf98b8cb710d4905c7d77ede80cd260cb608943458ac3978",
+    "estimator/temporal_zbuffer.py": "763c3d1f07ed95e2c711330cceac1e53473a0ecdf2aefe08d6b333e046085c03",
     "scene/camera.py": "c28210295a1599e0331e21b57b809d89acd5f21da5b4799d292ddeb446dbb641",
     "scene/canonical_subsample.py": "d1a80065812759b294bf7b07e45eb5e284ce3a0b435e6ebe74769c2ed6da92ba",
     "scene/config.py": "43a10c46ad7391662d8022ac3a994b25f515e4b188c760551ee25dedc7d4dcb9",
@@ -619,10 +1214,19 @@
     "scene/timing.py": "c91fc8d9a2761f3a0ca8e7e23be14d56f28a403b58b05595a068d8963c65ca8d",
     "tests/test_temporal_full_graph.py": "48d058ac2a414045f57d9573f2447cf6ef5e9d04d8299d6364ffb3ebbfe1321e",
     "tests/test_temporal_motion.py": "a55d6ba95688b8a4b637be46b5f9b814e8e56c297dd02fcf4501825c0df27d37",
-    "tests/test_temporal_rgbd_pipeline.py": "8775fbc7e2ebbcbd1ed1429c2a90be504806b28957205a216ee345572fcf9c5e",
+    "tests/test_temporal_rgbd_pipeline.py": "57574af40781b226566f546509b5dd4f1e7954db412dfa96942e6847e6d0d277",
+    "tests/test_temporal_selected_inverse_gpu.py": "c857df4fce72a262e738cfba35b47c84fd530ae43c1000578607fc88e74cfc84",
+    "tests/test_temporal_sparse_gpu.py": "e926a57d942c0fa74d7aac63334984e09096b8cfcef82fa865800985c32ca290",
+    "tests/test_temporal_sparse_marginalization.py": "9fd852758edbeaf74698aa146817f7fd7d0cd466beebfa37b0699b04f19d1aab",
+    "tests/test_temporal_sparse_runtime_safety.py": "bb2b6da69d04474317f21f0198e3f8013c36c52087a0be0799078cac529a5f14",
+    "tests/test_temporal_surgical_completion.py": "eb26d9feb42aa85c0e215fbadbac8cc7fc5a07b2c1846f61c0d0148605b5167a",
     "tests/test_temporal_warp.py": "80b10b2b715fc9d264348c26e63e54e5bad71062cac35ed0cd54ebb46147eb9f",
-    "tools/test_temporal_rgbd.py": "9ba89bd166d924eff7cc0e4cbce355775f2b4b7440c7aa6c46eafd389657acf6",
-    "train.py": "331551e22bcd142eb66c3021040cb20dba5af6f236979ab0802233902c8d0127"
+    "tools/report_temporal_sparse_gpu.py": "ab23ec40b7a7989d7bda06d3a64cfdc97d2776bafbd46125e6a8b582a18d9c0f",
+    "tools/run_temporal_rgbd_critical.py": "2f21581e6b9af12773bc00c2e1f7255b3d554520d242c556bd2ff9806ebaf092",
+    "tools/temporal_batch_runtime.py": "a404dd4ea55783cc9d37c685e224248b9dd8b7986be711908fa0d9a8c4f3f27b",
+    "tools/test_temporal_rgbd.py": "68294d14fb9e051579a0a7507b9d0459eadb298b45511479d67f98c841821810",
+    "train.py": "1b7a09b8d03966ff166965a624a3b37361855ad7931b769a7e7501ab7cbb40f3",
+    "utils/temporal_output.py": "218050feecfc46b36c85d783386a7d3523a7b230e6c99571841adf24dc69fc75"
   },
   "sources_changed_during_tests": []
 }

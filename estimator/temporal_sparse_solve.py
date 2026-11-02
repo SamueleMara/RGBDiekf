@@ -92,12 +92,39 @@ def connected_columns_gpu(A, C, information=None, iteration_limit=1024):
     raise SparseNumericalFailure('CONNECTIVITY_ITERATION_LIMIT: no component edges were dropped')
 
 
-class SparseJointFactorization:
+def offload_device_tensors(objects, max_depth=3):
+    """Move every CUDA tensor reachable through attributes/dict values of `objects` to host memory, unchanged.
+    Returns a restore() that puts each one back where it was. Pure data movement: no value changes."""
+    moved, seen = [], set()
+    def visit(owner, depth):
+        if id(owner) in seen or depth > max_depth:return
+        seen.add(id(owner))
+        items = owner.items() if isinstance(owner, dict) else (vars(owner).items() if hasattr(owner, '__dict__') and not isinstance(owner, (torch.nn.Module, type)) else ())
+        for key, value in list(items):
+            if isinstance(value, torch.Tensor):
+                if value.is_cuda:
+                    moved.append((owner, key, value.device))
+                    if isinstance(owner, dict):owner[key] = value.cpu()
+                    else:setattr(owner, key, value.cpu())
+            elif isinstance(value, dict) or (hasattr(value, '__dict__') and not callable(value)):
+                visit(value, depth+1)
+    for obj in objects:visit(obj, 0)
+    def restore():
+        for owner, key, device in moved:
+            if isinstance(owner, dict):owner[key] = owner[key].to(device)
+            else:setattr(owner, key, getattr(owner, key).to(device))
+    restore.count = len(moved)
+    return restore
+
+
+class ReducedLinearizedSystem:
+    """Exact reduced coordinates of one linearized problem, without any factorization.
+
+    Pivot substitution, the innovation chart and unit scaling exactly as solved;
+    shared by the production factorization and the read-only S0/S2 diagnostics.
+    """
     def __init__(self, problem):
-        if problem.A.device.type != 'cuda':
-            raise ValueError('The sparse direct production solver requires CUDA; CPU dense is test-only')
         self.problem = problem
-        start = time.perf_counter()
         self.A, self.r, self.C, self.c, self.T, self.offset = eliminate_current_pixel_constraints_gpu(problem)
         if problem.prior_transform is not None:
             G=problem.prior_transform
@@ -149,7 +176,21 @@ class SparseJointFactorization:
         if K._nnz()<2**31:
             K=torch.sparse_csr_tensor(K.crow_indices().int(),K.col_indices().int(),K.values(),K.shape,device=K.device,dtype=K.dtype)
         self.K=K
-        try:self.factor = CudaSparseFactor(self.K)
+
+    def expected_inertia(self):
+        """Sylvester inertia of [[I,A,0],[A^T,-H,C^T],[0,C,0]] for SPD H restricted to null(C), full-row-rank C:
+        congruent to diag(I_m, -(H+A^T A), Schur) = (m + p positive, n negative, 0 zero)."""
+        m, n = self.A.shape
+        return m+self.C.shape[0], n
+
+
+class SparseJointFactorization(ReducedLinearizedSystem):
+    def __init__(self, problem, algorithm='symmetric_nd'):
+        if problem.A.device.type != 'cuda':
+            raise ValueError('The sparse direct production solver requires CUDA; CPU dense is test-only')
+        start = time.perf_counter()
+        super().__init__(problem)
+        try:self.factor = CudaSparseFactor(self.K,algorithm=algorithm,expected_inertia=self.expected_inertia())
         except SparseNumericalFailure as error:
             error.profile={**getattr(error,'profile',{}),'original_scalar_dimension':problem.scalar_dimension,
                 'reduced_scalar_dimension':self.A.shape[1],'stochastic_rows':self.A.shape[0],
@@ -243,6 +284,115 @@ class SparseJointFactorization:
         if not bool(torch.isfinite(result).all()):
             raise SparseNumericalFailure('Nonfinite selected joint marginal')
         return (result+result.transpose(1,2))/2
+
+    def all_point_marginals_selected_inverse_gpu(self, query, block_width=6, certificate_blocks=32, seed=0, release=None):
+        """Q_i P_joint Q_i^T for EVERY output block from one selected inversion (Takahashi) of the same KKT.
+
+        Same operator, same constraints, no dropped coupling: the inverse entries on the symbolic factor pattern
+        (plus zero-valued query cliques) are exact functions of the full joint KKT. Certificate: each sampled
+        block is recomputed from refined cuDSS solves of the ORIGINAL operator K; blocks from the largest true
+        component are always included. Agreement is measured in correlation units
+        |dP_ab|/sqrt(P_aa P_bb) against sqrt(float64 eps), the agreement attainable by two backward-stable
+        double-precision computations of the same quantity; the measured value is always reported.
+        """
+        from estimator.temporal_selected_inverse_gpu import selected_inverse_blocks_gpu, symbolic, required_bytes, stage_entries, OPERATIONAL_HEADROOM_BYTES
+        if query.shape[1] != self.problem.scalar_dimension or query.shape[0] % block_width:
+            raise ValueError('Query dimensions must define equal-width output blocks')
+        start = time.perf_counter()
+        Q = torch.sparse.mm(query, self.T).coalesce()
+        m, n = self.A.shape; device = Q.device
+        qi = Q.indices()
+        Qk = sparse_coo(torch.stack((qi[0], qi[1]+m)), Q.values(), (Q.shape[0], self.K.shape[0]))
+        blocks = Q.shape[0]//block_width
+        # 1) certificate references from refined cuDSS solves of the original operator (before any release)
+        labels, _ = connected_columns_gpu(self.A, self.C, self.information)
+        unique, counts = torch.unique(labels, return_counts=True)
+        largest = unique[torch.argmax(counts)]
+        block_of = qi[0]//block_width
+        in_largest = torch.unique(block_of[labels[qi[1]] == largest])
+        generator = torch.Generator().manual_seed(seed)
+        chosen = torch.unique(torch.cat((in_largest[torch.randperm(len(in_largest), generator=generator)[:certificate_blocks//4].to(device)],
+                                         torch.randperm(blocks, generator=generator)[:certificate_blocks-certificate_blocks//4].to(device))))
+        references = {}
+        for part in chosen.split(1):   # one 6-column block per refined solve: bounded device workspace
+            rows = (part[:, None]*block_width+torch.arange(block_width, device=device)).flatten()
+            dense = sparse_rows(Q, rows).to_dense()
+            rhs = torch.zeros((self.K.shape[0], len(rows)), device=device, dtype=torch.float64); rhs[m:m+n] = dense.T
+            solved = self.factor.solve(rhs)[m:m+n]
+            for j, b in enumerate(part.tolist()):
+                sl = slice(j*block_width, (j+1)*block_width)
+                exact = -(dense[sl]@solved[:, sl]); references[b] = (exact+exact.T)/2
+            del rhs, solved, dense
+        del labels
+        # 2) pattern-only symbolic analysis, then the measured device workspace decides whether the cuDSS factor
+        #    must be released during the inversion (it is re-created from the same K afterwards; same operator)
+        symbolic_start = time.perf_counter(); S = symbolic(self.K, Qk, block_width); symbolic_seconds = time.perf_counter()-symbolic_start
+        del Q, qi, block_of
+        print(f"[selected inverse] KKT n={len(S['perm'])} nnz_L={len(S['ri'])} levels={len(S['lp'])-1} max_row={int(S['sizes'][0::2].max())} "
+              f"max_column={int(S['sizes'][1::2].max())} stage={stage_entries(S)} symbolic_seconds={symbolic_seconds:.1f}", flush=True)
+        need = required_bytes(len(S['ri']), len(S['perm']), stage_entries(S)); torch.cuda.empty_cache(); free = torch.cuda.mem_get_info(device)[0]
+        released = need+OPERATIONAL_HEADROOM_BYTES > free if release is None else bool(release); offloaded = []; restore_caller = None   # release=True: test of the schedule
+        if released:
+            # Exact memory schedule: the native factor is closed and every device tensor of this system, K and the
+            # query included, moves to host memory unchanged. Restored bit-identically below.
+            self.factor.close(); offloaded = self._offload(); self.K = self.K.cpu(); Qk = Qk.cpu()
+            park = getattr(self, 'park_caller_state', None)   # the caller's own device state (graph, frames, ...)
+            restore_caller = park() if park is not None else None
+            torch.cuda.empty_cache()
+        free_for_inversion = torch.cuda.mem_get_info(device)[0]
+        torch_allocated_for_inversion = torch.cuda.memory_allocated(device)
+        try:P, profile = selected_inverse_blocks_gpu(self.K, Qk, block_width, self.expected_inertia(), symbolic_arrays=S, device=device)
+        finally:
+            del S, Qk
+            if released:
+                if restore_caller is not None:restore_caller()
+                self._restore(offloaded, device); self.K = self.K.to(device)
+                self.factor = CudaSparseFactor(self.K, expected_inertia=self.expected_inertia())
+        profile.update(symbolic_seconds=symbolic_seconds, cuDSS_factor_released_during_inversion=released, workspace_free_bytes_with_factor=free,
+                       workspace_free_bytes_for_inversion=free_for_inversion, torch_allocated_bytes_during_inversion=torch_allocated_for_inversion,
+                       caller_tensors_parked=getattr(restore_caller, 'count', 0) if released else 0, host_offloaded_bytes=sum(b for _, _, b in offloaded))
+        worst = {'correlation_units': 0., 'absolute': 0., 'block': None}
+        for b, exact in references.items():
+            scale = exact.diagonal().clamp_min(0).sqrt()
+            difference = (P[b]-exact).abs()
+            correlation = float((difference/(scale[:, None]*scale[None]).clamp_min(torch.finfo(torch.float64).tiny)).max())
+            if correlation > worst['correlation_units']:worst.update(correlation_units=correlation, absolute=float(difference.max()), block=b)
+        tolerance = float(torch.finfo(torch.float64).eps)**.5
+        profile.update(certificate={'blocks_checked': len(chosen), 'largest_component_scalars': int(counts.max()),
+                                    'largest_component_blocks_checked': int(torch.isin(chosen, in_largest).sum()),
+                                    'reference': 'refined cuDSS solves of the original KKT (componentwise backward error certified)',
+                                    'max_error': worst, 'tolerance_correlation_units': tolerance},
+                       seconds=time.perf_counter()-start, method='selected inversion of the same joint KKT', output_blocks=blocks)
+        self.profile['selected_marginals'] = profile
+        if not bool(torch.isfinite(P).all()):raise SparseNumericalFailure('Nonfinite selected joint marginal')
+        if worst['correlation_units'] > tolerance:
+            archive = getattr(self, 'failure_archive', None)
+            if archive is not None:   # concise sparse evidence of the uncertified system (never a published posterior)
+                K = self.K.to_sparse_csr(); chosen_list = sorted(references)
+                torch.save({'K_crow': K.crow_indices().cpu(), 'K_col': K.col_indices().cpu(), 'K_values': K.values().cpu(), 'K_shape': tuple(K.shape),
+                            'Qk': Qk.cpu(), 'block_width': block_width, 'blocks': chosen_list, 'selected_inverse': P[chosen_list].cpu(),
+                            'cuDSS_refined_reference': torch.stack([references[b] for b in chosen_list]).cpu(),
+                            'expected_inertia': self.expected_inertia(), 'profile': profile}, archive)
+                profile['failure_archive'] = str(archive)
+            raise SparseNumericalFailure(f"Selected-inverse covariance certificate failed: {worst} > {tolerance} correlation units")
+        return P
+
+    def _offload(self):
+        moved = []
+        for owner in (self, self.problem):
+            for name, value in list(vars(owner).items()):
+                if owner is self and name in ('K', 'factor'):continue
+                if isinstance(value, torch.Tensor) and value.is_cuda:
+                    nbytes = (value._values().numel()*value.element_size()+value._indices().numel()*8) if value.layout == torch.sparse_coo else value.numel()*value.element_size()
+                    setattr(owner, name, value.cpu()); moved.append((owner, name, nbytes))
+                elif name == 'pivot_groups':
+                    setattr(owner, name, [(r.cpu(), c.cpu()) for r, c in value]); moved.append((owner, name, 0))
+        return moved
+
+    def _restore(self, moved, device):
+        for owner, name, _ in moved:
+            value = getattr(owner, name)
+            setattr(owner, name, [(r.to(device), c.to(device)) for r, c in value] if name == 'pivot_groups' else value.to(device))
 
     def close(self):
         self.factor.close()
