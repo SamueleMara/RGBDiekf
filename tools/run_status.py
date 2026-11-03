@@ -101,7 +101,59 @@ def fmt(s):
     return f'{h}h{m:02d}m' if h else f'{m}m{s:02d}s'
 
 
+def temporal_batch_status(out):
+    """tools/run_temporal_rgbd_critical.py batch: <scene>_<mode> runs from batch_summary.json. Progress is read from each
+    run's verified-frame journal (completed_frames.json vs processing_order), not from log text, so every temporal mode
+    (full, simplified, local-correlated) is covered. Time left = mean filtered-frame seconds x frames left."""
+    now = time.time()
+    records = json.loads((out/'batch_summary.json').read_text())    # persisted from launch: RUNNING / NOT_RUN / final status
+    frame_seconds, rows, plan = [], [], []
+    for r in records:
+        run = Path(r['output'])
+        dirs = sorted(run.glob('free_*/completed_frames.json'))
+        total = done = 0
+        for j in dirs:
+            journal = json.loads(j.read_text())
+            done += len(journal['completed_frames'])-1
+            total += len(journal['processing_order'])-1
+            for f in sorted(j.parent.glob('temporal/frame_*.json')):
+                rec = json.loads(f.read_text())
+                if rec.get('seconds') is not None: frame_seconds.append(rec['seconds'])
+        plan.append((r, run, done, total))
+    per = sum(frame_seconds)/len(frame_seconds) if frame_seconds else None
+    left_total, n_done, n_run, n_wait = 0., 0, 0, 0
+    stopped = not any(r.get('status') == 'RUNNING' for r in records)     # execute_batch marks the live child RUNNING
+    for r, run, done, total in plan:
+        name = f"{r['scene']}_{r['mode']}"
+        status_file = next(iter(sorted(run.glob('free_*/status.json'))), None)
+        state = r.get('status')
+        if state not in ('RUNNING', 'NOT_RUN'):
+            n_done += 1
+            st = json.loads(status_file.read_text())['status'] if status_file else state
+            rows.append(f'  done     {name:<34} {st:<24} frames {done}/{total}')
+        elif state == 'RUNNING':
+            n_run += 1
+            frames_left = max(total-done, 0) if total else None
+            left = per*frames_left if (per is not None and frames_left is not None) else 0.
+            left_total += left
+            rows.append(f'  RUNNING  {name:<34} filtered frames {done}/{total or "?"}  left ~{fmt(left) if per else "?"}')
+        elif stopped:
+            rows.append(f'  NOT RUN  {name:<34} batch stopped (fail-fast or interrupted); see batch_summary.json')
+        else:
+            n_wait += 1
+            rows.append(f'  queued   {name:<34}')
+    head = f'{out}\n{n_done}/{len(records)} done, {n_run} running, {n_wait} queued'
+    if n_run or n_wait:
+        head += f'   |   time left ~{fmt(left_total)} for running runs; queued runs not yet estimable' if per else '   |   time left unknown until the first frame is timed'
+    else:
+        head += '   |   finished'
+    if (out/'batch_summary.json').exists(): rows.append(f'  summary: {out/"batch_summary.json"}')
+    return head+'\n'+'\n'.join(rows)
+
+
 def status(out, log=None):
+    if (Path(out)/'batch_summary.json').exists() and isinstance(json.loads((Path(out)/'batch_summary.json').read_text()), list):
+        return temporal_batch_status(Path(out))
     out = Path(out).resolve(); now = time.time(); lines = []
     if not out.exists(): return f'{out}\nnot started yet (folder not created); waiting'
     single = (((out/'run_manifest.json').exists() or (out/'run.lock').exists() or out.with_name(out.name+'.log').exists())

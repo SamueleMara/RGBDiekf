@@ -68,10 +68,16 @@ def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=Path('tests/temporal_test_results.json'));a=ap.parse_args()
     modules=['tests.test_temporal_warp','tests.test_temporal_full_graph','tests.test_temporal_rgbd_pipeline','tests.test_temporal_motion',
              'tests.test_temporal_sparse_gpu','tests.test_temporal_sparse_marginalization','tests.test_temporal_sparse_runtime_safety',
-             'tests.test_temporal_selected_inverse_gpu','tests.test_temporal_surgical_completion']
+             'tests.test_temporal_selected_inverse_gpu','tests.test_temporal_surgical_completion',
+             'tests.test_temporal_local_covariance','tests.test_temporal_local_iekf','tests.test_temporal_local_pipeline','tests.test_temporal_local_motion',
+             'tests.test_temporal_material_warp','tests.test_temporal_material_association','tests.test_temporal_material_local_covariance',
+             'tests.test_temporal_material_motion',
+             'tests.test_temporal_image_gradient_geometry','tests.test_temporal_image_gradient_observability','tests.test_temporal_gradient_iekf',
+             'tests.test_temporal_part_twist']
     import train
     source_paths=sorted(set(train.STAGE_SOURCES['free']+train.STAGE_SOURCES['free_temporal_rgbd']+[m.replace('.','/')+'.py' for m in modules]+
-        ['tools/test_temporal_rgbd.py','tools/temporal_batch_runtime.py','tools/run_temporal_rgbd_critical.py','tools/report_temporal_sparse_gpu.py']))
+        ['tools/test_temporal_rgbd.py','tools/temporal_batch_runtime.py','tools/run_temporal_rgbd_critical.py','tools/report_temporal_sparse_gpu.py',
+         'tests/material_fixtures.py','estimator/temporal_material_pyramid.py','tools/audit_temporal_dynamic_correspondence.py']))
     before_hashes={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in source_paths}
     suite=unittest.defaultTestLoader.loadTestsFromNames(modules)
     started=time.perf_counter();result=unittest.TextTestRunner(verbosity=2,resultclass=RecordedResult).run(suite)
@@ -96,6 +102,24 @@ def main():
     from tests.test_temporal_sparse_marginalization import MARGINAL_WITNESSES
     report['sparse_gpu_witnesses']=SPARSE_WITNESSES
     report['sparse_marginal_witnesses']=MARGINAL_WITNESSES
+    from tests.test_temporal_local_iekf import LOCAL_WITNESSES
+    from tests.test_temporal_local_pipeline import LOCAL_PIPELINE_WITNESSES
+    from tests.test_temporal_local_motion import LOCAL_MOTION_WITNESSES
+    report['local_correlated_witnesses']={'iekf':LOCAL_WITNESSES,'pipeline':LOCAL_PIPELINE_WITNESSES,'motion':LOCAL_MOTION_WITNESSES,
+        'qualification':'independent NumPy/QR witnesses of the point-local model; cross-point covariance zero by declared approximation'}
+    from tests.test_temporal_material_warp import MATERIAL_WARP_WITNESSES
+    from tests.test_temporal_material_association import MATERIAL_ASSOCIATION_WITNESSES
+    from tests.test_temporal_material_local_covariance import MATERIAL_COVARIANCE_WITNESSES
+    from tests.test_temporal_material_motion import MATERIAL_MOTION_WITNESSES
+    report['material_following_witnesses']={'warp':MATERIAL_WARP_WITNESSES,'association':MATERIAL_ASSOCIATION_WITNESSES,
+        'local_covariance':MATERIAL_COVARIANCE_WITNESSES,'motion':MATERIAL_MOTION_WITNESSES,
+        'qualification':'analytic rendered fixtures and an independent NumPy oracle; real-scene recovery is evaluated post hoc only'}
+    from tests.test_temporal_image_gradient_geometry import GEOMETRY_WITNESSES
+    from tests.test_temporal_image_gradient_observability import OBSERVABILITY_WITNESSES
+    from tests.test_temporal_gradient_iekf import GRADIENT_IEKF_WITNESSES
+    from tests.test_temporal_part_twist import PART_TWIST_WITNESSES
+    report['gradient_motion_witnesses']={'geometry':GEOMETRY_WITNESSES,'observability':OBSERVABILITY_WITNESSES,'replace':GRADIENT_IEKF_WITNESSES,
+        'part_twist':PART_TWIST_WITNESSES,'qualification':'analytic rendered fixtures and independent NumPy/scipy oracles; real-scene behaviour post hoc only'}
     report['source_sha256']=before_hashes
     report['sources_changed_during_tests']=[p for p,h in before_hashes.items() if hashlib.sha256(Path(p).read_bytes()).hexdigest()!=h]
     json_write(a.output,serial(report));return 0 if result.wasSuccessful() and not report['sources_changed_during_tests'] else 1

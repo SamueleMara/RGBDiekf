@@ -188,7 +188,7 @@ def export_free(root, dbg, d, data, rig, noise, policy, debug_frames, caps, devi
             if k == k0: vis = np.ones(N, bool)
             cand = np.flatnonzero(vis)
             pick = cand[np.unique(np.linspace(0, len(cand)-1, min(caps['markers'], len(cand))).round().astype(int))] if len(cand) else cand
-            pick = np.union1d(pick, np.asarray([i for i in np.union1d(traced, tids) if vis[i]], int))
+            pick = np.union1d(pick, np.asarray([i for i in np.union1d(traced, tids).astype(int) if vis[i]], int))
             t = lambda a: torch.as_tensor(np.asarray(a), dtype=torch.float64, device=dev)
             cam = torch.full((len(pick),), c, dtype=torch.long, device=dev)
             uv0, _, _, _ = rig.project_rows(t(can['canonical_xyz'][pick]), cam)

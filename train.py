@@ -55,6 +55,10 @@ STAGE_SOURCES['free_temporal_rgbd'] += ['estimator/temporal_sparse_gpu.py','esti
     'estimator/temporal_sparse_marginalization.py','estimator/temporal_sparse_nonlinear.py',
     'estimator/temporal_sparse_run.py','estimator/temporal_cudss.py','utils/temporal_output.py',
     'estimator/temporal_selected_inverse_gpu.py','cuda/temporal_selected_symbolic.cpp']
+STAGE_SOURCES['free_temporal_rgbd'] += ['estimator/temporal_local_covariance.py','estimator/temporal_local_iekf.py','estimator/temporal_local_run.py']
+STAGE_SOURCES['free_temporal_rgbd'] += ['estimator/temporal_material_terms.py','estimator/temporal_material_iekf.py','estimator/temporal_material_run.py']
+STAGE_SOURCES['free_temporal_rgbd'] += ['estimator/temporal_material_pyramid.py','estimator/temporal_image_gradients.py','estimator/temporal_motion_geometry.py',
+                                        'estimator/temporal_motion_observability.py','estimator/temporal_gradient_iekf.py','estimator/temporal_part_twist.py']
 DIRS = {'forward': 'forward', 'backward': 'backward'}
 
 
@@ -95,7 +99,20 @@ def parse(argv=None):
     io.add_argument('--temporal-config', type=Path, default=REPO/'configs/temporal_phase1.json', help='declared numerics of --free-solver temporal-ieks')
     tm = ap.add_argument_group('depth-sorted temporal RGB-D (opt-in; legacy is unchanged)')
     tm.add_argument('--observation-model', choices=['legacy', 'temporal-rgbd'], default='legacy')
-    tm.add_argument('--temporal-mode', choices=['full', 'simplified'], default='full')
+    tm.add_argument('--temporal-mode', choices=['full', 'simplified', 'local-correlated', 'material-following'], default='full',
+                    help='full: globally correlated sparse; simplified: 6x6 ablation; local-correlated: point-local joint Gaussian (cross-point covariance zero by declared approximation); '
+                         'material-following: local-correlated Gaussian with the material-following observation (moving current sample at p_ref + pi(x_t) - pi(x_ref))')
+    tm.add_argument('--temporal-local-chunk-mib', type=float, default=512.,
+                    help='local-correlated and material-following only: dense GPU chunk budget for batched point-local algebra; batching only, never a coupling or statistical parameter')
+    tm.add_argument('--temporal-material-resampling', choices=['none', 'second-difference'], default='none',
+                    help='material-following only: optional data-derived bilinear resampling discrepancy of the current sample '
+                         '(Taylor remainder from measured second differences; separate from sensor noise and R_warp). none = falsification default')
+    tm.add_argument('--temporal-material-pyramid-levels', type=int, default=0,
+                    help='material-following only: coarse-to-fine levels (2^L box averages) used ONLY to initialize the original-resolution IEKF; 0 = off')
+    tm.add_argument('--temporal-gradient-guide', choices=['off', 'diagnostic', 'replace'], default='off',
+                    help='material-following only. diagnostic: velocity information of the same measurement, computed but never assimilated '
+                         '(state bitwise unchanged); replace: the same material-following residual/Jacobian re-assembled from image-gradient '
+                         'velocity rows (equivalent reparameterization, no new information)')
     tm.add_argument('--temporal-lag-frames', type=int, default=3)
     tm.add_argument('--temporal-reference-policy', choices=['latest-valid'], default='latest-valid')
     tm.add_argument('--temporal-warp-noise', choices=['measured', 'config', 'ideal'], default='measured')
@@ -142,14 +159,21 @@ def parse(argv=None):
     bt.add_argument('--frame-limit', type=int, help='TEST prefix of frames only')
     a = ap.parse_args(argv)
     given = sys.argv[1:] if argv is None else argv
-    new_temporal_flags = ('--temporal-mode', '--temporal-lag-frames', '--temporal-reference-policy', '--temporal-warp-noise',
-                          '--temporal-warp-noise-config', '--temporal-component-workspace-mib','--temporal-runtime-budget-seconds','--temporal-diagnostic-original-point-ids','--temporal-output-headroom-mib')
+    new_temporal_flags = ('--temporal-gradient-guide', '--temporal-material-resampling', '--temporal-material-pyramid-levels', '--temporal-mode', '--temporal-lag-frames', '--temporal-reference-policy', '--temporal-warp-noise',
+                          '--temporal-warp-noise-config', '--temporal-component-workspace-mib','--temporal-runtime-budget-seconds','--temporal-diagnostic-original-point-ids','--temporal-output-headroom-mib','--temporal-local-chunk-mib')
     if a.observation_model == 'legacy' and any(arg.split('=')[0] in new_temporal_flags for arg in given):
         ap.error('new --temporal-* options require --observation-model temporal-rgbd; the legacy default is never silently promoted')
     if a.temporal_lag_frames < 2: ap.error('--temporal-lag-frames must be >= 2')
     if a.temporal_runtime_budget_seconds is not None and not 0<a.temporal_runtime_budget_seconds<float('inf'):ap.error('runtime budget must be positive finite')
     if not 0<=a.temporal_output_headroom_mib<float('inf'):ap.error('output headroom must be nonnegative finite')
     if not 0 < a.temporal_component_workspace_mib < float('inf'): ap.error('--temporal-component-workspace-mib must be positive finite')
+    if not 0 < a.temporal_local_chunk_mib < float('inf'): ap.error('--temporal-local-chunk-mib must be positive finite')
+    if a.temporal_mode != 'material-following' and any(arg.split('=')[0] in ('--temporal-material-resampling', '--temporal-material-pyramid-levels') for arg in given):
+        ap.error('--temporal-material-* options apply only to --temporal-mode material-following')
+    if a.temporal_mode != 'material-following' and any(arg.split('=')[0] == '--temporal-gradient-guide' for arg in given):
+        ap.error('--temporal-gradient-guide applies only to --temporal-mode material-following')
+    if not 0 <= a.temporal_material_pyramid_levels <= 6: ap.error('--temporal-material-pyramid-levels must be in [0, 6]')
+    if a.temporal_mode not in ('local-correlated', 'material-following') and any(arg.split('=')[0] == '--temporal-local-chunk-mib' for arg in given): ap.error('--temporal-local-chunk-mib applies only to --temporal-mode local-correlated or material-following')
     if a.observation_model == 'temporal-rgbd':
         if a.free_solver != 'directional': ap.error('temporal-rgbd is independent of --free-solver temporal-ieks; choose directional')
         if a.rendered_mask_measurement not in (None, 'off'): ap.error('temporal-rgbd requires --rendered-mask-measurement off; no unified mask objective is derived')
@@ -269,6 +293,11 @@ def run_scene(ap, a):
                                 'runtime_budget_seconds':a.temporal_runtime_budget_seconds,'diagnostic_original_point_ids':a.temporal_diagnostic_original_point_ids,
                                 'output_headroom_bytes':int(a.temporal_output_headroom_mib*1024**2),
                                 'workspace_bytes': int(a.temporal_component_workspace_mib*1024**2)}
+            if a.temporal_mode in ('local-correlated', 'material-following'):
+                temporal_options['local_chunk_bytes'] = int(a.temporal_local_chunk_mib*1024**2)
+            if a.temporal_mode == 'material-following':
+                temporal_options.update({'material_resampling': a.temporal_material_resampling, 'material_pyramid_levels': a.temporal_material_pyramid_levels,
+                                         'gradient_guide': a.temporal_gradient_guide})
         if a.velocity_prior_speed99 is not None:
             from scene.noise_calibration import velocity_prior
             config.velocity_covariance, sv = velocity_prior(a.velocity_prior_speed99)
@@ -334,6 +363,10 @@ def run_scene(ap, a):
                 if temporal_options is not None:
                     if a.temporal_mode == 'full':
                         from estimator.temporal_sparse_run import run_temporal_sparse_free as run_temporal_free
+                    elif a.temporal_mode == 'local-correlated':
+                        from estimator.temporal_local_run import run_temporal_local_free as run_temporal_free
+                    elif a.temporal_mode == 'material-following':
+                        from estimator.temporal_material_run import run_temporal_material_free as run_temporal_free
                     else:
                         from estimator.temporal_run import run_temporal_free
                     stages[f'free_{d}'] = run_temporal_free(data, config, policy, d, root/f'free_{d}', a.device, sub, temporal_options,

@@ -1,587 +1,1397 @@
 {
-  "timestamp_utc": "2026-11-02T00:47:12.203384+00:00",
-  "git_commit": "f77492dc0c8fe3cf5f28820ba5fe1f8ed959cb58",
+  "timestamp_utc": "2026-11-02T17:38:22.991573+00:00",
+  "git_commit": "9465cb109f22e4047d7132b3f9d2f22f3f5d633e",
   "dirty_status": [
+    " M debug/projective_debug.py",
     " M debug/temporal_debug.py",
-    " M estimator/temporal_cudss.py",
-    " M estimator/temporal_sparse_marginalization.py",
-    " M estimator/temporal_sparse_nonlinear.py",
-    " M estimator/temporal_sparse_run.py",
-    " M estimator/temporal_sparse_solve.py",
     " M tests/temporal_test_results.json",
-    " M tests/test_temporal_sparse_marginalization.py",
-    " M tools/report_temporal_sparse_gpu.py",
+    " M tools/run_status.py",
     " M tools/run_temporal_rgbd_critical.py",
-    " M tools/temporal_batch_runtime.py",
     " M tools/test_temporal_rgbd.py",
     " M train.py",
-    "?? CODEX_RGBDiekf_SURGICAL_EXACT_TEMPORAL_RGBD_IEKF_COMPLETION_2026-11-01.md",
-    "?? cuda/",
-    "?? estimator/temporal_selected_inverse_gpu.py",
-    "?? reports/temporal_sparse_gpu_baseline/ldlt_repair_tests.json",
-    "?? reports/temporal_sparse_gpu_completion.md",
-    "?? reports/temporal_sparse_gpu_completion_evidence/",
-    "?? tests/test_temporal_selected_inverse_gpu.py",
-    "?? tests/test_temporal_surgical_completion.py",
-    "?? tools/arbitrate_component_oracles_mp.py",
-    "?? tools/replay_temporal_sparse_failure.py",
-    "?? tools/verify_temporal_full_frames.py"
+    "?? CODEX_RGBDiekf_LOCAL_CORRELATED_TEMPORAL_IEKF_IMPLEMENTATION_2026-11-02.md",
+    "?? CODEX_RGBDiekf_Sparse_RGB_Depth_Tangential_Normal_Motion_Guidance_2026-11-02.md",
+    "?? RGBDiekf_Codex_Recover_Dynamic_Points_Material_Following_2026-11-02.md",
+    "?? estimator/temporal_gradient_iekf.py",
+    "?? estimator/temporal_image_gradients.py",
+    "?? estimator/temporal_local_covariance.py",
+    "?? estimator/temporal_local_iekf.py",
+    "?? estimator/temporal_local_run.py",
+    "?? estimator/temporal_material_iekf.py",
+    "?? estimator/temporal_material_pyramid.py",
+    "?? estimator/temporal_material_run.py",
+    "?? estimator/temporal_material_terms.py",
+    "?? estimator/temporal_motion_geometry.py",
+    "?? estimator/temporal_motion_observability.py",
+    "?? estimator/temporal_part_twist.py",
+    "?? reports/gradient_motion_code_map.md",
+    "?? reports/temporal_dynamic_gt_warp_audit.json",
+    "?? reports/temporal_dynamic_gt_warp_audit.md",
+    "?? reports/temporal_dynamic_point_recovery.json",
+    "?? reports/temporal_dynamic_point_recovery.md",
+    "?? reports/temporal_gradient_motion_validation.json",
+    "?? reports/temporal_gradient_motion_validation.md",
+    "?? reports/temporal_local_correlated_validation.json",
+    "?? reports/temporal_local_correlated_validation.md",
+    "?? reports/temporal_measurement_information_study.json",
+    "?? reports/temporal_measurement_information_study.md",
+    "?? reports/temporal_measurement_information_study_tables.md",
+    "?? tests/material_fixtures.py",
+    "?? tests/test_temporal_gradient_iekf.py",
+    "?? tests/test_temporal_image_gradient_geometry.py",
+    "?? tests/test_temporal_image_gradient_observability.py",
+    "?? tests/test_temporal_local_covariance.py",
+    "?? tests/test_temporal_local_iekf.py",
+    "?? tests/test_temporal_local_motion.py",
+    "?? tests/test_temporal_local_pipeline.py",
+    "?? tests/test_temporal_material_association.py",
+    "?? tests/test_temporal_material_local_covariance.py",
+    "?? tests/test_temporal_material_motion.py",
+    "?? tests/test_temporal_material_warp.py",
+    "?? tests/test_temporal_part_twist.py",
+    "?? tools/audit_rgbd_gradient_motion.py",
+    "?? tools/audit_rgbd_part_motion_oracle.py",
+    "?? tools/audit_temporal_dynamic_correspondence.py",
+    "?? tools/diagnose_material_observability.py",
+    "?? tools/evaluate_temporal_local_pilot.py",
+    "?? tools/evaluate_temporal_material_pilot.py",
+    "?? tools/study_material_measurement_information.py"
   ],
   "python": "3.11.15 (main, Jun 11 2026, 15:20:16) [GCC 14.3.0]",
   "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
   "torch": "2.11.0+cu128",
   "cuda_available": true,
   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
-  "seconds": 35.16237085702596,
+  "seconds": 271.48701209697174,
   "checks": [
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_affine_translations_and_negative_time",
       "status": "PASS",
-      "seconds": 0.010717274970375001,
+      "seconds": 0.00681581103708595,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_camera_handover_stale_reference_and_occlusion",
       "status": "PASS",
-      "seconds": 0.012272111955098808,
+      "seconds": 0.007292038993909955,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_conservative_domain_rejects_row_deletion",
       "status": "PASS",
-      "seconds": 0.006675309967249632,
+      "seconds": 0.004180798947345465,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_cuda_owner_parity",
       "status": "PASS",
-      "seconds": 0.5241025490104221,
+      "seconds": 0.30963625095319003,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_first_hit_tie_depth_swap_numpy",
       "status": "PASS",
-      "seconds": 0.004114279989153147,
+      "seconds": 0.003012127010151744,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_no_rows_exact_prediction",
       "status": "PASS",
-      "seconds": 0.004593543999362737,
+      "seconds": 0.003141901979688555,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_random_numpy_parity",
       "status": "PASS",
-      "seconds": 0.03690182097489014,
+      "seconds": 0.04340926301665604,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_source_identity_and_handover_bootstrap",
       "status": "PASS",
-      "seconds": 0.0022862119949422777,
+      "seconds": 0.001504516985733062,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_sparse_and_dense_owner_queries_are_identical",
       "status": "PASS",
-      "seconds": 0.053402371995616704,
+      "seconds": 0.031632834987249225,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_support_all_four_even_zero_weight",
       "status": "PASS",
-      "seconds": 0.0036374449846334755,
+      "seconds": 0.0022708120523020625,
       "detail": null
     },
     {
       "test": "tests.test_temporal_warp.TemporalWarpTests.test_two_time_and_latent_jacobian",
       "status": "PASS",
-      "seconds": 0.04159565502777696,
+      "seconds": 0.030019290978088975,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_actual_nonlinear_warp_factor_all_columns",
       "status": "PASS",
-      "seconds": 0.07195324799977243,
+      "seconds": 0.050204019993543625,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_conditional_is_not_marginal_and_simplified_limit",
       "status": "PASS",
-      "seconds": 0.0181900339666754,
+      "seconds": 0.005956510023679584,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_conditioned_reference_limit_matches_simplified",
       "status": "PASS",
-      "seconds": 0.05525975301861763,
+      "seconds": 0.03203770500840619,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_correlated_predictive_nis_against_dense",
       "status": "PASS",
-      "seconds": 0.00284155597910285,
+      "seconds": 0.0013763500028289855,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_cuda_cpu_mean_covariance",
       "status": "PASS",
-      "seconds": 0.2308322279714048,
+      "seconds": 0.1313850239966996,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_exact_schur_and_lag_slide",
       "status": "PASS",
-      "seconds": 0.022378181980457157,
+      "seconds": 0.013783795002382249,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_expired_covariance_is_not_reported_as_zero_uncertainty",
       "status": "PASS",
-      "seconds": 0.008916916965972632,
+      "seconds": 0.0056489299749955535,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_ideal_three_frame_kkt_oracle_and_schur_cross_covariance",
       "status": "PASS",
-      "seconds": 0.1036239400273189,
+      "seconds": 0.06236978800734505,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_jvp_vjp",
       "status": "PASS",
-      "seconds": 0.0023186629987321794,
+      "seconds": 0.0013411170220933855,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_linear_gaussian_nees_nis_monte_carlo",
       "status": "PASS",
-      "seconds": 0.0034491390106268227,
+      "seconds": 0.004105944011826068,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_repeated_reference_has_a_correlated_uncertainty_floor",
       "status": "PASS",
-      "seconds": 0.012426320987287909,
+      "seconds": 0.008723944949451834,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_resource_limit_never_cuts_component",
       "status": "PASS",
-      "seconds": 0.001606867997907102,
+      "seconds": 0.0011137210531160235,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_shared_latents_mean_cov_dense_and_cross",
       "status": "PASS",
-      "seconds": 0.007773483986966312,
+      "seconds": 0.005297020019497722,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_source_coupling_single_depth",
       "status": "PASS",
-      "seconds": 0.00277867098338902,
+      "seconds": 0.0020859510404989123,
       "detail": null
     },
     {
       "test": "tests.test_temporal_full_graph.FullGraphTests.test_zero_discrepancy_constrained_qr_matches_dense_conditioning",
       "status": "PASS",
-      "seconds": 0.005572785041294992,
+      "seconds": 0.0037308000028133392,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='forward', device='cpu')",
       "status": "PASS",
-      "seconds": 0.5874577779904939,
+      "seconds": 0.30621733400039375,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='forward', device='cuda')",
       "status": "PASS",
-      "seconds": 1.3410067519871518,
+      "seconds": 0.7201729349908419,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='backward', device='cpu')",
       "status": "PASS",
-      "seconds": 1.8376032990054227,
+      "seconds": 0.9753899500356056,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='simplified', direction='backward', device='cuda')",
       "status": "PASS",
-      "seconds": 2.4336943709640764,
+      "seconds": 1.3144095540046692,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='forward', device='cpu')",
       "status": "PASS",
-      "seconds": 3.549638574011624,
+      "seconds": 2.5324828830198385,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='forward', device='cuda')",
       "status": "PASS",
-      "seconds": 5.883352739969268,
+      "seconds": 4.671062249981333,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='backward', device='cpu')",
       "status": "PASS",
-      "seconds": 7.4746215990162455,
+      "seconds": 8.084104995999951,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html (mode='full', direction='backward', device='cuda')",
       "status": "PASS",
-      "seconds": 9.024054248991888,
+      "seconds": 9.93438634899212,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_both_modes_both_directions_four_frame_slide_and_html",
       "status": "PASS",
-      "seconds": 9.024155680963304,
+      "seconds": 9.934482240991201,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_calibration_zero_difference_is_finite_and_not_invented",
       "status": "PASS",
-      "seconds": 0.060473582008853555,
+      "seconds": 0.040498360991477966,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_cli_defaults_and_invalid_combinations",
       "status": "PASS",
-      "seconds": 0.00834815000416711,
+      "seconds": 0.010768142994493246,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_focal_controls_preserve_original_identity",
       "status": "PASS",
-      "seconds": 0.30478730000322685,
+      "seconds": 1.2779908700031228,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_forensic_imports_do_not_disable_cuda",
       "status": "PASS",
-      "seconds": 3.2028822010033764,
+      "seconds": 2.925593401014339,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_full_no_new_observations_is_exact_prediction",
       "status": "PASS",
-      "seconds": 0.9101825220277533,
+      "seconds": 2.6777054170379415,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_ideal_warp_keeps_sensor_noise_and_full_lag_covariance (mode='full')",
       "status": "PASS",
-      "seconds": 1.3773980420082808,
+      "seconds": 3.3247179809841327,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_ideal_warp_keeps_sensor_noise_and_full_lag_covariance (mode='simplified')",
       "status": "PASS",
-      "seconds": 1.7651701080030762,
+      "seconds": 4.323167490016203,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_ideal_warp_keeps_sensor_noise_and_full_lag_covariance",
       "status": "PASS",
-      "seconds": 1.7653112460393459,
+      "seconds": 4.323355889006052,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_large_covariance_diagnostics_preserve_independent_matrices",
       "status": "PASS",
-      "seconds": 0.10930565901799127,
+      "seconds": 0.12818367301952094,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_missing_warp_and_explicit_provenance",
       "status": "PASS",
-      "seconds": 0.001979767985176295,
+      "seconds": 0.001462139014620334,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_one_invalid_point_does_not_freeze_an_independent_update",
       "status": "PASS",
-      "seconds": 0.14196089300094172,
+      "seconds": 0.2749503640225157,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_temporal_sensor_path_does_not_use_cross_camera_mismatch",
       "status": "PASS",
-      "seconds": 0.026816907979082316,
+      "seconds": 0.015820429020095617,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports (mode='full')",
       "status": "PASS",
-      "seconds": 2.3100796249927953,
+      "seconds": 2.349304562958423,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports (mode='simplified')",
       "status": "PASS",
-      "seconds": 3.415864660986699,
+      "seconds": 4.4187562429578975,
       "detail": null
     },
     {
       "test": "tests.test_temporal_rgbd_pipeline.PipelineTests.test_train_cli_both_modes_and_existing_html_exports",
       "status": "PASS",
-      "seconds": 3.415995038987603,
+      "seconds": 4.418827733956277,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=0.1, device='cpu')",
       "status": "PASS",
-      "seconds": 0.21867168002063408,
+      "seconds": 0.42435273801675066,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=0.1, device='cuda')",
       "status": "PASS",
-      "seconds": 0.5339939540135674,
+      "seconds": 0.6954962289892137,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=-0.1, device='cpu')",
       "status": "PASS",
-      "seconds": 0.6261256089783274,
+      "seconds": 1.200607144040987,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells (dx=-0.1, device='cuda')",
       "status": "PASS",
-      "seconds": 0.8838488819892518,
+      "seconds": 1.4304487730260007,
       "detail": null
     },
     {
       "test": "tests.test_temporal_motion.TemporalMotionTests.test_positive_and_negative_motion_refresh_reference_cells",
       "status": "PASS",
-      "seconds": 0.8839185619726777,
+      "seconds": 1.430499887035694,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_actual_GPU_motion_refreshes_interpolation_cells_without_GT_input",
       "status": "PASS",
-      "seconds": 0.7453561430447735,
+      "seconds": 0.9877224420197308,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_incremental_dirty_owner_matches_brute_force_with_competitors",
       "status": "PASS",
-      "seconds": 0.033959408989176154,
+      "seconds": 0.2044155890471302,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_line_search_components_keep_full_point_and_shared_pixel_blocks",
       "status": "PASS",
-      "seconds": 0.05352026497712359,
+      "seconds": 0.15793539496371523,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_mask_rejection_includes_competitor_that_exposes_stationary_point",
       "status": "PASS",
-      "seconds": 0.013526866969186813,
+      "seconds": 0.049367200990673155,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_nonlinear_GPU_cost_visibility_and_constrained_acceptance",
       "status": "PASS",
-      "seconds": 0.485313220997341,
+      "seconds": 0.7262524889665656,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_source_state_and_depth_cross_covariance_matches_oracle",
       "status": "PASS",
-      "seconds": 0.06462570797884837,
+      "seconds": 0.3034996560309082,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_sparse_no_measurement_joint_marginal_is_exact_prediction",
       "status": "PASS",
-      "seconds": 0.06164592399727553,
+      "seconds": 0.08230567997088656,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_unique_registry_reuse_retirement_and_overflow",
       "status": "PASS",
-      "seconds": 0.005714558996260166,
+      "seconds": 0.032964056998025626,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_gpu.SparseGPUModelTests.test_whitened_joint_operator_matches_independent_dense_oracle",
       "status": "PASS",
-      "seconds": 0.21999581903219223,
+      "seconds": 0.4794994860421866,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_GPU_MAP_marginal_and_source_cross_match_independent_QR",
       "status": "PASS",
-      "seconds": 1.006181253993418,
+      "seconds": 0.9644170789979398,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_conflicting_equalities_and_unobservable_system_fail",
       "status": "PASS",
-      "seconds": 0.040132674970664084,
+      "seconds": 0.029789267980959266,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_full_schur_with_fill_and_surviving_hard_equality",
       "status": "PASS",
-      "seconds": 0.11555508599849418,
+      "seconds": 0.08957712398841977,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_symmetric_indefinite_native_solve_multiple_RHS_no_perturbation",
       "status": "PASS",
-      "seconds": 0.028039136028382927,
+      "seconds": 0.028323020960669965,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_marginalization.SparseMarginalizationTests.test_temporal_source_boundary_matches_dense_schur_current_cross_covariance",
       "status": "PASS",
-      "seconds": 0.26787093200255185,
+      "seconds": 0.44690495100803673,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_ENOSPC_summary_has_independent_fallback",
       "status": "PASS",
-      "seconds": 0.005038712988607585,
+      "seconds": 0.010506666963919997,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_fail_fast_and_final_summary",
       "status": "PASS",
-      "seconds": 0.07621519500389695,
+      "seconds": 0.07277468300890177,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_failed_diagnostic_does_not_publish_posterior",
       "status": "PASS",
-      "seconds": 0.009673997003119439,
+      "seconds": 0.008299957029521465,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_hard_deadline_kills_child_group",
       "status": "PASS",
-      "seconds": 0.3049648810410872,
+      "seconds": 0.3021129629923962,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_historical_failed_temporal_arrays_are_refused",
       "status": "PASS",
-      "seconds": 0.0015109970117919147,
+      "seconds": 0.0007298850105144083,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_large_run_gate_requires_current_three_frame_evidence",
       "status": "PASS",
-      "seconds": 0.005553877970669419,
+      "seconds": 0.009442289010621607,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_nan_tails_partial_validity_reverse_order_and_truncation",
       "status": "PASS",
-      "seconds": 0.013336594041902572,
+      "seconds": 0.008706860011443496,
       "detail": null
     },
     {
       "test": "tests.test_temporal_sparse_runtime_safety.RuntimeSafetyTests.test_viewer_filters_uncommitted_frame_and_ENOSPC_commit_is_atomic",
       "status": "PASS",
-      "seconds": 0.013997967005707324,
+      "seconds": 0.009940691001247615,
       "detail": null
     },
     {
       "test": "tests.test_temporal_selected_inverse_gpu.SelectedInverseTests.test_indefinite_selected_blocks_match_independent_joint_inverse",
       "status": "PASS",
-      "seconds": 0.014963582972995937,
+      "seconds": 0.013111100997775793,
       "detail": null
     },
     {
       "test": "tests.test_temporal_selected_inverse_gpu.SelectedInverseTests.test_shared_temporal_pixels_and_source_coupling_match_joint_sparse_solves",
       "status": "PASS",
-      "seconds": 0.12841844803187996,
+      "seconds": 0.13003988499986008,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.BatchForwarding.test_runner_forwards_factor_method_seed_to_every_child_mode",
       "status": "PASS",
-      "seconds": 0.17610226501710713,
+      "seconds": 0.1419361440348439,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.Certificates.test_btf_capacity_bound_below_fill_reports_device_info_never_a_result",
       "status": "PASS",
-      "seconds": 0.0801352709531784,
+      "seconds": 0.2896430949913338,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.Certificates.test_cudss_inertia_and_selected_inverse_inertia_refuse_wrong_structure",
       "status": "PASS",
-      "seconds": 0.08560981100890785,
+      "seconds": 0.06391763396095484,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.Connectivity.test_gpu_components_equal_independent_union_find_on_actual_nonzeros",
       "status": "PASS",
-      "seconds": 0.017016027006320655,
+      "seconds": 0.011375761008821428,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.Connectivity.test_symbolic_line_search_ties_never_enter_the_information_operator",
       "status": "PASS",
-      "seconds": 0.02577736903913319,
+      "seconds": 0.14691083400975913,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.DoubleDoubleAccuracy.test_strongly_scaled_quasi_definite_selected_inverse_beats_unpivoted_float64",
       "status": "PASS",
-      "seconds": 9.137386951013468,
+      "seconds": 5.597509351035114,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.MemorySchedule.test_released_factor_and_host_offload_are_bit_identical",
       "status": "PASS",
-      "seconds": 0.11865736596519127,
+      "seconds": 0.15579577401513234,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_cross_point_covariance_appears_and_vanishes_with_pixel_reuse",
       "status": "PASS",
-      "seconds": 0.4311581859947182,
+      "seconds": 0.9520770169910975,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_every_nonzero_is_traced_to_a_predicted_factor_and_coupling_follows_reuse",
       "status": "PASS",
-      "seconds": 0.12975278496742249,
+      "seconds": 0.634203088004142,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_exact_zero_weight_adds_no_coefficient",
       "status": "PASS",
-      "seconds": 0.035212313989177346,
+      "seconds": 0.31657914601964876,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.PixelReuseProvenance.test_key_encoding_injective_and_no_duplicate_sensor_factor",
       "status": "PASS",
-      "seconds": 0.06501724297413602,
+      "seconds": 0.39657257398357615,
       "detail": null
     },
     {
       "test": "tests.test_temporal_surgical_completion.UniformDownsampling.test_seeded_uniform_identity_determinism_seed_dependence_and_original_ids",
       "status": "PASS",
-      "seconds": 0.014048903016373515,
+      "seconds": 0.00641613599145785,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.MarginalizationTests.test_slicing_equals_square_root_schur_of_correlated_posterior",
+      "status": "PASS",
+      "seconds": 0.0850023030070588,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.PackingTests.test_chunk_budget_fails_explicitly",
+      "status": "PASS",
+      "seconds": 0.00020036601927131414,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.PackingTests.test_packed_roundtrip_and_slice_marginal",
+      "status": "PASS",
+      "seconds": 0.09164041001349688,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.PredictionTests.test_affine_prediction_matches_dense_transform",
+      "status": "PASS",
+      "seconds": 0.0388408110011369,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.PredictionTests.test_chart_prediction_uses_chain_rule",
+      "status": "PASS",
+      "seconds": 0.008759095973800868,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.RetentionTests.test_expired_keys_are_never_recreated",
+      "status": "PASS",
+      "seconds": 0.0006099130259826779,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.RetentionTests.test_lag_two_and_three_retention",
+      "status": "PASS",
+      "seconds": 0.0009228049893863499,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.RetentionTests.test_source_error_lives_with_its_chart",
+      "status": "PASS",
+      "seconds": 0.0008282469934783876,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.SourceChartTests.test_chart_equals_direct_backprojection_and_finite_differences",
+      "status": "PASS",
+      "seconds": 0.00680721498792991,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_covariance.SourceChartTests.test_source_depth_correlation_matches_monte_carlo_and_no_redundant_state",
+      "status": "PASS",
+      "seconds": 0.05177244695369154,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.AcceptanceTests.test_fixed_prior_and_rejected_iterates_add_no_information",
+      "status": "PASS",
+      "seconds": 0.5046800510026515,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.AcceptanceTests.test_no_row_point_keeps_exact_prediction",
+      "status": "PASS",
+      "seconds": 0.14106223499402404,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.CrossPointTests.test_shared_reference_pixel_is_an_independent_local_copy",
+      "status": "PASS",
+      "seconds": 0.12703366001369432,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.JacobianTests.test_one_key_one_variable_and_shared_innovation_covariance",
+      "status": "PASS",
+      "seconds": 0.06330195401096717,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.JacobianTests.test_two_time_and_raw_error_jacobians (device='cpu', anchor=False)",
+      "status": "PASS",
+      "seconds": 0.04805340000893921,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.JacobianTests.test_two_time_and_raw_error_jacobians (device='cpu', anchor=True)",
+      "status": "PASS",
+      "seconds": 0.07355399202788249,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.JacobianTests.test_two_time_and_raw_error_jacobians (device='cuda', anchor=False)",
+      "status": "PASS",
+      "seconds": 0.10295536601915956,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.JacobianTests.test_two_time_and_raw_error_jacobians (device='cuda', anchor=True)",
+      "status": "PASS",
+      "seconds": 0.13963746698573232,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.JacobianTests.test_two_time_and_raw_error_jacobians",
+      "status": "PASS",
+      "seconds": 0.13980635802727193,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.SimplifiedDifferenceTests.test_retained_reference_correlation_changes_the_answer",
+      "status": "PASS",
+      "seconds": 0.20596678100991994,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_invalid_covariance_fails_without_damping",
+      "status": "PASS",
+      "seconds": 0.028895950003061444,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_posterior_joseph_equals_qr_and_algebraic_forms (device='cpu', ideal=False)",
+      "status": "PASS",
+      "seconds": 0.14491253200685605,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_posterior_joseph_equals_qr_and_algebraic_forms (device='cpu', ideal=True)",
+      "status": "PASS",
+      "seconds": 0.4241502900258638,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_posterior_joseph_equals_qr_and_algebraic_forms (device='cuda', ideal=False)",
+      "status": "PASS",
+      "seconds": 0.592904387973249,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_posterior_joseph_equals_qr_and_algebraic_forms (device='cuda', ideal=True)",
+      "status": "PASS",
+      "seconds": 0.770143433008343,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_posterior_joseph_equals_qr_and_algebraic_forms",
+      "status": "PASS",
+      "seconds": 0.7703148840228096,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_sequential_equals_stacked_in_linear_limit",
+      "status": "PASS",
+      "seconds": 0.06881190603598952,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_stacked_multiview_step_equals_dense_qr (device='cpu', ideal=False, anchor=False)",
+      "status": "PASS",
+      "seconds": 0.03787627903511748,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_stacked_multiview_step_equals_dense_qr (device='cpu', ideal=False, anchor=True)",
+      "status": "PASS",
+      "seconds": 0.1023185609956272,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_stacked_multiview_step_equals_dense_qr (device='cpu', ideal=True, anchor=False)",
+      "status": "PASS",
+      "seconds": 0.18155848199967295,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_stacked_multiview_step_equals_dense_qr (device='cpu', ideal=True, anchor=True)",
+      "status": "PASS",
+      "seconds": 0.22727662802208215,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_stacked_multiview_step_equals_dense_qr (device='cuda', ideal=False, anchor=False)",
+      "status": "PASS",
+      "seconds": 0.2613995680003427,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_stacked_multiview_step_equals_dense_qr (device='cuda', ideal=False, anchor=True)",
+      "status": "PASS",
+      "seconds": 0.31579511100426316,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_stacked_multiview_step_equals_dense_qr (device='cuda', ideal=True, anchor=False)",
+      "status": "PASS",
+      "seconds": 0.3596023030113429,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_stacked_multiview_step_equals_dense_qr (device='cuda', ideal=True, anchor=True)",
+      "status": "PASS",
+      "seconds": 0.4110873769968748,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_stacked_multiview_step_equals_dense_qr",
+      "status": "PASS",
+      "seconds": 0.4111466050380841,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_iekf.UpdateTests.test_textureless_flat_depth_needs_no_noise_floor",
+      "status": "PASS",
+      "seconds": 0.0653943860088475,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_cli_accepts_mode_and_forwards_batching_and_subsampling",
+      "status": "PASS",
+      "seconds": 0.12705574202118441,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_cuda_matches_cpu",
+      "status": "PASS",
+      "seconds": 0.9059303189860657,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_end_to_end_publication_and_qualifiers",
+      "status": "PASS",
+      "seconds": 0.3071940030204132,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_failure_leaves_nan_tail_and_unpublished_frame",
+      "status": "PASS",
+      "seconds": 0.2594107589684427,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_lag_two_backward_and_nonideal_warp (direction='forward', lag=2, warp='ideal')",
+      "status": "PASS",
+      "seconds": 0.3914615769754164,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_lag_two_backward_and_nonideal_warp (direction='backward', lag=3, warp='ideal')",
+      "status": "PASS",
+      "seconds": 0.733069980982691,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_lag_two_backward_and_nonideal_warp (direction='forward', lag=3, warp='config')",
+      "status": "PASS",
+      "seconds": 1.0622389799682423,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_lag_two_backward_and_nonideal_warp",
+      "status": "PASS",
+      "seconds": 1.0622787039610557,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_never_enters_global_solvers_or_simplified_update",
+      "status": "PASS",
+      "seconds": 0.3385564539930783,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_pipeline.LocalPipelineTests.test_seeded_uniform_selection_is_deterministic_identity_at_factor_one",
+      "status": "PASS",
+      "seconds": 0.004509282007347792,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_motion.LocalMotionTests.test_cell_boundary_motion_both_directions (dx=0.1, device='cpu')",
+      "status": "PASS",
+      "seconds": 0.09771776001434773,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_motion.LocalMotionTests.test_cell_boundary_motion_both_directions (dx=0.1, device='cuda')",
+      "status": "PASS",
+      "seconds": 0.2740373010165058,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_motion.LocalMotionTests.test_cell_boundary_motion_both_directions (dx=-0.1, device='cpu')",
+      "status": "PASS",
+      "seconds": 0.34503800701349974,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_motion.LocalMotionTests.test_cell_boundary_motion_both_directions (dx=-0.1, device='cuda')",
+      "status": "PASS",
+      "seconds": 0.5156288970028982,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_motion.LocalMotionTests.test_cell_boundary_motion_both_directions",
+      "status": "PASS",
+      "seconds": 0.5158135350211523,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_motion.LocalMotionTests.test_state_noise_correlation_persists_and_differs_from_simplified",
+      "status": "PASS",
+      "seconds": 0.16901648399652913,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_local_motion.LocalMotionTests.test_static_equilibrium_has_no_drift",
+      "status": "PASS",
+      "seconds": 0.3482505760039203,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_cell_transition_is_continuous_and_jacobian_piecewise",
+      "status": "PASS",
+      "seconds": 0.007151038968004286,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_raw_error_jacobians",
+      "status": "PASS",
+      "seconds": 0.006148250948172063,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cpu', d=(0.0203125, 0.0, 0.0))",
+      "status": "PASS",
+      "seconds": 0.007847573957405984,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cpu', d=(-0.0203125, 0.00625, 0.0))",
+      "status": "PASS",
+      "seconds": 0.01978408597642556,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cpu', d=(0.046875, -0.0171875, 0.0))",
+      "status": "PASS",
+      "seconds": 0.029679839964956045,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cpu', d=(-0.046875, 0.0, 0.02))",
+      "status": "PASS",
+      "seconds": 0.037452481978107244,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cpu', d=(0.0109375, 0.0109375, -0.03))",
+      "status": "PASS",
+      "seconds": 0.04613595496630296,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cuda', d=(0.0203125, 0.0, 0.0))",
+      "status": "PASS",
+      "seconds": 0.06013641896424815,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cuda', d=(-0.0203125, 0.00625, 0.0))",
+      "status": "PASS",
+      "seconds": 0.07334738096687943,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cuda', d=(0.046875, -0.0171875, 0.0))",
+      "status": "PASS",
+      "seconds": 0.0864679659716785,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cuda', d=(-0.046875, 0.0, 0.02))",
+      "status": "PASS",
+      "seconds": 0.09958902199286968,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle (device='cuda', d=(0.0109375, 0.0109375, -0.03))",
+      "status": "PASS",
+      "seconds": 0.1140998539631255,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_warp.MaterialWarpTests.test_residual_and_state_jacobians_match_oracle",
+      "status": "PASS",
+      "seconds": 0.11416745296446607,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_deleting_a_measurement_never_creates_descent",
+      "status": "PASS",
+      "seconds": 0.00036374101182445884,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_no_background_update_when_material_leaves_the_mask",
+      "status": "PASS",
+      "seconds": 0.6312540220096707,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_occlusion_preserves_reference_and_reappears",
+      "status": "PASS",
+      "seconds": 0.3747214620234445,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_same_surface_collision_keeps_material_identity",
+      "status": "PASS",
+      "seconds": 1.3146513730171137,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_static_scene_stays_exactly_static",
+      "status": "PASS",
+      "seconds": 0.3720794969704002,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cpu', d=(0.0203125, 0.0, 0.0))",
+      "status": "PASS",
+      "seconds": 2.4624195290380158,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cpu', d=(-0.0203125, 0.0078125, 0.0))",
+      "status": "PASS",
+      "seconds": 4.3230294969980605,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cpu', d=(0.046875, 0.0, 0.0))",
+      "status": "PASS",
+      "seconds": 6.644692393019795,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cpu', d=(-0.046875, -0.015625, 0.0))",
+      "status": "PASS",
+      "seconds": 8.034576614038087,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cpu', d=(0.0203125, 0.0, 0.03))",
+      "status": "PASS",
+      "seconds": 8.333555254037492,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cpu', d=(0.0, -0.0203125, -0.03))",
+      "status": "PASS",
+      "seconds": 8.884646519029047,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cuda', d=(0.0203125, 0.0, 0.0))",
+      "status": "PASS",
+      "seconds": 14.450310868036468,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cuda', d=(-0.0203125, 0.0078125, 0.0))",
+      "status": "PASS",
+      "seconds": 33.02559037099127,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cuda', d=(0.046875, 0.0, 0.0))",
+      "status": "PASS",
+      "seconds": 79.47880823799642,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cuda', d=(-0.046875, -0.015625, 0.0))",
+      "status": "PASS",
+      "seconds": 109.12595955200959,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cuda', d=(0.0203125, 0.0, 0.03))",
+      "status": "PASS",
+      "seconds": 115.70790649700211,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects (device='cuda', d=(0.0, -0.0203125, -0.03))",
+      "status": "PASS",
+      "seconds": 126.45518847199855,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_translations_recovered_where_fixed_pixel_rejects",
+      "status": "PASS",
+      "seconds": 126.45577962999232,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_association.MaterialAssociationTests.test_two_camera_handover_bootstraps_without_a_temporal_row",
+      "status": "PASS",
+      "seconds": 0.6740849650232121,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_local_covariance.MaterialLocalCovarianceTests.test_backward_processing",
+      "status": "PASS",
+      "seconds": 4.0277174189686775,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_local_covariance.MaterialLocalCovarianceTests.test_expiry_ledger_blocks_only_needed_keys",
+      "status": "PASS",
+      "seconds": 0.0006375669618137181,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_local_covariance.MaterialLocalCovarianceTests.test_posterior_matches_independent_dense_conditioning (device='cpu', warp=0.0)",
+      "status": "PASS",
+      "seconds": 0.39033600402763113,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_local_covariance.MaterialLocalCovarianceTests.test_posterior_matches_independent_dense_conditioning (device='cpu', warp=1e-05)",
+      "status": "PASS",
+      "seconds": 0.7844216660014354,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_local_covariance.MaterialLocalCovarianceTests.test_posterior_matches_independent_dense_conditioning (device='cuda', warp=0.0)",
+      "status": "PASS",
+      "seconds": 3.8602103480370715,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_local_covariance.MaterialLocalCovarianceTests.test_posterior_matches_independent_dense_conditioning (device='cuda', warp=1e-05)",
+      "status": "PASS",
+      "seconds": 6.555011383024976,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_local_covariance.MaterialLocalCovarianceTests.test_posterior_matches_independent_dense_conditioning",
+      "status": "PASS",
+      "seconds": 6.555362133018207,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_local_covariance.MaterialLocalCovarianceTests.test_source_key_shared_and_reference_key_persists",
+      "status": "PASS",
+      "seconds": 1.1016354320454411,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_motion.MaterialMotionTests.test_photometric_mismatch_is_diagnosed_by_predictive_nis",
+      "status": "PASS",
+      "seconds": 3.2553297900012694,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_motion.MaterialMotionTests.test_pyramid_initializer_recovers_and_keeps_static",
+      "status": "PASS",
+      "seconds": 4.8878253970178775,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_motion.MaterialMotionTests.test_resampling_discrepancy_is_the_bilinear_remainder",
+      "status": "PASS",
+      "seconds": 0.00681682099821046,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_motion.MaterialMotionTests.test_resampling_term_keeps_static_exact_and_tracks",
+      "status": "PASS",
+      "seconds": 3.0819516030023806,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_motion.MaterialMotionTests.test_textured_motion_full_rank_and_recovered",
+      "status": "PASS",
+      "seconds": 0.39258462900761515,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_motion.MaterialMotionTests.test_textureless_aperture_is_rank_deficient_and_invents_no_motion",
+      "status": "PASS",
+      "seconds": 0.07062303595012054,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_motion.MaterialPipelineTests.test_cli_mode_flags_and_forwarding",
+      "status": "PASS",
+      "seconds": 0.14836695499252528,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_motion.MaterialPipelineTests.test_end_to_end_runner_journal_and_manifest",
+      "status": "PASS",
+      "seconds": 4.169355362013448,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_material_motion.MaterialPipelineTests.test_never_enters_global_solvers",
+      "status": "PASS",
+      "seconds": 2.1642342470004223,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_geometry.GradientGeometryTests.test_depth_row_is_the_surface_normal_and_tangents_are_orthogonal",
+      "status": "PASS",
+      "seconds": 0.007330545980948955,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_geometry.GradientGeometryTests.test_illumination_change_is_reported_photometric_model_invalid",
+      "status": "PASS",
+      "seconds": 1.09175860096002,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_geometry.GradientGeometryTests.test_projection_jacobians_match_independent_numpy",
+      "status": "PASS",
+      "seconds": 0.4246268559945747,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_geometry.GradientGeometryTests.test_static_textured_surface_gives_zero_velocity_guidance_one_and_eight_cameras",
+      "status": "PASS",
+      "seconds": 0.2158793740090914,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_geometry.GradientGeometryTests.test_tangent_rgb_rank_and_no_motion_from_texture_alone",
+      "status": "PASS",
+      "seconds": 0.009894896997138858,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_geometry.GradientGeometryTests.test_temporal_rgb_and_depth_physics_on_inclined_moving_plane",
+      "status": "PASS",
+      "seconds": 0.09671474702190608,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_observability.GradientObservabilityTests.test_camera_fusion_equals_independent_row_sum",
+      "status": "PASS",
+      "seconds": 0.5846030280226842,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_observability.GradientObservabilityTests.test_diagnostic_is_bitwise_identical_to_off_in_the_runner",
+      "status": "PASS",
+      "seconds": 1.0560144939809106,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_observability.GradientObservabilityTests.test_identifiable_directions_textured_vs_textureless_aperture",
+      "status": "PASS",
+      "seconds": 0.7410328990081325,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_observability.GradientObservabilityTests.test_lag_expiry_process_only_propagation_and_reacquisition",
+      "status": "PASS",
+      "seconds": 1.0440674030105583,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_image_gradient_observability.GradientObservabilityTests.test_rear_surface_points_never_get_rows_and_pixel_crossing_stays_eligible",
+      "status": "PASS",
+      "seconds": 3.256269355013501,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_gradient_iekf.GradientIEKFTests.test_clean_bilinear_matches_numpy",
+      "status": "PASS",
+      "seconds": 0.0012028769706375897,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_gradient_iekf.GradientIEKFTests.test_cli",
+      "status": "PASS",
+      "seconds": 0.1570852159638889,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_gradient_iekf.GradientIEKFTests.test_replace_filter_equals_material_following",
+      "status": "PASS",
+      "seconds": 49.90233882999746,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_gradient_iekf.GradientIEKFTests.test_replace_keeps_first_depth_occlusion",
+      "status": "PASS",
+      "seconds": 1.4044814549852163,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_gradient_iekf.GradientIEKFTests.test_residual_and_jacobian_parity_with_material_following",
+      "status": "PASS",
+      "seconds": 0.38449205103097484,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_exact_velocity_twist_chain_rule_at_large_rotation",
+      "status": "PASS",
+      "seconds": 0.1825536680407822,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_group_motion_from_material_rgbd_rows (device='cpu', d=(0.046875, -0.015625, 0.02), translation_only=True)",
+      "status": "PASS",
+      "seconds": 0.7742722100229003,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_group_motion_from_material_rgbd_rows (device='cpu', d=(0.0203125, 0.0109375, 0.0), translation_only=False)",
+      "status": "PASS",
+      "seconds": 1.342252622009255,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_group_motion_from_material_rgbd_rows (device='cpu', d=(0.0, 0.0, 0.0), translation_only=False)",
+      "status": "PASS",
+      "seconds": 1.549249588046223,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_group_motion_from_material_rgbd_rows (device='cuda', d=(0.046875, -0.015625, 0.02), translation_only=True)",
+      "status": "PASS",
+      "seconds": 1.699706950050313,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_group_motion_from_material_rgbd_rows (device='cuda', d=(0.0203125, 0.0109375, 0.0), translation_only=False)",
+      "status": "PASS",
+      "seconds": 1.8144336620462127,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_group_motion_from_material_rgbd_rows (device='cuda', d=(0.0, 0.0, 0.0), translation_only=False)",
+      "status": "PASS",
+      "seconds": 1.8863645170349628,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_group_motion_from_material_rgbd_rows",
+      "status": "PASS",
+      "seconds": 1.8865847840206698,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_group_posterior_matches_dense_oracle_and_naive_replay_is_overconfident",
+      "status": "PASS",
+      "seconds": 0.13588378502754495,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_prismatic_and_revolute_kinematics",
+      "status": "PASS",
+      "seconds": 0.002070991031359881,
+      "detail": null
+    },
+    {
+      "test": "tests.test_temporal_part_twist.PartTwistTests.test_wrong_membership_drags_static_points_and_is_reported",
+      "status": "PASS",
+      "seconds": 0.11943056696327403,
       "detail": null
     }
   ],
-  "tests_run": 75,
+  "tests_run": 150,
   "failures": 0,
   "errors": 0,
   "skips": 0,
@@ -607,8 +1417,8 @@
     "CUDA_mean_covariance_discrepancy": {
       "mean_max_abs": 2.220446049250313e-16,
       "covariance_max_abs": 2.7755575615628914e-16,
-      "seconds": 0.0268339270260185,
-      "peak_allocated_bytes": 18104832,
+      "seconds": 0.01857620500959456,
+      "peak_allocated_bytes": 15145472,
       "device_total_memory_bytes": 8444575744
     },
     "raw_sensor_factors_per_shared_key": 1
@@ -640,7 +1450,7 @@
       "direction": "backward",
       "xyz_max_abs": 0.0,
       "position_diagonal_max_abs": 0.0,
-      "traced_covariance_max_abs": 1.4003020964992174e-11
+      "traced_covariance_max_abs": 1.0994649635165388e-11
     }
   ],
   "motion_witnesses": [
@@ -829,7 +1639,7 @@
         "nnz_C_reduced": 0,
         "nnz_substitution": 114,
         "nnz_KKT": 786,
-        "setup_seconds": 0.07837854803074151,
+        "setup_seconds": 0.09676914702868089,
         "source_process_sensor_innovation_coordinates": true,
         "exact_prior_residuals_eliminated": 86,
         "backend": "cuDSS-1.0.0.35",
@@ -848,7 +1658,7 @@
         "max_LU_nnz_capacity": null,
         "torch_allocated_before_analysis": 11877888,
         "torch_reserved_before_analysis": 25165824,
-        "analysis_seconds": 0.06441142095718533,
+        "analysis_seconds": 0.05888181197224185,
         "memory_estimate_query_status": 0,
         "native_memory_estimates_bytes": [
           392476,
@@ -869,7 +1679,7 @@
           0
         ],
         "native_LU_nnz_reported": 589,
-        "factorization_seconds": 0.00027151196263730526,
+        "factorization_seconds": 0.000184542965143919,
         "info": 0,
         "perturbed_pivots": 0,
         "factor_nnz": 589,
@@ -896,7 +1706,7 @@
           "FEJ_information_present": false
         },
         "selected_marginals": {
-          "seconds": 0.31515095103532076,
+          "seconds": 0.22393340797862038,
           "output_blocks": 1,
           "query_width": 86,
           "rhs_colors": 86,
@@ -924,7 +1734,7 @@
         "relative_tolerance": 2e-12,
         "absolute_tolerance": 2e-13,
         "equality_absolute": 2.168404344971009e-19,
-        "objective": 8.248401640823348e-13,
+        "objective": 8.248401640823493e-13,
         "normal_equations_formed": false,
         "FEJ_information_present": false
       },
@@ -936,7 +1746,7 @@
         "nnz_C_reduced": 0,
         "nnz_substitution": 304,
         "nnz_KKT": 498,
-        "setup_seconds": 0.08007486799033359,
+        "setup_seconds": 0.09544902696507052,
         "source_process_sensor_innovation_coordinates": true,
         "exact_prior_residuals_eliminated": 70,
         "backend": "cuDSS-1.0.0.35",
@@ -955,7 +1765,7 @@
         "max_LU_nnz_capacity": null,
         "torch_allocated_before_analysis": 11942400,
         "torch_reserved_before_analysis": 25165824,
-        "analysis_seconds": 0.06379744497826323,
+        "analysis_seconds": 0.05635065597016364,
         "memory_estimate_query_status": 0,
         "native_memory_estimates_bytes": [
           331764,
@@ -976,7 +1786,7 @@
           0
         ],
         "native_LU_nnz_reported": 422,
-        "factorization_seconds": 0.00023385602980852127,
+        "factorization_seconds": 0.00017651100642979145,
         "info": 0,
         "perturbed_pivots": 0,
         "factor_nnz": 422,
@@ -998,12 +1808,12 @@
           "relative_tolerance": 2e-12,
           "absolute_tolerance": 2e-13,
           "equality_absolute": 2.168404344971009e-19,
-          "objective": 8.248401640823348e-13,
+          "objective": 8.248401640823493e-13,
           "normal_equations_formed": false,
           "FEJ_information_present": false
         },
         "selected_marginals": {
-          "seconds": 0.3237422240199521,
+          "seconds": 0.20443468203302473,
           "output_blocks": 1,
           "query_width": 86,
           "rhs_colors": 86,
@@ -1041,7 +1851,7 @@
         "max_LU_nnz_capacity": null,
         "torch_allocated_before_analysis": 11810304,
         "torch_reserved_before_analysis": 25165824,
-        "analysis_seconds": 0.014069380005821586,
+        "analysis_seconds": 0.02333365404047072,
         "memory_estimate_query_status": 0,
         "native_memory_estimates_bytes": [
           19940,
@@ -1062,7 +1872,7 @@
           0
         ],
         "native_LU_nnz_reported": 4,
-        "factorization_seconds": 0.00011803099187090993,
+        "factorization_seconds": 0.00012446497566998005,
         "info": 0,
         "perturbed_pivots": 0,
         "factor_nnz": 4,
@@ -1081,8 +1891,8 @@
           "relative_tolerance": 2e-12,
           "absolute_tolerance": 2e-13
         },
-        "total_seconds": 0.05152180197183043,
-        "symbolic_matching_seconds": 0.0025971360155381262,
+        "total_seconds": 0.04889592999825254,
+        "symbolic_matching_seconds": 0.0007343600154854357,
         "eliminated_scalars": 1,
         "retained_scalars": 2,
         "old_constraints": 2,
@@ -1097,7 +1907,7 @@
     },
     {
       "source_marginalized": true,
-      "mean_abs": 7.018571404409869e-14,
+      "mean_abs": 5.007760446484504e-14,
       "cov_abs": 2.7333690866271354e-13,
       "Schur_profile": {
         "possible_fill_entries": 784,
@@ -1122,7 +1932,7 @@
         "max_LU_nnz_capacity": null,
         "torch_allocated_before_analysis": 11876864,
         "torch_reserved_before_analysis": 25165824,
-        "analysis_seconds": 0.05940676399040967,
+        "analysis_seconds": 0.06877844396512955,
         "memory_estimate_query_status": 0,
         "native_memory_estimates_bytes": [
           285300,
@@ -1143,7 +1953,7 @@
           0
         ],
         "native_LU_nnz_reported": 318,
-        "factorization_seconds": 0.00024069100618362427,
+        "factorization_seconds": 0.00016717397375032306,
         "info": 0,
         "perturbed_pivots": 0,
         "factor_nnz": 318,
@@ -1162,8 +1972,8 @@
           "relative_tolerance": 2e-12,
           "absolute_tolerance": 2e-13
         },
-        "total_seconds": 0.10851372499018908,
-        "symbolic_matching_seconds": 0.0008355180034413934,
+        "total_seconds": 0.13450151396682486,
+        "symbolic_matching_seconds": 0.0009912639507092535,
         "eliminated_scalars": 58,
         "retained_scalars": 28,
         "old_constraints": 16,
@@ -1175,12 +1985,1477 @@
       }
     }
   ],
+  "local_correlated_witnesses": {
+    "iekf": [
+      {
+        "test": "cross_point",
+        "shared_raw_pixels": 4,
+        "global_P_ij_max_abs": 1.3250329110280576e-06,
+        "within_point_relative_gap_vs_global": 1.0424341598309978e-08,
+        "qualification": "local mode reports P_ij = 0 by declared block-diagonal approximation"
+      },
+      {
+        "test": "shared_key",
+        "cross_camera_innovation_max_abs": 0.0001412256229201952
+      },
+      {
+        "test": "jacobian",
+        "device": "cpu",
+        "anchor_chart": false,
+        "max_abs_H_minus_FD": 3.244404744862095e-12
+      },
+      {
+        "test": "jacobian",
+        "device": "cpu",
+        "anchor_chart": true,
+        "max_abs_H_minus_FD": 5.894618126944806e-12
+      },
+      {
+        "test": "jacobian",
+        "device": "cuda",
+        "anchor_chart": false,
+        "max_abs_H_minus_FD": 3.244404744862095e-12
+      },
+      {
+        "test": "jacobian",
+        "device": "cuda",
+        "anchor_chart": true,
+        "max_abs_H_minus_FD": 5.894618126944806e-12
+      },
+      {
+        "test": "local_vs_simplified",
+        "position_difference_m": 3.267307082589145e-05,
+        "covariance_relative_difference": 0.03287335432613924
+      },
+      {
+        "test": "posterior",
+        "device": "cpu",
+        "ideal": false,
+        "iterations": 4,
+        "velocity_change_m_s": 0.0008445786455485021
+      },
+      {
+        "test": "posterior",
+        "device": "cpu",
+        "ideal": true,
+        "iterations": 4,
+        "velocity_change_m_s": 0.0009675066859009401
+      },
+      {
+        "test": "posterior",
+        "device": "cuda",
+        "ideal": false,
+        "iterations": 4,
+        "velocity_change_m_s": 0.0008445786455494736
+      },
+      {
+        "test": "posterior",
+        "device": "cuda",
+        "ideal": true,
+        "iterations": 4,
+        "velocity_change_m_s": 0.0009675066859004267
+      }
+    ],
+    "pipeline": [
+      {
+        "test": "cpu_cuda_parity",
+        "posterior_covariance_max_abs": 1.1102230246251565e-16
+      },
+      {
+        "test": "tiny_end_to_end",
+        "frames": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "accepted_points": [
+          4,
+          4,
+          4
+        ]
+      }
+    ],
+    "motion": [
+      {
+        "device": "cpu",
+        "true_dx_m": 0.1,
+        "relative_dx_m": 0.09967747388781717,
+        "velocity_m_s": 2.492102954170975,
+        "true_velocity_m_s": 2.5,
+        "fresh_raw_keys": 6,
+        "source_key_reuse_rows": 1
+      },
+      {
+        "device": "cuda",
+        "true_dx_m": 0.1,
+        "relative_dx_m": 0.0996774738878174,
+        "velocity_m_s": 2.492102954170981,
+        "true_velocity_m_s": 2.5,
+        "fresh_raw_keys": 6,
+        "source_key_reuse_rows": 1
+      },
+      {
+        "device": "cpu",
+        "true_dx_m": -0.1,
+        "relative_dx_m": -0.09967744957799135,
+        "velocity_m_s": -2.4921023463848218,
+        "true_velocity_m_s": -2.5,
+        "fresh_raw_keys": 6,
+        "source_key_reuse_rows": 1
+      },
+      {
+        "device": "cuda",
+        "true_dx_m": -0.1,
+        "relative_dx_m": -0.09967744957799128,
+        "velocity_m_s": -2.492102346384819,
+        "true_velocity_m_s": -2.5,
+        "fresh_raw_keys": 6,
+        "source_key_reuse_rows": 1
+      },
+      {
+        "test": "persistence",
+        "Cov_state_retained_raw_error_max_abs_after_frame1": 2.8343155673189506e-06,
+        "reused_history_keys_frame2": 1,
+        "local_vs_simplified_covariance_relative_difference": 5.310377544470778,
+        "local_dx_frame2_m": 0.09988429568436497,
+        "simplified_dx_frame2_m": 0.09983033437788345
+      },
+      {
+        "device": "cpu",
+        "static_speed_after_3_frames_m_s": 0.0
+      },
+      {
+        "device": "cuda",
+        "static_speed_after_3_frames_m_s": 0.0
+      }
+    ],
+    "qualification": "independent NumPy/QR witnesses of the point-local model; cross-point covariance zero by declared approximation"
+  },
+  "material_following_witnesses": {
+    "warp": [
+      {
+        "cell_transition": [
+          [
+            16,
+            16
+          ],
+          [
+            17,
+            16
+          ]
+        ],
+        "residual_jump": 5.498702493333951e-09,
+        "jacobian_jump": 0.1139132108116564
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 8.352139954041077e-11,
+        "H_ref_fd_max_abs": 1.14399158548939e-10,
+        "pixel_shift": [
+          1.3017773437500004,
+          0.0
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 9.116340043968663e-10,
+        "H_ref_fd_max_abs": 8.746265794945529e-10,
+        "pixel_shift": [
+          1.2975529347400077,
+          0.0
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 2.353836014989952e-10,
+        "H_ref_fd_max_abs": 1.673053813544545e-10,
+        "pixel_shift": [
+          1.3017773437499986,
+          0.0
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 1.2244266711647356e-10,
+        "H_ref_fd_max_abs": 3.9251057959432956e-10,
+        "pixel_shift": [
+          1.297552934740004,
+          0.0
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          -0.0203125,
+          0.00625,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 3.5886221771974647e-10,
+        "H_ref_fd_max_abs": 3.5886221771974647e-10,
+        "pixel_shift": [
+          -1.3017773437499969,
+          0.40054687499999986
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          -0.0203125,
+          0.00625,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.3170982360311e-10,
+        "H_ref_fd_max_abs": 2.0303714265423878e-10,
+        "pixel_shift": [
+          -1.2975529347400006,
+          0.3992470568430804
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          -0.0203125,
+          0.00625,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 1.300246577073949e-10,
+        "H_ref_fd_max_abs": 1.3122991582292798e-10,
+        "pixel_shift": [
+          -1.3017773437499986,
+          0.40054687499999986
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          -0.0203125,
+          0.00625,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 3.289136463191511e-10,
+        "H_ref_fd_max_abs": 3.289136463191511e-10,
+        "pixel_shift": [
+          -1.297552934740004,
+          0.3992470568430804
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.046875,
+          -0.0171875,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.8274459723244263e-10,
+        "H_ref_fd_max_abs": 2.4084290117798446e-10,
+        "pixel_shift": [
+          3.204374999999999,
+          -1.1015039062500023
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.046875,
+          -0.0171875,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.8096770262876483e-10,
+        "H_ref_fd_max_abs": 1.0538880879096268e-10,
+        "pixel_shift": [
+          3.193976454744625,
+          -1.097929406318464
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.046875,
+          -0.0171875,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 6.537950736351661e-11,
+        "H_ref_fd_max_abs": 1.6568291183460815e-10,
+        "pixel_shift": [
+          3.2043750000000006,
+          -1.1015039062500023
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.046875,
+          -0.0171875,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 3.4434088913570804e-10,
+        "H_ref_fd_max_abs": 1.0336653755160796e-10,
+        "pixel_shift": [
+          3.193976454744625,
+          -1.097929406318464
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          -0.046875,
+          0.0,
+          0.02
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.5264609021237163e-10,
+        "H_ref_fd_max_abs": 1.6727710883124303e-10,
+        "pixel_shift": [
+          -2.938397209336614,
+          0.30407501905280654
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          -0.046875,
+          0.0,
+          0.02
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 3.302020878948042e-10,
+        "H_ref_fd_max_abs": 1.9120439953557167e-10,
+        "pixel_shift": [
+          -2.9865850253436754,
+          0.27171687984216675
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          -0.046875,
+          0.0,
+          0.02
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 1.1744759331744348e-10,
+        "H_ref_fd_max_abs": 2.104709739825239e-10,
+        "pixel_shift": [
+          -2.843559047247833,
+          0.30407501905280654
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          -0.046875,
+          0.0,
+          0.02
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 2.478770522174045e-10,
+        "H_ref_fd_max_abs": 4.750566606759321e-10,
+        "pixel_shift": [
+          -2.8923568598208327,
+          0.27171687984216675
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.0109375,
+          0.0109375,
+          -0.03
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.749562716923947e-10,
+        "H_ref_fd_max_abs": 1.4401450865175747e-10,
+        "pixel_shift": [
+          0.6897492807864012,
+          0.7032885585358528
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.0109375,
+          0.0109375,
+          -0.03
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.589262055290419e-10,
+        "H_ref_fd_max_abs": 9.688272406549459e-11,
+        "pixel_shift": [
+          0.7468099594856916,
+          0.7333116505274049
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.0109375,
+          0.0109375,
+          -0.03
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 8.778466842329635e-11,
+        "H_ref_fd_max_abs": 2.545261779118846e-10,
+        "pixel_shift": [
+          0.5920186374513055,
+          0.7032885585358528
+        ]
+      },
+      {
+        "device": "cpu",
+        "d": [
+          0.0109375,
+          0.0109375,
+          -0.03
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 1.6094625632234738e-10,
+        "H_ref_fd_max_abs": 4.2496195451491303e-10,
+        "pixel_shift": [
+          0.6497173848723925,
+          0.7333116505274049
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 8.352142838018856e-11,
+        "H_ref_fd_max_abs": 1.1439918760555723e-10,
+        "pixel_shift": [
+          1.3017773437500004,
+          0.0
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 9.116247201568228e-10,
+        "H_ref_fd_max_abs": 8.746172952545095e-10,
+        "pixel_shift": [
+          1.2975529347400077,
+          0.0
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 2.3538371252129764e-10,
+        "H_ref_fd_max_abs": 1.673078932340477e-10,
+        "pixel_shift": [
+          1.3017773437499986,
+          0.0
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 1.2244848190956503e-10,
+        "H_ref_fd_max_abs": 3.9251057959432956e-10,
+        "pixel_shift": [
+          1.297552934740004,
+          0.0
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          -0.0203125,
+          0.00625,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 3.5886041360733145e-10,
+        "H_ref_fd_max_abs": 3.5886041360733145e-10,
+        "pixel_shift": [
+          -1.3017773437499969,
+          0.40054687499999986
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          -0.0203125,
+          0.00625,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.3171516655141602e-10,
+        "H_ref_fd_max_abs": 2.030373646988437e-10,
+        "pixel_shift": [
+          -1.2975529347400006,
+          0.3992470568430804
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          -0.0203125,
+          0.00625,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 1.3002421361818506e-10,
+        "H_ref_fd_max_abs": 1.312295827560206e-10,
+        "pixel_shift": [
+          -1.3017773437499986,
+          0.40054687499999986
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          -0.0203125,
+          0.00625,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 3.289083172486329e-10,
+        "H_ref_fd_max_abs": 3.289083172486329e-10,
+        "pixel_shift": [
+          -1.297552934740004,
+          0.3992470568430804
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.046875,
+          -0.0171875,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.8275597701844504e-10,
+        "H_ref_fd_max_abs": 2.4084290117798446e-10,
+        "pixel_shift": [
+          3.204374999999999,
+          -1.1015039062500023
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.046875,
+          -0.0171875,
+          0.0
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.8096779630383253e-10,
+        "H_ref_fd_max_abs": 1.0538858674635776e-10,
+        "pixel_shift": [
+          3.193976454744625,
+          -1.097929406318464
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.046875,
+          -0.0171875,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 6.537968777475811e-11,
+        "H_ref_fd_max_abs": 1.6568169058928106e-10,
+        "pixel_shift": [
+          3.2043750000000006,
+          -1.1015039062500023
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.046875,
+          -0.0171875,
+          0.0
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 3.443407781134056e-10,
+        "H_ref_fd_max_abs": 1.0336631550700304e-10,
+        "pixel_shift": [
+          3.193976454744625,
+          -1.097929406318464
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          -0.046875,
+          0.0,
+          0.02
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.5264807473602815e-10,
+        "H_ref_fd_max_abs": 1.6727361162871546e-10,
+        "pixel_shift": [
+          -2.938397209336614,
+          0.30407501905280654
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          -0.046875,
+          0.0,
+          0.02
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 3.302020878948042e-10,
+        "H_ref_fd_max_abs": 1.9119993088789755e-10,
+        "pixel_shift": [
+          -2.9865850253436754,
+          0.27171687984216675
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          -0.046875,
+          0.0,
+          0.02
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 1.1744633043875297e-10,
+        "H_ref_fd_max_abs": 2.1047064091561651e-10,
+        "pixel_shift": [
+          -2.843559047247833,
+          0.30407501905280654
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          -0.046875,
+          0.0,
+          0.02
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 2.4787694119510206e-10,
+        "H_ref_fd_max_abs": 4.750565496536296e-10,
+        "pixel_shift": [
+          -2.8923568598208327,
+          0.27171687984216675
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.0109375,
+          0.0109375,
+          -0.03
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.749562716923947e-10,
+        "H_ref_fd_max_abs": 1.4401130288277386e-10,
+        "pixel_shift": [
+          0.6897492807864012,
+          0.7032885585358528
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.0109375,
+          0.0109375,
+          -0.03
+        ],
+        "camera": 0,
+        "H_t_fd_max_abs": 1.589253173506222e-10,
+        "H_ref_fd_max_abs": 9.688205793167981e-11,
+        "pixel_shift": [
+          0.7468099594856916,
+          0.7333116505274049
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.0109375,
+          0.0109375,
+          -0.03
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 8.778466842329635e-11,
+        "H_ref_fd_max_abs": 2.545261779118846e-10,
+        "pixel_shift": [
+          0.5920186374513055,
+          0.7032885585358528
+        ]
+      },
+      {
+        "device": "cuda",
+        "d": [
+          0.0109375,
+          0.0109375,
+          -0.03
+        ],
+        "camera": 1,
+        "H_t_fd_max_abs": 1.6094614530004492e-10,
+        "H_ref_fd_max_abs": 4.249620655372155e-10,
+        "pixel_shift": [
+          0.6497173848723925,
+          0.7333116505274049
+        ]
+      }
+    ],
+    "association": [
+      {
+        "leaving_mask_rows": 2,
+        "reasons": [
+          0,
+          0
+        ],
+        "state_shift_px": 1.0002226289125309
+      },
+      {
+        "occlusion_reason_frame1_cam0": 8,
+        "reference_frame_used_frame2_cam0": 0
+      },
+      {
+        "device": "cpu",
+        "d_m": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "max_error_px_frame2": 0.013779530497876676,
+        "accepted_pixel_shift_px_frame1": [
+          1.2961146440209619,
+          1.302869209770718
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "fixed_pixel_local_correlated_median_error_px": 0.7999255138130282,
+        "d_m": [
+          0.0203125,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "device": "cpu",
+        "d_m": [
+          -0.0203125,
+          0.0078125,
+          0.0
+        ],
+        "max_error_px_frame2": 0.02339810772234798,
+        "accepted_pixel_shift_px_frame1": [
+          1.3718730297673565,
+          1.40664844036033
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "fixed_pixel_local_correlated_median_error_px": 1.284138069337177,
+        "d_m": [
+          -0.0203125,
+          0.0078125,
+          0.0
+        ]
+      },
+      {
+        "device": "cpu",
+        "d_m": [
+          0.046875,
+          0.0,
+          0.0
+        ],
+        "max_error_px_frame2": 0.002994595615626497,
+        "accepted_pixel_shift_px_frame1": [
+          2.9786324348710633,
+          3.01851889439137
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "device": "cpu",
+        "d_m": [
+          -0.046875,
+          -0.015625,
+          0.0
+        ],
+        "max_error_px_frame2": 0.00489775990124271,
+        "accepted_pixel_shift_px_frame1": [
+          3.1382521597047193,
+          3.182342347632402
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "device": "cpu",
+        "d_m": [
+          0.0203125,
+          0.0,
+          0.03
+        ],
+        "max_error_px_frame2": 0.01573960202453436,
+        "accepted_pixel_shift_px_frame1": [
+          1.2258655504478093,
+          1.427669062542245
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "device": "cpu",
+        "d_m": [
+          0.0,
+          -0.0203125,
+          -0.03
+        ],
+        "max_error_px_frame2": 0.014037793674630825,
+        "accepted_pixel_shift_px_frame1": [
+          1.2627146299235912,
+          1.3847427487622812
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "device": "cuda",
+        "d_m": [
+          0.0203125,
+          0.0,
+          0.0
+        ],
+        "max_error_px_frame2": 0.013779530497867867,
+        "accepted_pixel_shift_px_frame1": [
+          1.29611464402096,
+          1.3028692097707233
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "fixed_pixel_local_correlated_median_error_px": 0.799925513813028,
+        "d_m": [
+          0.0203125,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "device": "cuda",
+        "d_m": [
+          -0.0203125,
+          0.0078125,
+          0.0
+        ],
+        "max_error_px_frame2": 0.02339810772234764,
+        "accepted_pixel_shift_px_frame1": [
+          1.3718730297673518,
+          1.4066484403603334
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "fixed_pixel_local_correlated_median_error_px": 1.284138069337177,
+        "d_m": [
+          -0.0203125,
+          0.0078125,
+          0.0
+        ]
+      },
+      {
+        "device": "cuda",
+        "d_m": [
+          0.046875,
+          0.0,
+          0.0
+        ],
+        "max_error_px_frame2": 0.0029945956156314595,
+        "accepted_pixel_shift_px_frame1": [
+          2.9786324348710584,
+          3.01851889439137
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "device": "cuda",
+        "d_m": [
+          -0.046875,
+          -0.015625,
+          0.0
+        ],
+        "max_error_px_frame2": 0.004897759901252818,
+        "accepted_pixel_shift_px_frame1": [
+          3.138252159704714,
+          3.182342347632407
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "device": "cuda",
+        "d_m": [
+          0.0203125,
+          0.0,
+          0.03
+        ],
+        "max_error_px_frame2": 0.015739602024542013,
+        "accepted_pixel_shift_px_frame1": [
+          1.2258655504478024,
+          1.427669062542243
+        ],
+        "target_pixel_changes": 5
+      },
+      {
+        "device": "cuda",
+        "d_m": [
+          0.0,
+          -0.0203125,
+          -0.03
+        ],
+        "max_error_px_frame2": 0.014037793674633285,
+        "accepted_pixel_shift_px_frame1": [
+          1.2627146299235843,
+          1.3847427487622814
+        ],
+        "target_pixel_changes": 5
+      }
+    ],
+    "local_covariance": [
+      {
+        "device": "cpu",
+        "warp_max": 0.0,
+        "posterior_gap_correlation_units": 4.3553862419109126e-08,
+        "posterior_gap_relative": 5.62450556749534e-10,
+        "iekf_fixed_point_step_prior_sigmas": 0.00038861476588756324,
+        "local_dimension": 51,
+        "rows": 2
+      },
+      {
+        "device": "cpu",
+        "warp_max": 1e-05,
+        "posterior_gap_correlation_units": 1.294461200897956e-10,
+        "posterior_gap_relative": 2.914832078333685e-11,
+        "iekf_fixed_point_step_prior_sigmas": 0.00036264831025279847,
+        "local_dimension": 51,
+        "rows": 2
+      },
+      {
+        "device": "cuda",
+        "warp_max": 0.0,
+        "posterior_gap_correlation_units": 4.361005096272568e-08,
+        "posterior_gap_relative": 2.859530552462366e-10,
+        "iekf_fixed_point_step_prior_sigmas": 0.000388614765523223,
+        "local_dimension": 51,
+        "rows": 2
+      },
+      {
+        "device": "cuda",
+        "warp_max": 1e-05,
+        "posterior_gap_correlation_units": 4.5133733872942473e-10,
+        "posterior_gap_relative": 6.848276137164279e-12,
+        "iekf_fixed_point_step_prior_sigmas": 0.0003626483102745281,
+        "local_dimension": 51,
+        "rows": 2
+      },
+      {
+        "reused_source_keys_frame1": 1,
+        "retained_reference_keys": 2,
+        "reused_history_keys_frame2": 2
+      }
+    ],
+    "motion": [
+      {
+        "photometric_gain_1.08_predictive_NIS_per_dof_min": 105.31823939196241,
+        "static_drift_m_under_mismatch": 0.031329131217860066
+      },
+      {
+        "pyramid_d_px": [
+          3.0,
+          -1.0,
+          0.0
+        ],
+        "coarse_start_kept": 5,
+        "level_reports": [
+          {
+            "level": 2,
+            "scale": 4,
+            "moved_points": 5,
+            "coarse_rows_final": 10,
+            "coarse_pixel_shift_level_px_quantiles": [
+              0.7908035230521332,
+              0.7917481419051722,
+              0.7917586753113468
+            ],
+            "displacement_from_prediction_m_quantiles": [
+              0.049366008860813854,
+              0.049604790767201264,
+              0.049650795184617035
+            ]
+          },
+          {
+            "level": 1,
+            "scale": 2,
+            "moved_points": 5,
+            "coarse_rows_final": 10,
+            "coarse_pixel_shift_level_px_quantiles": [
+              1.5824563905774867,
+              1.593578105610708,
+              1.593592362408538
+            ],
+            "displacement_from_prediction_m_quantiles": [
+              0.04944720607480233,
+              0.04946128617510653,
+              0.04946143510807255
+            ]
+          }
+        ]
+      },
+      {
+        "pyramid_d_px": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "coarse_start_kept": null,
+        "level_reports": [
+          {
+            "level": 2,
+            "scale": 4,
+            "moved_points": 5,
+            "coarse_rows_final": 10,
+            "coarse_pixel_shift_level_px_quantiles": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "displacement_from_prediction_m_quantiles": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "level": 1,
+            "scale": 2,
+            "moved_points": 5,
+            "coarse_rows_final": 10,
+            "coarse_pixel_shift_level_px_quantiles": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "displacement_from_prediction_m_quantiles": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "textured_info_eig_min_over_max": 0.009393070156847746,
+        "max_error_px": 0.009865135334498861
+      },
+      {
+        "aperture_in_plane_info_eig_over_max": 9.860761315262663e-33,
+        "aperture_prior_std_kept_m": 0.08012716220601504,
+        "status": "IMAGE_MOTION_UNOBSERVABLE (in-plane)"
+      }
+    ],
+    "qualification": "analytic rendered fixtures and an independent NumPy oracle; real-scene recovery is evaluated post hoc only"
+  },
+  "gradient_motion_witnesses": {
+    "geometry": [
+      {
+        "gain_1.08_status": "PHOTOMETRIC_MODEL_INVALID",
+        "static_motion_under_gain_m": 0.03141468673339726
+      },
+      {
+        "device": "cpu",
+        "cameras": 13,
+        "J_pi_fd_max_abs": 4.2837132241402287e-07
+      },
+      {
+        "device": "cuda",
+        "cameras": 13,
+        "J_pi_fd_max_abs": 4.283715497876983e-07
+      },
+      {
+        "static": "2 cameras",
+        "cameras_with_rows_point0": 2,
+        "photometric": "PHOTOMETRIC_CONSISTENT"
+      },
+      {
+        "static": "8 cameras",
+        "cameras_with_rows_point0": 8,
+        "photometric": "PHOTOMETRIC_CONSISTENT"
+      },
+      {
+        "tangent_rgb_rank": {
+          "stripes_x": 1,
+          "two_directions": 2,
+          "constant": 0
+        }
+      },
+      {
+        "device": "cpu",
+        "v_true": [
+          0.6,
+          -0.3,
+          0.2
+        ],
+        "rgb_relative_residual": 0.009722699525336387,
+        "depth_relative_residual": 0.0004185922798286888
+      },
+      {
+        "device": "cuda",
+        "v_true": [
+          0.6,
+          -0.3,
+          0.2
+        ],
+        "rgb_relative_residual": 0.009722699525336387,
+        "depth_relative_residual": 0.00041859227982866064
+      },
+      {
+        "device": "cpu",
+        "v_true": [
+          -0.4,
+          0.5,
+          -0.25
+        ],
+        "rgb_relative_residual": 0.009187606540922608,
+        "depth_relative_residual": 0.0002243025255511353
+      },
+      {
+        "device": "cuda",
+        "v_true": [
+          -0.4,
+          0.5,
+          -0.25
+        ],
+        "rgb_relative_residual": 0.009187606540922608,
+        "depth_relative_residual": 0.00022430239468864294
+      }
+    ],
+    "observability": [
+      {
+        "fusion_rows_per_point": 2
+      },
+      {
+        "bitwise_identical_arrays": 28
+      },
+      {
+        "identifiable_velocity_directions": {
+          "textured": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "textureless_fronto_parallel": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      },
+      {
+        "lag_expiry_reacquired_reference_frame": 6
+      },
+      {
+        "d_px": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "stage_counts_total": {
+          "projected_in_image": 20,
+          "foreground_target": 20,
+          "first_depth_winner_or_same_surface": 15,
+          "has_usable_temporal_reference": 10,
+          "material_support_valid": 10,
+          "admitted_row": 10,
+          "accepted_update": 10
+        },
+        "rear_reasons_cam0": [
+          8,
+          8,
+          6,
+          8,
+          8
+        ]
+      },
+      {
+        "d_px": [
+          3.0,
+          0.0,
+          0.0
+        ],
+        "stage_counts_total": {
+          "projected_in_image": 20,
+          "foreground_target": 20,
+          "first_depth_winner_or_same_surface": 15,
+          "has_usable_temporal_reference": 10,
+          "material_support_valid": 10,
+          "admitted_row": 10,
+          "accepted_update": 10
+        },
+        "rear_reasons_cam0": [
+          8,
+          8,
+          8,
+          8,
+          8
+        ]
+      }
+    ],
+    "replace": [
+      {
+        "device": "cpu",
+        "d_px": [
+          1.3,
+          -0.5,
+          0.64
+        ],
+        "max_state_diff": 4.496403249731884e-15
+      },
+      {
+        "device": "cpu",
+        "d_px": [
+          3.0,
+          0.0,
+          0.0
+        ],
+        "max_state_diff": 1.3322676295501878e-15
+      },
+      {
+        "device": "cpu",
+        "d_px": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max_state_diff": 0.0
+      },
+      {
+        "device": "cuda",
+        "d_px": [
+          1.3,
+          -0.5,
+          0.64
+        ],
+        "max_state_diff": 7.16093850883226e-15
+      },
+      {
+        "device": "cuda",
+        "d_px": [
+          3.0,
+          0.0,
+          0.0
+        ],
+        "max_state_diff": 8.881018479216934e-15
+      },
+      {
+        "device": "cuda",
+        "d_px": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max_state_diff": 0.0
+      },
+      {
+        "replace_vs_material_max_abs": 1.8596235662471372e-14
+      }
+    ],
+    "part_twist": [
+      {
+        "xi": [
+          0.4,
+          -0.2,
+          0.3,
+          12.0,
+          -8.0,
+          15.0
+        ],
+        "rotation_angle_rad": 0.35268901774042055,
+        "jacobian_fd_max_abs": 1.6198427365068935e-11
+      },
+      {
+        "xi": [
+          0.9,
+          0.1,
+          -0.5,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_angle_rad": 0.0,
+        "jacobian_fd_max_abs": 1.1307350888944967e-11
+      },
+      {
+        "xi": [
+          0.0,
+          0.0,
+          0.0,
+          -20.0,
+          4.0,
+          9.0
+        ],
+        "rotation_angle_rad": 0.3778558781289484,
+        "jacobian_fd_max_abs": 1.7512797201996166e-11
+      },
+      {
+        "device": "cpu",
+        "material_group_d_px": [
+          3.0,
+          -1.0,
+          1.28
+        ],
+        "translation_only": true,
+        "max_point_error_px": 0.002248337675480871,
+        "rank": 3,
+        "iterations": 7
+      },
+      {
+        "device": "cpu",
+        "material_group_d_px": [
+          1.3,
+          0.7,
+          0.0
+        ],
+        "translation_only": false,
+        "max_point_error_px": 0.001872889291476594,
+        "rank": 6,
+        "iterations": 6
+      },
+      {
+        "device": "cpu",
+        "material_group_d_px": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "translation_only": false,
+        "max_point_error_px": 2.220446049250313e-16,
+        "rank": 6,
+        "iterations": 1
+      },
+      {
+        "device": "cuda",
+        "material_group_d_px": [
+          3.0,
+          -1.0,
+          1.28
+        ],
+        "translation_only": true,
+        "max_point_error_px": 0.002248337675480871,
+        "rank": 3,
+        "iterations": 7
+      },
+      {
+        "device": "cuda",
+        "material_group_d_px": [
+          1.3,
+          0.7,
+          0.0
+        ],
+        "translation_only": false,
+        "max_point_error_px": 0.0018728892914782825,
+        "rank": 6,
+        "iterations": 6
+      },
+      {
+        "device": "cuda",
+        "material_group_d_px": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "translation_only": false,
+        "max_point_error_px": 0.0,
+        "rank": 6,
+        "iterations": 1
+      },
+      {
+        "group_P_vs_QR_rel": 2.3355917411534274e-08,
+        "cross_point_cov_max": 1.5447441617737353e-09,
+        "naive_trace_over_correct": 0.799699204814669
+      },
+      {
+        "wrong_merge_static_drag_m": 0.00668546675072383,
+        "status": "GROUP_IDENTITY_INVALID",
+        "failed_members": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      }
+    ],
+    "qualification": "analytic rendered fixtures and independent NumPy/scipy oracles; real-scene behaviour post hoc only"
+  },
   "source_sha256": {
     "configs/projective_rgbd.json": "3a1ce8cdfebbe1768a5ffc54ca894ab3e78c95385cee5ff3d95a682a5e04827d",
     "cuda/temporal_selected_symbolic.cpp": "bed3df941b91c437c7720a5b0f762ca3c2ecb57b6ad5bd6fec6b19cbdf80e00c",
     "debug/assets/projective_common.js": "06cfa27e076ca6d93376f90d260e4433ed6abfb5e7bfcbb0b169b8bf9ae05c6d",
-    "debug/projective_debug.py": "5415a98fe1f61a215833f7761c9ae2edf56cea436b4e8753af82c61897a28ce0",
-    "debug/temporal_debug.py": "06ca4f62a5f208c6145d77902409641b7e589bccde98b816ff36eece872b58aa",
+    "debug/projective_debug.py": "0132369d12b11b5f3acd45ddfda2a37f6e5381fdc1b60d622c3888d3df55eeaf",
+    "debug/temporal_debug.py": "34fb6d8938ad3a9d06592641f032007c0cdb43a8b0ffcd3b50d66587371529a3",
     "estimator/free_projective_run.py": "846d2f8204660004c16018d3b52cd9fab7b08b9fd1d627efba75311470031cc4",
     "estimator/point_kalman_cuda.py": "2f7382ca19008ec336d97a7196d21d94ecb40dea92387358954eeb415e125e31",
     "estimator/projective_camera.py": "00d42232ae62269c385129407f0de1e5d84bc1b4a5990b5aee7c7b9ab4d91070",
@@ -1191,7 +3466,19 @@
     "estimator/rendered_mask_measurement.py": "32e2ef50f75574a59d552587e0d9f6dc16961945939a2e1650da8e5c002e690d",
     "estimator/temporal_cudss.py": "27be6c4249493f5274529358045154207d83213262a275efd532567e632adbd8",
     "estimator/temporal_full_graph.py": "0e6b3b77560d31dd6557acf3df338de4cd4671c6b00babebc331bc584603b4f9",
+    "estimator/temporal_gradient_iekf.py": "9aff3bbe88e73a7927fafd01cf4b350774358f84670714a90f5566ab74583cd2",
+    "estimator/temporal_image_gradients.py": "1af150d9fcc6b3c7c130075533883271c7e6294699899ccfbcff785ba94af48c",
+    "estimator/temporal_local_covariance.py": "fe3942780e1fb149834ff60cb543161ef124265cb174e2861233639041648b06",
+    "estimator/temporal_local_iekf.py": "c301cfb52345ee1be3d9e2a2a1f7a05436c186a55745fe03bb634cfb0c080167",
+    "estimator/temporal_local_run.py": "ff97a9a5f97e39ccd0be90e8ee4040f703a5d356f4563c1a37bdf28b137c9651",
+    "estimator/temporal_material_iekf.py": "ad146ee9f737046d6031f8030b47f3bd45cbfc74d171d8c6d256d0a9dbc6c6e7",
+    "estimator/temporal_material_pyramid.py": "188db4ed2e54776f7bcb5477772226797d87b76264f4ad963a841bfff3254d00",
+    "estimator/temporal_material_run.py": "69d32aac985a4b7610746b3784bcad7bcd329e16d86fa8ec6e46f7ceecc0ad87",
+    "estimator/temporal_material_terms.py": "c674b66c2f699bf606a95b728dfb53db0c4dbe5f4159f0b4bc6fe97c059bb7af",
+    "estimator/temporal_motion_geometry.py": "dda5d488154a09eccca866afb9e04d58ccac4e9b2363d021250e75c16787ef8f",
+    "estimator/temporal_motion_observability.py": "5689086011028d3c2d2f622bf57d722f85cda4f0e6019e714c41372d3f1d4fca",
     "estimator/temporal_noise.py": "bbc1ee9f396002e3d4ba94cc42226fcb807b72a3d0b1528c44a04662e9b07b50",
+    "estimator/temporal_part_twist.py": "85c1bf88b0349e5685e1febd1471e5033ab70a23ca1bcb975aa8680c78365eb0",
     "estimator/temporal_reference.py": "add71cd5200fef41cbada2c8865c610cf9cd57d483e1b31c5c8af9fbfadfd5ec",
     "estimator/temporal_rgbd_terms.py": "550e3ddc38d381ecf2a5b86bb68c8db787541cf3f0adf559f6c7a087807bc7d3",
     "estimator/temporal_run.py": "66090352041040503fe40c197cf0e40a809b03cde10d46f196b2ca4f30074a90",
@@ -1212,8 +3499,21 @@
     "scene/noise.py": "a2399e63ff91b2025bcd773dc61a73a9687280d4cb384d759374b1a4f09e2c18",
     "scene/noise_calibration.py": "19b3f283cee0658cd86a178d8f7fab83f15b885ed1195c6cb62b3cf5e3e9d73b",
     "scene/timing.py": "c91fc8d9a2761f3a0ca8e7e23be14d56f28a403b58b05595a068d8963c65ca8d",
+    "tests/material_fixtures.py": "5591fee09b24dba726bfe8cc1dd57498ad250fd82264981b09c9720c56072719",
     "tests/test_temporal_full_graph.py": "48d058ac2a414045f57d9573f2447cf6ef5e9d04d8299d6364ffb3ebbfe1321e",
+    "tests/test_temporal_gradient_iekf.py": "3b7d59c4adb0adc6de0f5002428d0de75446089dcd5a99d8d282c2963a2865e1",
+    "tests/test_temporal_image_gradient_geometry.py": "447a42118d6ab795bb0478e8bafc7bf33f97e15bebaf64dee8208feddd4d86da",
+    "tests/test_temporal_image_gradient_observability.py": "40a8682f5bb76e3c99b476b0816ce7cff5eb619ef3d4c656362b69bbb40a49ce",
+    "tests/test_temporal_local_covariance.py": "7360a1af16a15a50e8d3b811f3abfbf3399a7d5b791d8d282ddb6db0cd25357b",
+    "tests/test_temporal_local_iekf.py": "24c441cc5f5b8d4d73eaff497795e8fb4d317f6bae9f2181f1f8627774426d8e",
+    "tests/test_temporal_local_motion.py": "f262f1d12e1985ddde3e2920b41bcbc748938c23e41646eae30b2a7dcfd5b92c",
+    "tests/test_temporal_local_pipeline.py": "4698c5d4d3e4bb3439c3310b673f6dfaad1aa9d0f1b05eb586fe01e154e82d83",
+    "tests/test_temporal_material_association.py": "f6e30454ecddab434bb2c41313b3cf73c980fcbe8c24ddb7849f641847461ed1",
+    "tests/test_temporal_material_local_covariance.py": "16ce2e211ba838f68a024474912ef813ccd4d715905dff938175b3fc538ae181",
+    "tests/test_temporal_material_motion.py": "15d993f3b8eb7a03d70dc498cb5f5668af215b9aa49f8b2fff7eb31376e97fa0",
+    "tests/test_temporal_material_warp.py": "7ec8fe43559200b2d755c50ee838472e56c3211cf9bc4a99444afb253a2cb5b7",
     "tests/test_temporal_motion.py": "a55d6ba95688b8a4b637be46b5f9b814e8e56c297dd02fcf4501825c0df27d37",
+    "tests/test_temporal_part_twist.py": "63a64a1df1a49fda677c3b6e9df376cb1179ab02832ae47515f9c1a0c0f7b4d0",
     "tests/test_temporal_rgbd_pipeline.py": "57574af40781b226566f546509b5dd4f1e7954db412dfa96942e6847e6d0d277",
     "tests/test_temporal_selected_inverse_gpu.py": "c857df4fce72a262e738cfba35b47c84fd530ae43c1000578607fc88e74cfc84",
     "tests/test_temporal_sparse_gpu.py": "e926a57d942c0fa74d7aac63334984e09096b8cfcef82fa865800985c32ca290",
@@ -1221,11 +3521,12 @@
     "tests/test_temporal_sparse_runtime_safety.py": "bb2b6da69d04474317f21f0198e3f8013c36c52087a0be0799078cac529a5f14",
     "tests/test_temporal_surgical_completion.py": "eb26d9feb42aa85c0e215fbadbac8cc7fc5a07b2c1846f61c0d0148605b5167a",
     "tests/test_temporal_warp.py": "80b10b2b715fc9d264348c26e63e54e5bad71062cac35ed0cd54ebb46147eb9f",
+    "tools/audit_temporal_dynamic_correspondence.py": "40ed6d07ca67b125cad8841974068c0e0872782c1ed53503265ceb7402439daa",
     "tools/report_temporal_sparse_gpu.py": "ab23ec40b7a7989d7bda06d3a64cfdc97d2776bafbd46125e6a8b582a18d9c0f",
-    "tools/run_temporal_rgbd_critical.py": "2f21581e6b9af12773bc00c2e1f7255b3d554520d242c556bd2ff9806ebaf092",
+    "tools/run_temporal_rgbd_critical.py": "e59099b9844ba80a9f8abc8528ce6de3c613ceca91a11118b12f5d65d8c0edb5",
     "tools/temporal_batch_runtime.py": "a404dd4ea55783cc9d37c685e224248b9dd8b7986be711908fa0d9a8c4f3f27b",
-    "tools/test_temporal_rgbd.py": "68294d14fb9e051579a0a7507b9d0459eadb298b45511479d67f98c841821810",
-    "train.py": "1b7a09b8d03966ff166965a624a3b37361855ad7931b769a7e7501ab7cbb40f3",
+    "tools/test_temporal_rgbd.py": "272c2d8c4ca54d96eec502fb0342746185188bdcd5b58b612a5e2d5619ff5f9f",
+    "train.py": "beab265c1d2d22de5978dbedbe3ed02ba5d7bac436e9c4c1adc05d0ab6e1949d",
     "utils/temporal_output.py": "218050feecfc46b36c85d783386a7d3523a7b230e6c99571841adf24dc69fc75"
   },
   "sources_changed_during_tests": []

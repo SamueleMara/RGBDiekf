@@ -84,6 +84,12 @@ def write_temporal_dashboard(root,manifest,history,failure=None):
               'measurement_update_accepted':f.get('measurement_update_accepted'),'converged':f['solver']['converged'],
               'camera_reason':f['camera_reason'],'reference_frames':f['reference_frames'],
               'measurements':[{'camera':r['camera'],'current_pixel':r['current_pixel'],'q':r['q'],'residual':r['residual']} for r in f['rows']]})
+            lp=f.get('local_posterior')
+            if lp:
+                kinds=[b['kind'] for b in lp['retained_layout']]
+                records[-1].update({'status':f.get('status'),'local_retained':{k:kinds.count(k) for k in ('state','source_chart','raw_sensor_error')},
+                  'local_cross_norm':{k:float(np.sqrt(sum(np.square(np.asarray(b['Cov_current_block'])).sum() for b in lp['cross_with_current_state'] if b['kind']==k)))
+                                      for k in ('state','source_chart','raw_sensor_error')}})
         data['point_traces'][str(trace['point_id'])]=records
     assets=Path(__file__).parent/'assets'
     for src,dest in [('three-0.160.0.min.js','three.min.js'),('projective_common.js','projective_common.js'),('THREE_LICENSE.txt','THREE_LICENSE.txt')]:
@@ -102,6 +108,7 @@ def write_temporal_dashboard(root,manifest,history,failure=None):
 <h2>Motion and uncertainty across the pass</h2><canvas id="motion" width="1400" height="240"></canvas><canvas id="covariance" width="1400" height="240"></canvas><pre id="stats"></pre>
 <label>Canonical point ID <input id="point" type="number" value="0"></label> <button onclick="window.open('traced_points/'+document.getElementById('point').value+'.json')">Open complete numerical trace</button>
 <h2>Selected original point: estimated trajectory and uncertainty</h2><canvas id="pointposition" width="1400" height="240"></canvas><canvas id="pointspeed" width="1400" height="240"></canvas><canvas id="pointuncertainty" width="1400" height="240"></canvas><pre id="pointstats"></pre>
+<div id="localpanel" style="display:none"><h2>Point-local covariance retention (local-correlated)</h2><p>Retained local blocks after exact local marginalization and the norm of their covariance with the current state. Cross-point covariance is zero by the declared block-diagonal approximation.</p><canvas id="pointlocal" width="1400" height="240"></canvas><canvas id="pointlocalcross" width="1400" height="240"></canvas><pre id="pointlocalstatus"></pre><canvas id="localdims" width="1400" height="240"></canvas></div>
 <p>Point motion, orbit/pan, camera frusta, covariance glyphs, and image-space point selection are available in the complete viewer after the pass finishes. This page is written during filtering and survives failures.</p>
 <script src="three.min.js"></script><script src="projective_common.js"></script><script src="dashboard.js"></script><script>
 const D=window.TEMPORAL,$=id=>document.getElementById(id);$('mode').textContent=D.manifest.temporal_mode+' — '+D.manifest.reference_uncertainty;$('failure').textContent=D.failure||'';
@@ -127,10 +134,18 @@ if(view)view.renderer.domElement.addEventListener('click',e=>{if(!cloud)return;l
 function showPoint(){let caption={title:'Original ID '+$('point').value+' / '+D.manifest.temporal_mode+' / '+(D.manifest.noise_assumption||'NO_ESTIMATION')};let records=D.point_traces?.[$('point').value]||[],selected=records.find(r=>r.frame==$('frame').value);$('pointstats').textContent=JSON.stringify(selected||{message:'No saved trace for this original ID/frame',available_original_ids:Object.keys(D.point_traces||{})},null,2);
 PD.chart($('pointposition'),['X','Y','Z'].map((name,i)=>({x:records.map(r=>r.frame),y:records.map(r=>r.state[i]),label:name+' world [m]',color:['#f4797d','#53dfad','#69a7ff'][i]})),caption);
 PD.chart($('pointspeed'),[{x:records.map(r=>r.frame),y:records.map(r=>Math.hypot(...r.state.slice(3))),label:'Estimated speed [m/s]; rejected updates explicit below',color:'#ffbd69'}],caption);
-PD.chart($('pointuncertainty'),['X','Y','Z'].map((name,i)=>({x:records.map(r=>r.frame),y:records.map(r=>r.position_std_m[i]),label:name+' conditional position std [m]',color:['#f4797d','#53dfad','#69a7ff'][i]})),caption)}$('point').onchange=showPoint;
+PD.chart($('pointuncertainty'),['X','Y','Z'].map((name,i)=>({x:records.map(r=>r.frame),y:records.map(r=>r.position_std_m[i]),label:name+' conditional position std [m]',color:['#f4797d','#53dfad','#69a7ff'][i]})),caption);
+let local=records.filter(r=>r.local_retained);$('localpanel').style.display=local.length||D.manifest.temporal_mode==='local-correlated'?'block':'none';
+if(local.length){const kinds=[['state','#53dfad'],['source_chart','#ffbd69'],['raw_sensor_error','#69a7ff']];
+PD.chart($('pointlocal'),kinds.map(([k,c])=>({x:local.map(r=>r.frame),y:local.map(r=>r.local_retained[k]),label:'retained '+k+' blocks',color:c})),caption);
+PD.chart($('pointlocalcross'),kinds.map(([k,c])=>({x:local.map(r=>r.frame),y:local.map(r=>r.local_cross_norm[k]>0?Math.log10(r.local_cross_norm[k]):NaN),label:'log10 ||Cov(s_t, '+k+')|| (posterior, before expiry)',color:c})),caption);
+$('pointlocalstatus').textContent=local.map(r=>'frame '+r.frame+': '+r.status).join('\n')}}$('point').onchange=showPoint;
 let play=null;$('play').onclick=()=>{if(play){clearInterval(play);play=null;return}play=setInterval(()=>{$('frame').selectedIndex=($('frame').selectedIndex+1)%Math.max(1,$('frame').options.length);show()},800)};show();
 const ctx=$('plot').getContext('2d'),H=D.history;const series=[['observed_points','#53dfad'],['assimilated_points','#69a7ff'],['prediction_only','#ffbd69'],['unexplained_foreground','#5ae1ff']];
 series.forEach(([key,col],j)=>{ctx.fillStyle=col;ctx.fillText(key==='prediction_only'&&D.manifest.temporal_mode==='full'?'no direct row (joint marginal)':key,20+j*350,20);let max=Math.max(1,...H.map(h=>h[key]||0));ctx.beginPath();ctx.strokeStyle=col;H.forEach((h,i)=>{let x=20+i*1360/Math.max(1,H.length-1),y=220-(h[key]||0)*180/max;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()});
 PD.chart($('motion'),[{x:H.map(h=>h.ordinal),y:H.map(h=>h.speed_median_m_s),label:'Median speed m/s',color:'#53dfad'},{x:H.map(h=>h.ordinal),y:H.map(h=>h.speed_p95_m_s),label:'p95 speed m/s',color:'#ffbd69'}]);
 PD.chart($('covariance'),[{x:H.map(h=>h.ordinal),y:H.map(h=>h.posterior_position_variance_median_m2>0?Math.log10(h.posterior_position_variance_median_m2):NaN),label:'log10 median position covariance eigenvalue [m²]',color:'#69cfff'}]);
+if(H.some(h=>h.local_memory))PD.chart($('localdims'),[{x:H.map(h=>h.ordinal),y:H.map(h=>h.local_memory?.local_dimension_quantiles_min_median_p95_p99_max?.[1]),label:'median retained local dimension',color:'#53dfad'},
+{x:H.map(h=>h.ordinal),y:H.map(h=>h.local_memory?.local_dimension_quantiles_min_median_p95_p99_max?.[2]),label:'p95 retained local dimension',color:'#ffbd69'},
+{x:H.map(h=>h.ordinal),y:H.map(h=>h.local_memory?.local_dimension_quantiles_min_median_p95_p99_max?.[4]),label:'max retained local dimension',color:'#f4797d'}]);
 </script></body></html>''')

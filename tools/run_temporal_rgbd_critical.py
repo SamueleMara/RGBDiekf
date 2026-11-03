@@ -34,7 +34,7 @@ def discover(root,names=None):
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--data-root',type=Path,default=DEFAULT_DATA);ap.add_argument('--output-root',type=Path,default=DEFAULT_OUT,help='parent directory; each invocation creates a unique temporal_rgbd_* child')
-    ap.add_argument('--mode',default='full,simplified',help='full, simplified, legacy, all, or comma-separated list')
+    ap.add_argument('--mode',default='full,simplified',help='full, simplified, local-correlated, material-following, legacy, all (= full,simplified,legacy), or comma-separated list')
     ap.add_argument('--stop-after',choices=['free','coherence','rigid','joint','support'],default='free',
                     help='free = temporal validation only (default); support = all existing stages, TEMPORAL_FREE_WITH_LEGACY_RIGID')
     ap.add_argument('--frame-limit',type=int);ap.add_argument('--direction',choices=['forward','backward','both'],default='both')
@@ -42,6 +42,10 @@ def main():
     ap.add_argument('--device',choices=['cpu','cuda'],default='cuda');ap.add_argument('--fps',type=float)
     ap.add_argument('--temporal-lag-frames',type=int,default=3);ap.add_argument('--temporal-component-workspace-mib',type=float,default=512)
     ap.add_argument('--temporal-runtime-budget-seconds',type=float)
+    ap.add_argument('--temporal-local-chunk-mib',type=float,default=512.,help='point-local GPU batching budget; forwarded only to local-correlated / material-following children')
+    ap.add_argument('--temporal-material-resampling',choices=['none','second-difference'],default='none',help='forwarded only to material-following children')
+    ap.add_argument('--temporal-material-pyramid-levels',type=int,default=0,help='forwarded only to material-following children (initializer only)')
+    ap.add_argument('--temporal-gradient-guide',choices=['off','diagnostic','replace'],default='off',help='forwarded only to material-following children')
     ap.add_argument('--terminate-grace-seconds',type=float,default=2.,help='operational process-group termination grace')
     ap.add_argument('--continue-on-error',action='store_true',help='explicitly continue after failed scene; default is fail-fast')
     ap.add_argument('--temporal-output-headroom-mib',type=float,default=128.)
@@ -53,7 +57,7 @@ def main():
     ap.add_argument('--sensor-noise',choices=['measured','config'],default='measured');ap.add_argument('--debug',choices=['light','full'],default='light')
     ap.add_argument('--dry-run',action='store_true',help='print exact commands and input errors without starting inference or creating outputs')
     a=ap.parse_args();modes=['full','simplified','legacy'] if a.mode=='all' else a.mode.split(',')
-    if not modes or any(m not in ('full','simplified','legacy') for m in modes):ap.error('invalid --mode')
+    if not modes or any(m not in ('full','simplified','local-correlated','material-following','legacy') for m in modes):ap.error('invalid --mode')
     modes=list(dict.fromkeys(modes))
     if a.focal_controls and 'legacy' in modes:ap.error('focal controls are temporal diagnostics only')
     if a.focal_controls and a.stop_after!='free':ap.error('focal controls require --stop-after free; reduced occlusion catalogues are not complete reconstruction inputs')
@@ -94,6 +98,9 @@ def main():
                 if a.temporal_warp_noise_config:cmd+=['--temporal-warp-noise-config',str(a.temporal_warp_noise_config.resolve())]
                 if a.temporal_runtime_budget_seconds:cmd+=['--temporal-runtime-budget-seconds',str(a.temporal_runtime_budget_seconds)]
                 cmd+=['--temporal-output-headroom-mib',str(a.temporal_output_headroom_mib)]
+                if mode in ('local-correlated','material-following'):cmd+=['--temporal-local-chunk-mib',str(a.temporal_local_chunk_mib)]
+                if mode=='material-following':cmd+=['--temporal-material-resampling',a.temporal_material_resampling,'--temporal-material-pyramid-levels',str(a.temporal_material_pyramid_levels),
+                                              '--temporal-gradient-guide',a.temporal_gradient_guide]
             else:cmd+=['--observation-model','legacy']
             if a.frame_limit:cmd+=['--frame-limit',str(a.frame_limit)]
             if a.fps:cmd+=['--fps',str(a.fps)]
