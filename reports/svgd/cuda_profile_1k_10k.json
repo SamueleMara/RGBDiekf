@@ -1,0 +1,79 @@
+{
+ "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+ "total_memory_bytes": 8444575744,
+ "precision": "float64, TF32 off",
+ "results": [
+  {
+   "workload": "synthetic_1000",
+   "N": 1000,
+   "M": 1000,
+   "target_score": {
+    "seconds": 0.11941683197021484,
+    "peak_allocated_bytes": 33455104,
+    "peak_reserved_bytes": 44040192,
+    "cpu_cuda_max_rel": 7.976336912142322e-15
+   },
+   "stein_field": {
+    "seconds": 0.013010944366455078,
+    "peak_allocated_bytes": 33263104,
+    "peak_reserved_bytes": 44040192
+   },
+   "rff_mean": {
+    "seconds": 0.0014039039611816405,
+    "peak_allocated_bytes": 33533440,
+    "peak_reserved_bytes": 44040192
+   },
+   "rff_jvp": {
+    "seconds": 0.0018523839712142945,
+    "peak_allocated_bytes": 41733632,
+    "peak_reserved_bytes": 65011712
+   },
+   "rff_vjp": {
+    "seconds": 0.0013506560325622558,
+    "peak_allocated_bytes": 33557504,
+    "peak_reserved_bytes": 65011712
+   },
+   "temporal_solve_10_frames": {
+    "seconds": 0.008451071739196778,
+    "peak_allocated_bytes": 14465536,
+    "peak_reserved_bytes": 69206016
+   }
+  },
+  {
+   "workload": "synthetic_10000",
+   "N": 10000,
+   "M": 10000,
+   "target_score": {
+    "seconds": 0.28581991577148436,
+    "peak_allocated_bytes": 464651776,
+    "peak_reserved_bytes": 480247808,
+    "cpu_cuda_max_rel": 1.142309822764381e-14
+   },
+   "stein_field": {
+    "seconds": 0.14675558471679687,
+    "peak_allocated_bytes": 550216704,
+    "peak_reserved_bytes": 1017118720
+   },
+   "rff_mean": {
+    "seconds": 0.012602368354797363,
+    "peak_allocated_bytes": 213535232,
+    "peak_reserved_bytes": 1017118720
+   },
+   "rff_jvp": {
+    "seconds": 0.007897088050842285,
+    "peak_allocated_bytes": 280652288,
+    "peak_reserved_bytes": 1017118720
+   },
+   "rff_vjp": {
+    "seconds": 0.008762368202209473,
+    "peak_allocated_bytes": 213775360,
+    "peak_reserved_bytes": 1017118720
+   },
+   "temporal_solve_10_frames": {
+    "seconds": 0.024399871826171874,
+    "peak_allocated_bytes": 68997632,
+    "peak_reserved_bytes": 1021313024
+   }
+  }
+ ]
+}

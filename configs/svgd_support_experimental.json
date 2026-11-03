@@ -1,0 +1,453 @@
+{
+ "schema_version": 1,
+ "implementation_commit": "see run_manifest.json git.commit",
+ "research_mode": "experimental",
+ "canonical": {
+  "frame0": {
+   "value": "first_selected_frame",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec 1.1: canonical catalogue from masked frame 0",
+   "deviation": "NONE"
+  },
+  "source_ids": {
+   "value": "endpoint_samples_order_camera_major_pixel_ascending",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "scene/endpoint.py endpoint_samples order",
+   "deviation": "NONE"
+  },
+  "subsampling_policy": {
+   "value": "none_full_masked_cloud",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec TF.5: inference points are never subsampled",
+   "deviation": "NONE"
+  },
+  "rgb_transfer": {
+   "value": "encoded_rgb_as_loaded_0_1",
+   "class": "declared-research-assumption",
+   "units": "rgb",
+   "provenance": "scene/dataloader RGB, same units as config.color_covariance",
+   "deviation": "NONE"
+  }
+ },
+ "observations": {
+  "strict_masks": {
+   "value": true,
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "scene.dataloader.exact_binary_mask",
+   "deviation": "NONE"
+  },
+  "provenance": {
+   "value": "frame_id,camera,pixel + camera centre",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "scene/pointcloud_sequence.py",
+   "deviation": "NONE"
+  },
+  "visibility_n_sigma": {
+   "value": 3.0,
+   "class": "declared-research-assumption",
+   "units": "sigma",
+   "provenance": "configs/projective_rgbd.json visibility_n_sigma (diagnostic classification only)",
+   "deviation": "NONE"
+  },
+  "camera_overlap_policy": {
+   "value": "uniform_sample_weights_diagnostic_baseline",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "PDF (8) baseline; biased under camera overlap (PDF 8.4)",
+   "deviation": "NONE"
+  },
+  "visibility_model": {
+   "value": "all_canonical_points_comparable",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "V_t = all (PDF 7.2 warns: can create false motion evidence)",
+   "deviation": "DEV-0001",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "unexplained_support_model": {
+   "value": "none",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "B_t omitted",
+   "deviation": "DEV-0006",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  }
+ },
+ "sensor": {
+  "depth_noise_source": {
+   "value": "scene/noise_calibration.temporal_sensor_noise (--sensor-noise measured)",
+   "class": "derived-from-measured-input",
+   "units": "m^2",
+   "provenance": "MAD of consecutive-frame differences",
+   "deviation": "NONE"
+  },
+  "rgb_noise_source": {
+   "value": "scene/noise_calibration.temporal_sensor_noise (--sensor-noise measured)",
+   "class": "derived-from-measured-input",
+   "units": "rgb^2",
+   "provenance": "per-channel MAD, diagonal",
+   "deviation": "NONE"
+  },
+  "temporal_correlation_policy": {
+   "value": null,
+   "class": "NOT_DEFINED_IN_THEORY",
+   "units": "-",
+   "calibration_path": "fit lag-k increment covariance on stationary intervals (scene/pointcloud_sequence.increment_noise_study reports lag-1)"
+  }
+ },
+ "reference": {
+  "shared_source_covariance": {
+   "value": "scene.endpoint.backproject first-order covariance, entered ONCE in P_i0",
+   "class": "derived-from-measured-input",
+   "units": "m^2",
+   "provenance": "spec C4",
+   "deviation": "NONE"
+  },
+  "color_reference_uncertainty": {
+   "value": "fixed_reference_pdf",
+   "class": "declared-research-assumption",
+   "units": "rgb^2",
+   "provenance": "TC-0001 resolved provisionally to the PDF form (11)",
+   "deviation": "TC-0001",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  }
+ },
+ "motion_prior": {
+  "process_model": {
+   "value": {
+    "method": "white_acceleration_repo_noise_config"
+   },
+   "class": "declared-research-assumption",
+   "units": "m^2/s^3",
+   "provenance": "scene/config.load_config qc (approved noise file); estimator/point_kalman_cuda transition/process_noise (spec 5.2: reuse)",
+   "deviation": "NONE"
+  },
+  "Q_provenance": {
+   "value": "scene/config.py provenance[qc]",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "documented-initial-guess of the approved noise file",
+   "deviation": "NONE"
+  },
+  "initial_P": {
+   "value": {
+    "position": "source_backprojection_covariance",
+    "velocity": "repo_noise_config_velocity_covariance"
+   },
+   "class": "declared-research-assumption",
+   "units": "m^2, m^2/s^2",
+   "provenance": "spec C4; scene/config velocity_covariance",
+   "deviation": "NONE"
+  },
+  "timestamp_policy": {
+   "value": "scene.timing actual acquisition times; MISSING_ACQUISITION_TIMING fails",
+   "class": "derived-from-measured-input",
+   "units": "s",
+   "provenance": "scene/timing.py",
+   "deviation": "NONE"
+  }
+ },
+ "stein_numerics": {
+  "optimizer": {
+   "value": "accept_if_common_objective_decreases",
+   "class": "numerical-error-budget",
+   "units": "-",
+   "provenance": "spec 4.2",
+   "deviation": "NONE"
+  },
+  "step_policy": {
+   "value": {
+    "initial": "N_lambda_over_kernel_mass",
+    "backtracking_factor": 0.5,
+    "max_backtracks": 20
+   },
+   "class": "numerical-error-budget",
+   "units": "m^2",
+   "provenance": "solver policy (spec TF.5), estimator/svgd_particle_operator.initial_step",
+   "deviation": "NONE"
+  },
+  "convergence": {
+   "value": {
+    "max_outer": 8,
+    "rel_tol": 1e-07,
+    "grad_certificate_tol": 1e-06,
+    "pcg_rtol": 1e-06,
+    "pcg_max_iter": 60
+   },
+   "class": "numerical-error-budget",
+   "units": "-",
+   "provenance": "operational caps; a cap is ITERATION_CAP, never convergence",
+   "deviation": "NONE"
+  },
+  "tail_error_budget": {
+   "value": 0.0,
+   "class": "numerical-error-budget",
+   "units": "nat",
+   "provenance": "exact tiled sums: no omitted tail",
+   "deviation": "NONE"
+  }
+ },
+ "seed_selection": {
+  "posterior_risk_alpha": {
+   "value": 0.01,
+   "class": "declared-research-assumption",
+   "units": "1",
+   "provenance": "configs/image_joint_policy.json tail_probability: a REQUESTED reliability level, not a calibrated threshold",
+   "deviation": "NONE"
+  },
+  "required_probability_semantics": {
+   "value": [
+    "APPROXIMATE_MODEL_POSTERIOR",
+    "EXACT_TINY_MODEL_POSTERIOR"
+   ],
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec 8.5",
+   "deviation": "NONE"
+  }
+ },
+ "compute": {
+  "device": {
+   "value": "cuda",
+   "class": "hardware-budget",
+   "units": "-",
+   "provenance": "--device",
+   "deviation": "NONE"
+  },
+  "workspaces": {
+   "value": "--svgd-workspace-mib",
+   "class": "hardware-budget",
+   "units": "MiB",
+   "provenance": "operator tile budget",
+   "deviation": "NONE"
+  },
+  "backend": {
+   "value": "torch",
+   "class": "hardware-budget",
+   "units": "-",
+   "provenance": "triton not implemented",
+   "deviation": "NONE"
+  },
+  "precision": {
+   "value": "float64, TF32 disabled",
+   "class": "numerical-error-budget",
+   "units": "-",
+   "provenance": "spec 9.2",
+   "deviation": "NONE"
+  }
+ },
+ "outputs": {
+  "trace_ids": {
+   "value": "--debug-point-ids or 8 evenly spaced original IDs",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "display only",
+   "deviation": "NONE"
+  },
+  "display_subsampling_only": {
+   "value": true,
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "viewer decimation never touches inference",
+   "deviation": "NONE"
+  },
+  "save_internal_trajectories": {
+   "value": true,
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "transport_provisional.npy INTERNAL_NOT_FINAL_TRACKS",
+   "deviation": "NONE"
+  }
+ },
+ "target_density": {
+  "Lambda_X": {
+   "value": {
+    "method": "measured_noise_plus_nn_sampling_scale"
+   },
+   "class": "declared-research-assumption",
+   "units": "m^2",
+   "provenance": "Codex proposal: Lambda_X_j = Sigma_j (measured back-projection covariance) + s_t^2 I, s_t = median exact nearest-sample distance of frame t",
+   "deviation": "DEV-0003",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "Lambda_C": {
+   "value": {
+    "method": "measured_noise_plus_nn_sampling_scale"
+   },
+   "class": "declared-research-assumption",
+   "units": "rgb^2",
+   "provenance": "Codex proposal: Lambda_C = R_C + diag(1/2 median (d_j - d_nn(j))^2) over spatial nearest samples",
+   "deviation": "DEV-0003",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "representation_scale_method": {
+   "value": "measured_noise_plus_nn_sampling_scale",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "DEV-0003",
+   "deviation": "DEV-0003",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "source_weights": {
+   "value": "uniform_1_over_M",
+   "class": "declared-research-assumption",
+   "units": "1",
+   "provenance": "PDF (8): 1/M_t selected by the theory",
+   "deviation": "NONE"
+  }
+ },
+ "stein": {
+  "H_X": {
+   "value": {
+    "method": "liu_wang_median_heuristic_per_block"
+   },
+   "class": "declared-research-assumption",
+   "units": "m^2",
+   "provenance": "H = med^2/(2 log N) I per block (reference svgd.py median heuristic)",
+   "deviation": "DEV-0004",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "H_C": {
+   "value": {
+    "method": "liu_wang_median_heuristic_per_block"
+   },
+   "class": "declared-research-assumption",
+   "units": "rgb^2",
+   "provenance": "as H_X on reference colours",
+   "deviation": "DEV-0004",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "attraction_enabled": {
+   "value": true,
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec 4.1",
+   "deviation": "NONE"
+  },
+  "repulsion_enabled": {
+   "value": true,
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec 4.1",
+   "deviation": "NONE"
+  },
+  "kernel_color_enabled": {
+   "value": true,
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec 4.1",
+   "deviation": "NONE"
+  },
+  "stein_enabled": {
+   "value": true,
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec 4.1 (off = MMD-only motion)",
+   "deviation": "NONE"
+  }
+ },
+ "features": {
+  "feature_method": {
+   "value": "rff_declared_finite_map",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec 5.1 item 2; TF.5 exception (finite map is the model psi)",
+   "deviation": "NONE"
+  },
+  "xyz_rgb_kernel_B": {
+   "value": {
+    "method": "equal_stein_bandwidth"
+   },
+   "class": "declared-research-assumption",
+   "units": "m^2, rgb^2",
+   "provenance": "Codex proposal: B_X = H_X, B_C = H_C",
+   "deviation": "DEV-0005",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "D": {
+   "value": 1024,
+   "class": "declared-research-assumption",
+   "units": "1",
+   "provenance": "Codex proposal: finite feature dimension of the declared model",
+   "deviation": "DEV-0005",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "fixed_seed": {
+   "value": 20261103,
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec 5.1: drawn once, hashed",
+   "deviation": "NONE"
+  },
+  "Gamma_model": {
+   "value": {
+    "method": "iid_sampling_covariance_frozen_at_initialization"
+   },
+   "class": "declared-research-assumption",
+   "units": "feature^2",
+   "provenance": "Gamma_t = C_Q/M_t + C_P/N at the stationary init (independent i.i.d. sampling; ignores ray/camera/time correlation)",
+   "deviation": "DEV-0002",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  }
+ },
+ "rigid_graph": {
+  "edge_proposal_method": {
+   "value": {
+    "method": "exact_knn_reference_xyz",
+    "k": 8
+   },
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "hypothesis generator; k = configs/pointwise_association.json neighbors",
+   "deviation": "NONE"
+  },
+  "covariance_approximation": {
+   "value": "shared_reference_exact_independent_time_marginals_prior_propagated",
+   "class": "declared-research-assumption",
+   "units": "m^2",
+   "provenance": "DEV-0007",
+   "deviation": "DEV-0007",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "Omega_model": {
+   "value": 0.0,
+   "class": "declared-research-assumption",
+   "units": "m^2",
+   "provenance": "no rigidity-model discrepancy",
+   "deviation": "DEV-0010",
+   "authorization": "PROPOSED_NOT_AUTHORIZED"
+  },
+  "support_prior": {
+   "value": null,
+   "class": "NOT_DEFINED_IN_THEORY",
+   "units": "-",
+   "calibration_path": "declare a normalized prior over coherent supports p(m, Z) (PDF (29), 9.4)"
+  }
+ },
+ "model_evidence": {
+  "method": {
+   "value": null,
+   "class": "NOT_DEFINED_IN_THEORY",
+   "units": "-",
+   "calibration_path": "choose exact_tiny | laplace | structured_variational with validated approximation error (spec 8.1, Gate 6)"
+  },
+  "priors": {
+   "value": null,
+   "class": "NOT_DEFINED_IN_THEORY",
+   "units": "-",
+   "calibration_path": "declare pi_S and the moving-motion nuisance prior (PDF (33)-(34))"
+  },
+  "failure_policy": {
+   "value": "no_probability_files_on_failure",
+   "class": "declared-research-assumption",
+   "units": "-",
+   "provenance": "spec 10.3",
+   "deviation": "NONE"
+  }
+ }
+}

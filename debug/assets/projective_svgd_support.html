@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SVGD support 3D</title>
+<link rel="stylesheet" href="projective_theme.css">
+<style>#banners .b{padding:3px 6px;margin:3px 0;border-radius:4px;background:#21262d;font-size:11px}#banners .b.bad{border-left:3px solid var(--bad)}#banners .b.warn{border-left:3px solid var(--warn)}
+#hud b.unc{color:var(--bad)} .vec{font-size:11px;color:var(--dim);margin:2px 0}</style>
+<script src="three.min.js"></script><script src="projective_common.js"></script></head>
+<body class="app"><div id="app">
+<div id="view"><div id="hud"></div>
+ <div id="bar"><button id="play">play</button><button id="first">|&lt;</button><button id="prev">&lt;</button><button id="next">&gt;</button>
+  <input id="frame" type="range" min="0" value="0" step="1"><span id="flabel"></span>
+  <label class="inline">speed × real time <select id="speed"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option></select></label></div></div>
+<div id="side" class="wide">
+ <h1>SVGD moving support — 3D (<span id="level"></span>)</h1><div id="errors"></div><div id="banners"></div>
+ <h2>This frame</h2><div id="counts"></div>
+ <h2>Show</h2><div id="toggles"></div>
+ <h2>Cameras</h2><div id="cams"></div>
+ <label>view from <select id="viewfrom" style="flex:1"><option value="-1">free orbit</option></select></label>
+ <label>point size <input id="psize" type="range" min="0.3" max="3" step="0.1" value="1" style="flex:1"></label>
+ <label>canonical <select id="cmode"><option value="gray">stationary gray</option><option value="rgb">measured RGB (frame 0)</option></select></label>
+ <label>observed <select id="omode"><option value="rgb">measured RGB</option><option value="cam">camera</option></select></label>
+ <h2>Transported colour</h2><select id="mode"></select><div id="legend" style="margin-top:6px"></div><div id="lsem" class="note"></div>
+ <h2>Rigidity candidate edges</h2><div class="note" id="enote"></div><select id="emode"><option value="strain">max |strain| (m)</option><option value="chi2">rigid χ²/dof</option>
+  <option value="bound">boundary disagreement |Δ layer|</option><option value="rho">rho (same-rigid posterior)</option></select><div id="elegend"></div>
+ <h2>Traced vectors</h2><div class="note" id="vnote"></div>
+ <label>outer iteration <select id="iter"></select></label>
+ <label>field scale <input id="vscale" type="range" min="-2" max="2" step="0.1" value="0" style="flex:1"></label><label>step × <select id="sscale"><option>1</option><option selected>10</option><option>100</option><option>1000</option></select></label>
+ <div id="vexpl"></div>
+ <h2>Selected original ID</h2><input id="pid" type="text" size="9" placeholder="original id"> <a id="nlink" href="svgd_support_numerical.html">numerical trace</a>
+ <div id="info" class="note">click a point (transported or canonical), pick a traced ID, or enter an ID</div><div id="tids" class="note"></div>
+</div></div>
+<script>
+const state = {ready: false, frame: 0, drawn_frame: null, selected: null}; window.__state = state;
+let M, V, TR, TJ, ids, idx = new Map(), CAN, CRGB, SRC, SIG, SC = null, PDY = null, PST = null, PS = null, EDG = null, cache = {}, obj = {}, cur = null, want = null;
+const $ = id => document.getElementById(id), f64 = b => new Float64Array(PD.u8(b).buffer);
+const PAL = ['#58a6ff', '#3fb950', '#f0883e', '#f85149', '#a371f7', '#e3b341', '#39c5cf', '#db61a2', '#8b949e', '#56d364', '#ff7b72', '#d2a8ff'];
+const show = {canonical: true, observed: true, transported: true, seeds: true, seedtrail: true, edges: false, attraction: true, repulsion: true, stein_total: false, step: true, unsupported: false, frusta: true, seltrail: true};
+const TOG = [['canonical', 'canonical P0 (frame 0, never moved)', '#565e69'], ['observed', 'observed masked cloud at this frame (discs)', '#c9d1d9'],
+  ['transported', 'transported provisional cloud (squares, INTERNAL_NOT_FINAL_TRACKS)', PD.C.est], ['seeds', 'reliable moving seeds (white, large)', '#ffffff'],
+  ['seedtrail', 'seed provisional trajectories (all frames)', '#f06595'], ['edges', 'rigidity candidate edges (hypotheses)', '#e3b341'],
+  ['attraction', 'target attraction (traced)', '#3fb950'], ['repulsion', 'Stein repulsion (traced)', '#f0883e'], ['stein_total', 'Stein total (traced)', '#e6edf3'],
+  ['step', 'accepted step (traced)', '#db61a2'], ['unsupported', 'occluded / unsupported / not evaluated particles (reason colours)', '#f85149'],
+  ['frusta', 'calibrated camera frusta', PD.C.cam], ['seltrail', 'selected ID trajectory', '#ffd33d']];
+const TSC = {0: '#3fb950', 1: '#a371f7', 2: '#f85149', 3: '#6e7681'};
+const camOn = [];
+const frameKey = k => `svgd_support_f${String(k).padStart(4, '0')}`;
+const frameData = k => cache[k] || (cache[k] = PD.load(frameKey(k)).then(F => { F._T = F.transported ? PD.f32(F.transported) : null; F._V = F.velocity ? PD.f32(F.velocity) : null;
+  F._S = F.transport_status ? PD.u8(F.transport_status) : null; const o = F.observed; o._x = PD.f32(o.xyz); o._c = PD.u8(o.rgb); o._k = PD.u8(o.camera); o._p = PD.i32(o.pixel); return F; }));
+const sz = f => V.state.radius*f*(+$('psize').value);
+const hexn = c => parseInt(c.slice(1), 16);
+function put(name, o) { if (obj[name]) { V.scene.remove(obj[name]); obj[name].traverse(x => { x.geometry && x.geometry.dispose(); x.material && x.material.dispose(); }); } obj[name] = o || null; if (o) V.scene.add(o); }
+function squares(pos, col, size) { const p = PD.points(pos, col, size); p.material.map = null; p.material.alphaTest = 0; p.material.needsUpdate = true; return p; }
+function layerVals(mode) {        // value per displayed point of the active pseudo-colour layer (NaN = unresolved / no evidence)
+  const n = ids.length, v = new Float64Array(n);
+  for (let j = 0; j < n; j++) v[j] = mode === 'score' ? SC[j] : (PST && PST[j] !== 0) ? NaN : PDY[j];
+  return v;
+}
+function colourOf(v, L) { return Number.isFinite(v) ? PD.viridis((v-L.lo)/Math.max(L.hi-L.lo, 1e-300)) : PD.hex3(M.nan_colour); }
+function transportedColours(F) {
+  const mode = $('mode').value, n = ids.length, out = new Float32Array(3*n), Lg = $('legend'); let vals = null;
+  if (mode === 'score' || mode === 'prob') { const L = M.layers[mode]; vals = layerVals(mode); for (let j = 0; j < n; j++) out.set(colourOf(vals[j], L), 3*j);
+    PD.colorbar(Lg, PD.viridis, L.lo_label, L.hi_label);
+    Lg.insertAdjacentHTML('afterbegin', `<div id="lname"><b>${L.name}</b></div>`);
+    Lg.insertAdjacentHTML('beforeend', `<div class="legend"><span><span class="sw" id="nansw" style="background:${M.nan_colour}"></span><span id="nanlab">${L.nan_label}</span></span></div>`);
+    $('lsem').textContent = 'semantics: '+L.semantics;
+    const nn = vals.filter(x => !Number.isFinite(x)).length;
+    state.legend = {mode, name: L.name, lo_label: L.lo_label, hi_label: L.hi_label, nan_label: L.nan_label, nan_colour: M.nan_colour, nan_count: nn,
+      colour_lo: colourOf(L.lo, L), colour_hi: colourOf(L.hi, L), colour_nan: colourOf(NaN, L),
+      dom_lo: Lg.querySelector('.cbar-l span:first-child').textContent, dom_hi: Lg.querySelector('.cbar-l span:last-child').textContent, dom_nan: $('nanlab').textContent,
+      dom_nan_bg: getComputedStyle($('nansw')).backgroundColor}; }
+  else { state.legend = {mode};
+    if (mode === 'ref') { for (let j = 0; j < n; j++) out.set([CRGB[3*j]/255, CRGB[3*j+1]/255, CRGB[3*j+2]/255], 3*j); PD.legend(Lg, [['#888', 'reference RGB (frame-0 measured colour of the same original ID)']]); }
+    else if (mode === 'pstatus') { const codes = M.probability_status_codes; for (let j = 0; j < n; j++) out.set(PD.hex3(PAL[PST[j] % PAL.length]), 3*j);
+      PD.legend(Lg, Object.entries(codes).map(([c, t]) => [PAL[+c % PAL.length], `${c} ${t}`])); }
+    else if (mode === 'tstatus' && F._S) { for (let j = 0; j < n; j++) out.set(PD.hex3(TSC[F._S[j]] || '#ffffff'), 3*j);
+      PD.legend(Lg, Object.entries(M.transport_status_codes.point || {}).map(([c, t]) => [TSC[c], `${c} ${t}`])); }
+    else { const c = PD.hex3(PD.C.est); for (let j = 0; j < n; j++) out.set(c, 3*j); PD.legend(Lg, [[PD.C.est, 'transported provisional position']]); }
+    $('lsem').textContent = ''; }
+  state.layer_values = vals; return out;
+}
+function edgeDraw(P) {
+  if (!EDG || !show.edges) { put('edges', null); return; }
+  const em = $('emode').value, E = EDG.pairs.length/2, seg = [], col = [], lv = M.layers.prob ? layerVals('prob') : SC ? layerVals('score') : null;
+  const Lx = M.layers.prob || M.layers.score; let hi = em === 'strain' ? M.edges.strain_hi_m : em === 'chi2' ? 5 : em === 'bound' ? (Lx ? Lx.hi-Lx.lo : 1) : 1;
+  for (let e = 0; e < E; e++) { const a = idx.get(EDG.pairs[2*e]), b = idx.get(EDG.pairs[2*e+1]); if (a === undefined || b === undefined) continue;
+    seg.push(P[3*a], P[3*a+1], P[3*a+2], P[3*b], P[3*b+1], P[3*b+2]);
+    const v = em === 'strain' ? EDG.strain[e] : em === 'chi2' ? EDG.chi2[e] : em === 'rho' ? EDG.rho[e] : (lv ? Math.abs(lv[a]-lv[b]) : NaN);
+    const c = Number.isFinite(v) ? PD.viridis(v/hi) : PD.hex3(M.nan_colour); col.push(...c, ...c); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(seg), 3)); g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3));
+  put('edges', new THREE.LineSegments(g, new THREE.LineBasicMaterial({vertexColors: true, transparent: true, opacity: .7})));
+  const lab = {strain: ['0 m', `${hi.toExponential(2)} m (q98)`], chi2: ['0', '≥5'], bound: ['0 (agree)', `${hi.toPrecision(3)} (disagree)`], rho: ['0', '1']}[em];
+  PD.colorbar($('elegend'), PD.viridis, ...lab); if (em === 'rho') $('elegend').insertAdjacentHTML('beforeend', `<div class="note"><span class="sw" style="background:${M.nan_colour}"></span>NaN = ${M.edges.rho_status || 'not available'}</div>`);
+}
+function traj(id) { const t = TJ.ids.indexOf(id); if (t < 0) return null; const out = []; for (let k = 0; k < M.K; k++) out.push([0, 1, 2].map(a => TJ._x[(t*M.K+k)*3+a])); return out; }
+function trailSeg(list) { const seg = []; for (const tr of list) for (let k = 1; k < tr.length; k++) if (tr[k].every(Number.isFinite) && tr[k-1].every(Number.isFinite)) seg.push(...tr[k-1], ...tr[k]); return seg; }
+function vectors(k, P) {
+  const it = +$('iter').value, scale = Math.pow(10, +$('vscale').value)*V.state.radius*.15/Math.max(TR._med || 1e-9, 1e-12), ss = +$('sscale').value, seg = {attraction: [], repulsion: [], stein_total: [], step: []};
+  for (const id of M.traced_ids) { const t = TR.traces[id]; if (!t) continue; const I = t.iterations.find(x => x.outer === it) || t.iterations[t.iterations.length-1]; if (!I) continue;
+    const f = I.frames.find(x => x.frame === k); if (!f) continue; const o = f.x;
+    for (const key of ['attraction', 'repulsion', 'stein_total']) if (f[key]) seg[key].push(...o, ...o.map((v, a) => v+scale*f[key][a]));
+    const d = I.accepted_delta_xyz && I.accepted_delta_xyz[k]; if (d) seg.step.push(...o, ...o.map((v, a) => v+ss*d[a])); }
+  for (const key of Object.keys(seg)) put('v_'+key, show[key] && seg[key].length ? PD.lines(seg[key], hexn({attraction: '#3fb950', repulsion: '#f0883e', stein_total: '#e6edf3', step: '#db61a2'}[key]), .95) : null);
+  state.vectors = Object.fromEntries(Object.entries(seg).map(([a, b]) => [a, b.length/6]));
+}
+function drawFrame(F) {
+  const k = F.k, n = ids.length, o = F.observed;
+  if (!F.complete || (F._T && F._T.length !== 3*n) || o._x.length !== 3*o.M_display) { state.frame_complete = false; $('errors').textContent = `frame ${k} payload incomplete: not drawn`; return; }
+  const P = F._T || CAN;                                              // canonical stands in only where no transport exists (labelled)
+  put('canonical', show.canonical ? PD.points(CAN, $('cmode').value === 'rgb' ? Float32Array.from(CRGB, v => v/255) : '#565e69', sz(.022)) : null);
+  const pos = [], col = [], byc = $('omode').value === 'cam', seen = new Set();
+  for (let i = 0; i < o.M_display; i++) { const c = o._k[i]; if (!camOn[c]) continue; seen.add(c); pos.push(o._x[3*i], o._x[3*i+1], o._x[3*i+2]);
+    if (byc) col.push(...PD.hex3(PAL[c % PAL.length])); else col.push(o._c[3*i]/255, o._c[3*i+1]/255, o._c[3*i+2]/255); }
+  put('observed', show.observed && pos.length ? PD.points(pos, col, sz(.02)) : null);
+  const tc = transportedColours(F); state.layer_colors = tc;
+  put('transported', show.transported && F._T ? squares(F._T, tc, sz(.018)) : null);
+  const sp = [], st = []; if (M.seeds) for (const id of M.seeds.ids) { const j = idx.get(id); if (j !== undefined) sp.push(P[3*j], P[3*j+1], P[3*j+2]); }
+  put('seeds', show.seeds && sp.length ? PD.points(sp, '#ffffff', sz(.05)) : null);
+  put('seedtrail', show.seedtrail && M.seeds ? (s => s.length ? PD.lines(s, 0xf06595, .8) : null)(trailSeg(M.seeds.ids.map(traj).filter(Boolean))) : null);
+  const us = [], uc = []; if (F._S && show.unsupported) for (let j = 0; j < n; j++) if (F._S[j] !== 0) { us.push(P[3*j], P[3*j+1], P[3*j+2]); uc.push(...PD.hex3(TSC[F._S[j]] || '#fff')); }
+  put('unsupported', us.length ? PD.points(us, uc, sz(.035)) : null);
+  edgeDraw(P); vectors(k, P);
+  if (obj.frusta) obj.frusta.visible = show.frusta;
+  const sel = state.selected, sj = sel === null ? undefined : idx.get(sel);
+  put('selmk', sj !== undefined ? PD.points([P[3*sj], P[3*sj+1], P[3*sj+2]], '#ffd33d', sz(.07)) : null);
+  put('seltrail', sj !== undefined && show.seltrail && traj(sel) ? (s => s.length ? PD.lines(s, 0xffd33d, 1) : null)(trailSeg([traj(sel)])) : null);
+  // HUD and counts: exact run counts next to the displayed subset counts
+  const t = M.times_s[k], unc = !F.committed;
+  $('hud').innerHTML = `frame ${k} (original ${F.frame_id}) · t = <span id="tsec">${t.toFixed(4)}</span> s` + (unc ? ' · <b class="unc">FRAME_UNCOMMITTED</b>' : '') + (F._T ? '' : ' · <b class="unc">NO TRANSPORT (canonical positions)</b>');
+  $('flabel').textContent = `t ${t.toFixed(4)} s · frame ${k} · ${M.frames.indexOf(k)+1}/${M.frames.length} displayed`;
+  const sc = F.status_counts_full || {};
+  PD.rows($('counts'), [['N_full (canonical particles)', M.N], ['N_display (same IDs every frame)', n], ['M_t (observed masked samples, exact)', o.M_t],
+    ['M_display (pixel lattice step '+o.lattice_step+')', o.M_display], ['observed shown (camera toggles)', pos.length/3], ['frame status', F.frame_status],
+    ...Object.entries(sc).map(([a, b]) => [`particles ${a} (all N)`, b]),
+    ['observed cloud = run cloud (sha256)', o.matches_run_cloud === null ? 'not recorded' : o.matches_run_cloud ? 'yes' : '<span class="bad">NO</span>'],
+    ...o.per_camera.map(c => [`${M.cameras[c.camera].name} M / shown`, `${c.M} / ${c.M_display}`]),
+    ...(F.counts.length ? [['observed samples without supported particle', F.counts.map(r => r.observed_samples_without_supported_particle ?? '–').join(' / ')]] : [])]);
+  state.frame = k; state.drawn_frame = k; state.frame_complete = true; state.transported = F._T; state.observed_shown = pos.length/3; state.observed_cams_shown = [...seen].sort();
+  state.time_s = t; state.committed = F.committed;
+  info(F);
+  history.replaceState(null, '', `#frame=${k}` + (state.selected !== null ? `&id=${state.selected}` : ''));
+}
+function info(F) {
+  const id = state.selected, el = $('info'); if (id === null) return; const j = idx.get(id), f = v => Number.isFinite(v) ? v.toFixed(5) : 'NaN';
+  $('nlink').href = `svgd_support_numerical.html#id=${id}`;
+  if (j === undefined) { el.textContent = `original ID ${id} is not in the displayed subset (N_display ${ids.length} of ${M.N}); see the numerical page`; state.selected_info = {id, displayed: false}; return; }
+  const k = F.k, x = F._T ? [0, 1, 2].map(a => F._T[3*j+a]) : null, x0 = [0, 1, 2].map(a => CAN[3*j+a]), v = F._V ? [0, 1, 2].map(a => F._V[3*j+a]) : null;
+  const src = [SRC[3*j], SRC[3*j+1], SRC[3*j+2]], cam = M.cameras[src[1]], W = cam ? cam.width : 1;
+  const ts = F._S ? F._S[j] : null, ps = PST ? PST[j] : null, tn = ts === null ? '–' : (M.transport_status_codes.point || {})[ts] || ts;
+  const edges = []; if (EDG) for (let e = 0; e < EDG.pairs.length/2; e++) { const a = EDG.pairs[2*e], b = EDG.pairs[2*e+1]; if (a !== id && b !== id) continue;
+    const o_ = a === id ? b : a, jo = idx.get(o_), P = F._T || CAN; const dnow = Math.hypot(...[0, 1, 2].map(q => P[3*j+q]-P[3*jo+q]));
+    edges.push(`${o_}: d0 ${EDG.ref[e].toFixed(4)} m, now ${dnow.toFixed(4)} m, max|strain| ${EDG.strain[e].toExponential(2)} m, χ²/dof ${EDG.chi2[e].toFixed(2)}, ρ ${Number.isFinite(EDG.rho[e]) ? EDG.rho[e].toFixed(3) : 'BLOCKED'}`); }
+  PD.rows(el, [['original ID', id + (M.traced_ids.includes(id) ? ' (traced)' : '') + (M.seeds && M.seeds.ids.includes(id) ? ' (seed)' : '')],
+    ['source (frame id, camera, pixel)', `${src[0]}, ${cam ? cam.name : src[1]}, ${src[2]} (u ${src[2] % W}, v ${Math.floor(src[2]/W)})`],
+    ['canonical x0 (m)', x0.map(f).join(', ')], ['σ0 x,y,z (mm)', [0, 1, 2].map(a => SIG[3*j+a].toFixed(3)).join(', ')],
+    ['reference RGB', [0, 1, 2].map(a => CRGB[3*j+a]).join(', ')], [`x(t) provisional, frame ${k}`, x ? x.map(f).join(', ') : 'no transport'],
+    ['|x(t) − x0| (m)', x ? Math.hypot(...x.map((a, q) => a-x0[q])).toFixed(5) : '–'], ['v(t) provisional (m/s)', v ? v.map(a => a.toFixed(4)).join(', ') : '–'],
+    ['transport status', tn], ['motion evidence score (UNCALIBRATED, m)', SC ? String(SC[j]) : 'not written'],
+    ['probability status', ps === null ? 'not written' : `${ps} ${M.probability_status_codes[ps] || ''}`],
+    ['p_dynamic / p_static', PDY ? `${PDY[j]} / ${PS ? PS[j] : '–'}` : 'not published (PROBABILITY_NOT_YET_ESTABLISHED)'],
+    ['trajectory', traj(id) ? 'all frames (provisional, not a rigid-motion fit)' : 'current frame only'], ['candidate edges (displayed)', edges.length]]);
+  if (edges.length) el.insertAdjacentHTML('beforeend', '<pre>'+edges.slice(0, 12).join('\n')+(edges.length > 12 ? `\n… ${edges.length-12} more` : '')+'</pre>');
+  state.selected_info = {id, displayed: true, frame: k, motion_score: SC ? SC[j] : null, probability_status: ps, source: src, transport_status: ts, xyz: x,
+    p_dynamic: PDY ? PDY[j] : null, edges: edges.length};
+}
+async function go(k) {
+  want = k; const F = await frameData(k); if (want !== k) return;          // a newer request supersedes: never draw a stale or partial frame
+  cur = F; drawFrame(F); const i = M.frames.indexOf(k); if (i+1 < M.frames.length) frameData(M.frames[i+1]);
+}
+const redraw = () => cur && drawFrame(cur);
+function select(id) { state.selected = Number.isFinite(id) ? id : null; $('pid').value = state.selected ?? ''; redraw(); }
+function pick(ev) {
+  if (!cur) return; const P = cur._T || CAN, rect = V.renderer.domElement.getBoundingClientRect(), v = new THREE.Vector3(); let best = null, bd = 100;
+  for (let j = 0; j < ids.length; j++) { v.set(P[3*j], P[3*j+1], P[3*j+2]).project(V.camera); if (v.z > 1) continue;
+    const d = ((v.x+1)/2*rect.width-(ev.clientX-rect.left))**2+((1-v.y)/2*rect.height-(ev.clientY-rect.top))**2; if (d < bd) { bd = d; best = ids[j]; } }
+  if (best !== null) select(best);
+}
+state.screen_of = id => { const j = idx.get(id), P = (cur && cur._T) || CAN, r = V.renderer.domElement.getBoundingClientRect(); if (j === undefined) return null;
+  const v = new THREE.Vector3(P[3*j], P[3*j+1], P[3*j+2]).project(V.camera); return {x: r.left+(v.x+1)/2*r.width, y: r.top+(1-v.y)/2*r.height}; };
+(async () => {
+  const gl = document.createElement('canvas'); if (!(gl.getContext('webgl2') || gl.getContext('webgl'))) { state.error = 'NO_WEBGL'; state.webgl = false; $('errors').textContent = 'NO_WEBGL: this browser has no WebGL; the 3D view cannot be drawn'; return; }
+  state.webgl = true;
+  M = await PD.load('svgd_support_meta'); [TR, TJ] = await Promise.all([PD.load('svgd_support_traces'), PD.load('svgd_support_traj')]);
+  TJ._x = PD.f32(TJ.xyz); ids = Array.from(PD.i32(M.display_ids)); ids.forEach((id, j) => idx.set(id, j));
+  CAN = PD.f32(M.canonical_xyz); CRGB = PD.u8(M.canonical_rgb); SRC = PD.i32(M.source); SIG = PD.f32(M.sigma0_mm);
+  if (M.motion_score) SC = f64(M.motion_score); if (M.p_dynamic) PDY = f64(M.p_dynamic); if (M.p_static) PS = f64(M.p_static); if (M.probability_status) PST = PD.u8(M.probability_status);
+  if (M.edges) EDG = {pairs: PD.i32(M.edges.pairs), ref: PD.f32(M.edges.reference_distance_m), strain: f64(M.edges.max_abs_strain_m), chi2: f64(M.edges.chi2_per_dof), rho: f64(M.edges.rho)};
+  state.display_ids = ids; state.canonical = CAN; state.meta = {N: M.N, N_display: ids.length, K: M.K, frames: M.frames};
+  $('level').textContent = `${M.level}, ${M.frames.length}/${M.K} frames`;
+  $('banners').innerHTML = M.banners.map(b => `<div class="b ${b.level}"><b>${b.code}</b> ${b.text}</div>`).join('');
+  const mode = $('mode'); if (M.layers.prob) mode.add(new Option(M.layers.prob.name, 'prob')); if (M.layers.score) mode.add(new Option(M.layers.score.name, 'score'));
+  [['ref', 'reference RGB (same ID)'], ['tstatus', 'transport status this frame'], ['pstatus', 'probability status'], ['single', 'single colour']].forEach(([v, t]) => { if (v !== 'pstatus' || PST) mode.add(new Option(t, v)); });
+  const tg = $('toggles'); TOG.forEach(([key, text, col]) => { if ((key === 'seeds' || key === 'seedtrail') && !M.seeds) return; if (key === 'edges' && !M.edges) return;
+    tg.insertAdjacentHTML('beforeend', `<label><input type="checkbox" data-k="${key}" ${show[key] ? 'checked' : ''}><span class="sw" style="background:${col}"></span>${text}</label>`); });
+  tg.querySelectorAll('input').forEach(e => e.onchange = () => { show[e.dataset.k] = e.checked; redraw(); });
+  $('enote').textContent = M.edges ? `${M.edges.label}. ${M.edges.E_display} of ${M.edges.E_full} edges drawn (both ends displayed). ${M.edges.semantics}. rho: ${M.edges.rho_status || 'present'}` : 'support_edges.npz not written';
+  const its = new Set(); M.traced_ids.forEach(id => (TR.traces[id] || {iterations: []}).iterations.forEach(I => its.add(I.outer)));
+  [...its].sort((a, b) => a-b).forEach(o => $('iter').add(new Option(o, o))); $('iter').value = [...its].pop() ?? '';
+  const mags = []; M.traced_ids.forEach(id => (TR.traces[id] || {iterations: []}).iterations.forEach(I => I.frames.forEach(f => ['attraction', 'repulsion'].forEach(a => f[a] && mags.push(Math.hypot(...f[a]))))));
+  mags.sort((a, b) => a-b); TR._med = mags.length ? mags[Math.floor(mags.length/2)] : 1;
+  $('vnote').textContent = `${M.traced_ids.length} traced IDs only (explicit small subset; vectors are never drawn for every particle). Field arrows: median |attraction, repulsion| = 15% of the scene radius × 10^slider. Arrows start at the particle position x where the field was evaluated in that outer iteration.`;
+  $('vexpl').innerHTML = Object.entries(TR.vectors).map(([a, b]) => `<div class="vec"><b>${a}</b>: ${b}</div>`).join('');
+  $('tids').innerHTML = 'traced: ' + M.traced_ids.map(i => `<a href="#" data-id="${i}">${i}</a>`).join(' ') + (M.seeds ? ` · seeds ${M.seeds.ids.length}` : '');
+  $('tids').querySelectorAll('a').forEach(a => a.onclick = e => { e.preventDefault(); select(+a.dataset.id); });
+  V = PD.viewer($('view'));
+  $('cams').innerHTML = M.cameras.map((c, i) => { camOn[i] = true; return `<label class="inline"><input type="checkbox" data-c="${i}" checked><span class="sw" style="background:${PAL[i % PAL.length]}"></span>${c.name}</label>`; }).join('');
+  $('cams').querySelectorAll('input').forEach(e => e.onchange = () => { camOn[+e.dataset.c] = e.checked; redraw(); });
+  V.fit(CAN); const st = V.state, far = Math.max(...M.cameras.map(c => Math.hypot(c.T_wc[0][3]-st.target.x, c.T_wc[1][3]-st.target.y, c.T_wc[2][3]-st.target.z)));
+  const fr = new THREE.Group(); M.cameras.forEach(c => fr.add(PD.frustum(c, Math.min(.25*far, 3*st.radius)))); V.scene.add(fr); obj.frusta = fr;   // initial view encloses every camera centre
+  if (1.4*far > st.r) { st.r = 1.4*far; V.camera.position.set(st.target.x+st.r*Math.sin(st.ph)*Math.cos(st.th), st.target.y+st.r*Math.sin(st.ph)*Math.sin(st.th), st.target.z+st.r*Math.cos(st.ph)); V.camera.lookAt(st.target); }
+  const vf = $('viewfrom'); M.cameras.forEach((c, i) => vf.add(new Option(c.name, i))); vf.onchange = () => { if (+vf.value >= 0) V.lookFrom(M.cameras[+vf.value]); state.view_from = +vf.value; };
+  const sl = $('frame'); sl.max = M.frames.length-1;
+  const snap = k => M.frames.reduce((b, f) => Math.abs(f-k) < Math.abs(b-k) ? f : b, M.frames[0]);
+  sl.oninput = () => go(M.frames[+sl.value]);
+  const step = d => { sl.value = Math.max(0, Math.min(M.frames.length-1, +sl.value+d)); sl.oninput(); };
+  $('first').onclick = () => { sl.value = 0; sl.oninput(); }; $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
+  ['mode', 'cmode', 'omode', 'emode', 'iter', 'vscale', 'sscale', 'psize'].forEach(e => { $(e).onchange = redraw; $(e).oninput = redraw; });
+  $('pid').onchange = e => select(e.target.value === '' ? NaN : +e.target.value);
+  // play follows the TRUE timestamps (real time × speed); frames whose data is not loaded yet are skipped, never shown partially
+  let playing = false, t0w = 0, t0s = 0;
+  const tick = () => { if (!playing) return; const T = M.times_s, ts = t0s+(performance.now()-t0w)/1000*(+$('speed').value), tl = T[M.frames[M.frames.length-1]];
+    if (ts > tl) { t0w = performance.now(); t0s = T[M.frames[0]]; }
+    let i = 0; for (let q = 0; q < M.frames.length; q++) if (T[M.frames[q]] <= ts) i = q;
+    if (M.frames[i] !== want) { sl.value = i; go(M.frames[i]); } requestAnimationFrame(tick); };
+  $('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'pause' : 'play'; if (playing) { t0w = performance.now(); t0s = M.times_s[state.frame]; tick(); } };
+  let down = null; V.renderer.domElement.addEventListener('mousedown', e => down = [e.clientX, e.clientY]);
+  V.renderer.domElement.addEventListener('mouseup', e => { if (down && Math.hypot(e.clientX-down[0], e.clientY-down[1]) < 4 && e.button === 0) pick(e); down = null; });
+  const fromHash = () => { const f = PD.param('frame', null), i = PD.param('id', null); if (i !== null && i !== '') state.selected = +i; $('pid').value = state.selected ?? '';
+    const k = snap(f === null ? M.frames[0] : +f); sl.value = M.frames.indexOf(k); return go(k); };
+  window.addEventListener('hashchange', fromHash);
+  window.__go = k => go(k);
+  await fromHash(); state.ready = true;
+})().catch(e => { state.error = String(e); window.__errors.push(String(e)); $('errors').textContent = 'ERROR: '+e; });
+</script></body></html>

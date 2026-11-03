@@ -1,0 +1,128 @@
+{
+ "date": "2026-11-03",
+ "commit": "d0b470b75e9ec9181f7561e1a80d2909fb75c7e5",
+ "overall_theory_fidelity": "BLOCKED_MODEL_UNSPECIFIED",
+ "physical_motion": "PHYSICAL_MOTION_NOT_RECOVERED",
+ "probability_semantics": "PROBABILITY_NOT_YET_ESTABLISHED",
+ "counts": {
+  "exact_model_operators": 23,
+  "verified_equivalent_optimizations": 6,
+  "controlled_numerical_approximations": 1,
+  "model_approximations": 5,
+  "non_equivalent_deviations": 4,
+  "unapproved_deviations": 10,
+  "blocked_equations": 11,
+  "untested_equations": 1,
+  "failed_equations": 0
+ },
+ "tests": {
+  "ran": 67,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "seconds": 56.77763390541077
+ },
+ "equation_gates": {
+  "E01": "PASS_THEORY_EXACT",
+  "E02": "PASS_THEORY_EXACT",
+  "E03": "PASS_THEORY_EXACT",
+  "E04": "BLOCKED_THEORY_CONFLICT",
+  "E05": "PASS_THEORY_EXACT",
+  "E06": "PASS_THEORY_EXACT",
+  "E07": "PASS_THEORY_EXACT",
+  "E08": "PASS_THEORY_EXACT",
+  "E09": "PASS_THEORY_EXACT",
+  "E10": "BLOCKED_MODEL_UNSPECIFIED",
+  "E11": "BLOCKED_MODEL_UNSPECIFIED",
+  "E12": "PASS_THEORY_EXACT",
+  "E13": "PASS_THEORY_EXACT",
+  "E14": "PASS_THEORY_EXACT",
+  "E15": "BLOCKED_MODEL_UNSPECIFIED",
+  "E16": "BLOCKED_MODEL_UNSPECIFIED",
+  "E17": "BLOCKED_MODEL_UNSPECIFIED",
+  "E18": "PASS_THEORY_EXACT",
+  "E19": "PASS_THEORY_EXACT",
+  "E20": "PASS_THEORY_EXACT",
+  "E21": "PASS_THEORY_EXACT",
+  "E22": "PASS_THEORY_EXACT",
+  "E23": "BLOCKED_THEORY_FIDELITY",
+  "E24": "BLOCKED_THEORY_FIDELITY",
+  "E25": "BLOCKED_MODEL_UNSPECIFIED",
+  "E26": "BLOCKED_MODEL_UNSPECIFIED",
+  "E27": "PASS_THEORY_EXACT",
+  "E28": "PASS_THEORY_EXACT",
+  "E29": "PASS_THEORY_EXACT",
+  "E30": "PASS_THEORY_EXACT",
+  "E31": "PASS_AUTHORIZED_APPROXIMATION",
+  "E32": "BLOCKED_THEORY_FIDELITY",
+  "E33": "PASS_THEORY_EXACT",
+  "E34": "PASS_THEORY_EXACT",
+  "E35": "PASS_THEORY_EXACT",
+  "E36": "NOT_TESTED"
+ },
+ "gate4_measurements": [
+  {
+   "scenario": "a_static_depth_noise",
+   "static_points": 734,
+   "moving_points": 177,
+   "static_drift_median_m": 0.00013582719212914602,
+   "static_drift_p90_m": 0.00022112900198373786,
+   "moving_true_displacement_median_m": 0.0,
+   "moving_endpoint_error_median_m": 0.00013501431862324504,
+   "moving_recovered_fraction_median": null,
+   "convergence": "STALLED_NOT_CONVERGED"
+  },
+  {
+   "scenario": "b_static_rgb_flicker",
+   "static_points": 734,
+   "moving_points": 177,
+   "static_drift_median_m": 0.002283281107004681,
+   "static_drift_p90_m": 0.0059628010689602865,
+   "moving_true_displacement_median_m": 0.0,
+   "moving_endpoint_error_median_m": 0.002348494088287872,
+   "moving_recovered_fraction_median": null,
+   "convergence": "ITERATION_CAP_NOT_CONVERGED"
+  },
+  {
+   "scenario": "c_translation",
+   "static_points": 734,
+   "moving_points": 177,
+   "static_drift_median_m": 0.00491536039603028,
+   "static_drift_p90_m": 0.008397877718575555,
+   "moving_true_displacement_median_m": 0.015,
+   "moving_endpoint_error_median_m": 0.007147997787665263,
+   "moving_recovered_fraction_median": 0.5234668141556491,
+   "convergence": "ITERATION_CAP_NOT_CONVERGED"
+  },
+  {
+   "scenario": "d_rotation_hinge",
+   "static_points": 734,
+   "moving_points": 177,
+   "static_drift_median_m": 0.003717679381585,
+   "static_drift_p90_m": 0.006257762469859138,
+   "moving_true_displacement_median_m": 0.006021120079441441,
+   "moving_endpoint_error_median_m": 0.004748811837022672,
+   "moving_recovered_fraction_median": 0.07770831557721614,
+   "convergence": "ITERATION_CAP_NOT_CONVERGED"
+  },
+  {
+   "scenario": "e_two_moving_parts / f_intermittent / g_variable_cameras",
+   "status": "NOT_RUN (fixture has one moving plate)"
+  }
+ ],
+ "blade_2frame_smoke": {
+  "N": 34369,
+  "cameras": 8,
+  "H_X_sqrt_mm": 117.95,
+  "stein_proposal": "REJECTED",
+  "target_score_s_per_eval": 2.9,
+  "stein_s_per_frame": 1.6,
+  "peak_gb": 0.69
+ },
+ "cuda_profile": "reports/svgd/cuda_profile_1k_10k.json",
+ "baseline_legacy_tests": {
+  "ran": 441,
+  "failures": 7,
+  "skipped": 2
+ }
+}

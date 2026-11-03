@@ -1,0 +1,1721 @@
+{
+ "generated": "2026-11-03 17:14:25",
+ "commit": "d0b470b75e9ec9181f7561e1a80d2909fb75c7e5",
+ "working_tree_dirty": [
+  " M tools/run_status.py",
+  "?? CODEX_RGBDiekf_SVGD_Sequence_Moving_Support_CUDA_THEORY_PARITY_2026-11-03.md",
+  "?? configs/svgd_support.json",
+  "?? configs/svgd_support_experimental.json",
+  "?? debug/assets/projective_svgd_numerical.html",
+  "?? debug/assets/projective_svgd_support.html",
+  "?? debug/svgd_support_debug.py",
+  "?? docs/SVGD_THEORY_TO_CODE_CONTRACT.md",
+  "?? docs/references/Stein_SVGD_Moving_Support_Pipeline.pdf",
+  "?? estimator/svgd_contract.py",
+  "?? estimator/svgd_feature_measurement.py",
+  "?? estimator/svgd_particle_operator.py",
+  "?? estimator/svgd_rigidity.py",
+  "?? estimator/svgd_support_posterior.py",
+  "?? estimator/svgd_support_run.py",
+  "?? estimator/svgd_target_score.py",
+  "?? estimator/svgd_temporal.py",
+  "?? estimator/svgd_visibility.py",
+  "?? reports/svgd/",
+  "?? scene/pointcloud_sequence.py",
+  "?? tests/svgd_fixtures.py",
+  "?? tests/test_svgd_cuda_parity.py",
+  "?? tests/test_svgd_feature_measurement.py",
+  "?? tests/test_svgd_mask_visibility.py",
+  "?? tests/test_svgd_rigidity.py",
+  "?? tests/test_svgd_stein_operator.py",
+  "?? tests/test_svgd_support_posterior.py",
+  "?? tests/test_svgd_support_runner.py",
+  "?? tests/test_svgd_target_score.py",
+  "?? tests/test_svgd_temporal.py",
+  "?? tests/test_svgd_visual_debug.py",
+  "?? tools/profile_svgd_support_cuda.py",
+  "?? tools/qa_svgd_support_debug.py",
+  "?? tools/run_svgd_support.py",
+  "?? tools/svgd_theory_parity.py",
+  "?? utils/svgd_support_output.py"
+ ],
+ "theory_pdf_sha256": "33ebd5ffb7aeb43d7171b533a9e542209813406f993793fbcfabad4ef7935ea8",
+ "spec_sha256": "041bdf580203e42f8317474fa6c91531223ad45a737f8be29ae891b29a6deced",
+ "contract_sha256": "b671731f61a2a6e4a08d51ab10a21abc9f32d0af9818edd93d25f957169352d2",
+ "label_mapping": "TEX_UNAVAILABLE_LABELS_MAPPED_BY_CONTENT",
+ "overall_theory_fidelity": "BLOCKED_MODEL_UNSPECIFIED",
+ "counts": {
+  "exact_model_operators": 23,
+  "verified_equivalent_optimizations": 6,
+  "controlled_numerical_approximations": 1,
+  "model_approximations": 5,
+  "non_equivalent_deviations": 4,
+  "unapproved_deviations": 10,
+  "blocked_equations": 11,
+  "untested_equations": 1,
+  "failed_equations": 0
+ },
+ "test_summary": {
+  "ran": 67,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "seconds": 56.77763390541077
+ },
+ "test_outcomes": {
+  "tests.test_svgd_cuda_parity.CudaParityTests.test_feature_operator": "PASS",
+  "tests.test_svgd_cuda_parity.CudaParityTests.test_stein_field": "PASS",
+  "tests.test_svgd_cuda_parity.CudaParityTests.test_target_score": "PASS",
+  "tests.test_svgd_cuda_parity.CudaParityTests.test_temporal_and_rigidity": "PASS",
+  "tests.test_svgd_feature_measurement.FeatureTests.test_camera_density_duplication_changes_mean": "PASS",
+  "tests.test_svgd_feature_measurement.FeatureTests.test_frame_term_gradient_fd_and_gn": "PASS",
+  "tests.test_svgd_feature_measurement.FeatureTests.test_jvp_vjp_dot_product_and_fd": "PASS",
+  "tests.test_svgd_feature_measurement.FeatureTests.test_normalized_nll_and_logdet": "PASS",
+  "tests.test_svgd_feature_measurement.FeatureTests.test_rff_kernel_and_mmd": "PASS",
+  "tests.test_svgd_feature_measurement.FeatureTests.test_stepping_decreases_common_data_objective": "PASS",
+  "tests.test_svgd_feature_measurement.FeatureTests.test_textured_vs_textureless_tangential_information": "PASS",
+  "tests.test_svgd_mask_visibility.VisibilityTests.test_background_never_enters": "PASS",
+  "tests.test_svgd_mask_visibility.VisibilityTests.test_increment_anticorrelation_identity": "PASS",
+  "tests.test_svgd_mask_visibility.VisibilityTests.test_masked_cloud_matches_numpy_backprojection": "PASS",
+  "tests.test_svgd_mask_visibility.VisibilityTests.test_missing_acquisition_timing_fails": "PASS",
+  "tests.test_svgd_mask_visibility.VisibilityTests.test_nonbinary_mask_rejected": "PASS",
+  "tests.test_svgd_mask_visibility.VisibilityTests.test_occluded_static_behind_blade": "PASS",
+  "tests.test_svgd_rigidity.RigidityTests.test_covariance_monte_carlo_and_structured_exact": "PASS",
+  "tests.test_svgd_rigidity.RigidityTests.test_edge_jacobian_finite_difference": "PASS",
+  "tests.test_svgd_rigidity.RigidityTests.test_hinge_displacement_identity": "PASS",
+  "tests.test_svgd_rigidity.RigidityTests.test_knn_graph_exact": "PASS",
+  "tests.test_svgd_rigidity.RigidityTests.test_rigid_motion_preserves_and_cross_support_changes": "PASS",
+  "tests.test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense": "PASS",
+  "tests.test_svgd_stein_operator.SteinTests.test_bounded_memory_no_dense_allocation": "PASS",
+  "tests.test_svgd_stein_operator.SteinTests.test_colour_kernel_and_fixed_colours": "PASS",
+  "tests.test_svgd_stein_operator.SteinTests.test_dense_numpy_oracle_all_terms": "PASS",
+  "tests.test_svgd_stein_operator.SteinTests.test_kernel_gradient_finite_difference": "PASS",
+  "tests.test_svgd_stein_operator.SteinTests.test_liu_wang_reference_gaussian": "PASS",
+  "tests.test_svgd_stein_operator.SteinTests.test_mutations_detected": "PASS",
+  "tests.test_svgd_stein_operator.SteinTests.test_repulsion_sign_two_particles": "PASS",
+  "tests.test_svgd_support_posterior.PosteriorTests.test_laplace_error_nonlinear_rotation": "PASS",
+  "tests.test_svgd_support_posterior.PosteriorTests.test_linear_gaussian_evidence_vs_quadrature": "PASS",
+  "tests.test_svgd_support_posterior.PosteriorTests.test_moving_fits_jitter_but_loses_evidence": "PASS",
+  "tests.test_svgd_support_posterior.PosteriorTests.test_no_observation_returns_prior": "PASS",
+  "tests.test_svgd_support_posterior.PosteriorTests.test_partition_enumeration_coherent": "PASS",
+  "tests.test_svgd_support_posterior.PosteriorTests.test_point_marginals_exact_enumeration": "PASS",
+  "tests.test_svgd_support_posterior.PosteriorTests.test_production_blocked_without_priors": "PASS",
+  "tests.test_svgd_support_posterior.PosteriorTests.test_seed_risk_rule": "PASS",
+  "tests.test_svgd_support_runner.RunnerTests.test_camera_order_invariance": "PASS",
+  "tests.test_svgd_support_runner.RunnerTests.test_gate4_scenarios_measured": "PASS",
+  "tests.test_svgd_support_runner.RunnerTests.test_no_legacy_stage_outputs_and_immutable_dir": "PASS",
+  "tests.test_svgd_support_runner.RunnerTests.test_objective_monotone_on_accepted_steps": "PASS",
+  "tests.test_svgd_support_runner.RunnerTests.test_production_path_calls_tested_operators": "PASS",
+  "tests.test_svgd_support_runner.RunnerTests.test_strict_blocks_without_probability_files": "PASS",
+  "tests.test_svgd_target_score.TargetScoreTests.test_constant_rgb_and_colour_distinct_surfaces": "PASS",
+  "tests.test_svgd_target_score.TargetScoreTests.test_duplicate_identifier_vs_new_exposure": "PASS",
+  "tests.test_svgd_target_score.TargetScoreTests.test_empty_frame_no_observation": "PASS",
+  "tests.test_svgd_target_score.TargetScoreTests.test_log_density_and_score_match_dense_numpy": "PASS",
+  "tests.test_svgd_target_score.TargetScoreTests.test_normalization_integral": "PASS",
+  "tests.test_svgd_target_score.TargetScoreTests.test_permutation_invariance": "PASS",
+  "tests.test_svgd_target_score.TargetScoreTests.test_reference_colour_marginalization": "PASS",
+  "tests.test_svgd_target_score.TargetScoreTests.test_score_five_point_finite_difference": "PASS",
+  "tests.test_svgd_target_score.TargetScoreTests.test_smaller_lambda_sharpens_and_narrows": "PASS",
+  "tests.test_svgd_temporal.TemporalTests.test_energy_gradient_and_hessian_dense": "PASS",
+  "tests.test_svgd_temporal.TemporalTests.test_gauss_newton_equals_rts_smoother": "PASS",
+  "tests.test_svgd_temporal.TemporalTests.test_improper_process_covariance_blocked": "PASS",
+  "tests.test_svgd_temporal.TemporalTests.test_log_normalizer_matches_markov_density": "PASS",
+  "tests.test_svgd_temporal.TemporalTests.test_pcg_cap_is_reported": "PASS",
+  "tests.test_svgd_visual_debug.SvgdVisualDebug.test_arrays_equal_saved_at_display_ids": "PASS",
+  "tests.test_svgd_visual_debug.SvgdVisualDebug.test_bad_input_raises": "PASS",
+  "tests.test_svgd_visual_debug.SvgdVisualDebug.test_headless_qa": "PASS",
+  "tests.test_svgd_visual_debug.SvgdVisualDebug.test_inference_independent_of_display_cap": "PASS",
+  "tests.test_svgd_visual_debug.SvgdVisualDebug.test_observed_cloud_fixed_pixel_lattice": "PASS",
+  "tests.test_svgd_visual_debug.SvgdVisualDebug.test_pages_written_by_runner": "PASS",
+  "tests.test_svgd_visual_debug.SvgdVisualDebug.test_probability_layer_seeds_and_unresolved": "PASS",
+  "tests.test_svgd_visual_debug.SvgdVisualDebug.test_stopped_run_degrades": "PASS",
+  "tests.test_svgd_visual_debug.SvgdVisualDebug.test_write_debug_never_touches_inference_light_keyframes": "PASS"
+ },
+ "equations": [
+  {
+   "id": "E01",
+   "label": "eq:target",
+   "pdf": "(8)",
+   "spec": "A1",
+   "role": "proposal",
+   "category": "B",
+   "classification": "EXACT_MODEL",
+   "expr": "p_t(x,c) = sum_j w_j N3(x; y_j, LambdaX_j) N3(c; d_j, LambdaC_j), w_j = 1/M_t",
+   "invariant": "normalized 6D mixture over the actual masked samples, full Gaussian normalizers, uniform 1/M_t selected by the PDF",
+   "function": "estimator/svgd_target_score.py:target_score",
+   "tests": [
+    "tests/test_svgd_target_score.TargetScoreTests.test_log_density_and_score_match_dense_numpy",
+    "tests/test_svgd_target_score.TargetScoreTests.test_normalization_integral"
+   ],
+   "dtype": "float64",
+   "units": "log density of m^-3 * rgb^-3",
+   "parameters": [
+    "target_density.Lambda_X",
+    "target_density.Lambda_C",
+    "target_density.source_weights"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_target_score.TargetScoreTests.test_log_density_and_score_match_dense_numpy": "PASS",
+    "tests/test_svgd_target_score.TargetScoreTests.test_normalization_integral": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "backprojection_oracle",
+     "max_abs_m": 0.0
+    },
+    {
+     "test": "dense_numpy_oracle",
+     "logp_abs": 2.2118911147117615e-09,
+     "grad_rel": 1.5578013511287139e-12,
+     "resp_abs": 4.1522341120980855e-14,
+     "tolerance": 1e-11,
+     "basis": "float64 roundoff of <=23-term log-sum-exp, 100x margin"
+    },
+    {
+     "test": "normalization_integral",
+     "rel_error": 4.440892098500626e-15,
+     "tolerance": 0.0001,
+     "basis": "81^3 trapezoid grid, +-10 sigma box"
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_target_score.py": "0cd7d39fbe9b45e0ada4f546e823b2013130ece1ac62c7c0be87d96cdb3cb0dd",
+    "tests/test_svgd_target_score.py": "80afba6f25ff434ecb75040616f00cf2ddece94f3ea648b245f99fb11cccd103"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "nearest point, hard correspondence, unnormalized kernels, implicit sample weights"
+  },
+  {
+   "id": "E02",
+   "label": "eq:responsibility",
+   "pdf": "(9)",
+   "spec": "3.1",
+   "role": "proposal",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "r_j = a_j / sum_m a_m (stable log-sum-exp)",
+   "invariant": "responsibilities sum to one; density contributions only, not correspondences",
+   "function": "estimator/svgd_target_score.py:responsibilities",
+   "tests": [
+    "tests/test_svgd_target_score.TargetScoreTests.test_log_density_and_score_match_dense_numpy"
+   ],
+   "dtype": "float64",
+   "units": "1",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_target_score.TargetScoreTests.test_log_density_and_score_match_dense_numpy": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "responsibilities",
+     "max_abs": 4.1522341120980855e-14,
+     "tolerance": 1e-12
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_target_score.py": "0cd7d39fbe9b45e0ada4f546e823b2013130ece1ac62c7c0be87d96cdb3cb0dd",
+    "tests/test_svgd_target_score.py": "80afba6f25ff434ecb75040616f00cf2ddece94f3ea648b245f99fb11cccd103"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E03",
+   "label": "eq:targetscore",
+   "pdf": "(10)-(12)",
+   "spec": "A2",
+   "role": "proposal",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "g_t(x,c) = sum_j r_j LambdaX_j^-1 (y_j - x)",
+   "invariant": "exact gradient of log p_t in x at fixed query colour, heteroscedastic",
+   "function": "estimator/svgd_target_score.py:target_score",
+   "tests": [
+    "tests/test_svgd_target_score.TargetScoreTests.test_score_five_point_finite_difference",
+    "tests/test_svgd_cuda_parity.CudaParityTests.test_target_score"
+   ],
+   "dtype": "float64",
+   "units": "1/m",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_target_score.TargetScoreTests.test_score_five_point_finite_difference": "PASS",
+    "tests/test_svgd_cuda_parity.CudaParityTests.test_target_score": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "cuda_parity_log_density",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 7.341370654084677e-15,
+     "p95_rel": 2.151078956105045e-15
+    },
+    {
+     "test": "cuda_parity_grad_xyz",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 4.426507516484141e-14,
+     "p95_rel": 3.6872849156259565e-15
+    },
+    {
+     "test": "score_vs_oracle",
+     "max_rel": 1.5578013511287139e-12,
+     "tolerance": 1e-11
+    },
+    {
+     "test": "five_point_fd",
+     "max_rel": 1.745193825516223e-08,
+     "tolerance": 1e-06,
+     "basis": "O(h^4) stencil, h=2e-5 m vs Lambda^1/2 ~ 3e-3 m"
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_target_score.py": "0cd7d39fbe9b45e0ada4f546e823b2013130ece1ac62c7c0be87d96cdb3cb0dd",
+    "tests/test_svgd_cuda_parity.py": "aea19948b6536a593311bd7836f3d07690e7e1fce15824f4f21f8903c3b3bc44",
+    "tests/test_svgd_target_score.py": "80afba6f25ff434ecb75040616f00cf2ddece94f3ea648b245f99fb11cccd103"
+   },
+   "cuda": "PASS",
+   "prohibited_substitution": "different Gaussian kernel, missing covariance inverse or colour factor"
+  },
+  {
+   "id": "E04",
+   "label": "eq:refcolour-marginal",
+   "pdf": "(3) vs spec 1.1/3.2",
+   "spec": "3.2",
+   "role": "proposal",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "int N3(c; d_j, LambdaC_j) N3(c; a_i, Sigma_a) dc = N3(a_i; d_j, LambdaC_j + Sigma_a)",
+   "invariant": "Gaussian convolution identity: reference colour uncertainty enters as LambdaC_j + Sigma_a (THEORY_CONFLICT TC-0001 choice)",
+   "function": "estimator/svgd_target_score.py:target_score(query_color_cov=)",
+   "tests": [
+    "tests/test_svgd_target_score.TargetScoreTests.test_reference_colour_marginalization"
+   ],
+   "dtype": "float64",
+   "units": "rgb^2",
+   "parameters": [
+    "reference.color_reference_uncertainty"
+   ],
+   "deviation": "TC-0001",
+   "test_status": {
+    "tests/test_svgd_target_score.TargetScoreTests.test_reference_colour_marginalization": "PASS"
+   },
+   "gate": "BLOCKED_THEORY_CONFLICT",
+   "measured": [
+    {
+     "test": "gauss_hermite_30",
+     "tolerance": 1e-08,
+     "basis": "30-point Gauss-Hermite per colour axis"
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_target_score.py": "0cd7d39fbe9b45e0ada4f546e823b2013130ece1ac62c7c0be87d96cdb3cb0dd",
+    "tests/test_svgd_target_score.py": "80afba6f25ff434ecb75040616f00cf2ddece94f3ea648b245f99fb11cccd103"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E05",
+   "label": "eq:physkernel",
+   "pdf": "(13)",
+   "spec": "B1",
+   "role": "proposal",
+   "category": "B",
+   "classification": "EXACT_MODEL",
+   "expr": "K(i,l) = exp(-1/2 dx^T HX^-1 dx - 1/2 dc^T HC^-1 dc)",
+   "invariant": "SPD XYZ-RGB interaction kernel, bandwidths distinct from Lambda and R",
+   "function": "estimator/svgd_particle_operator.py:stein_field",
+   "tests": [
+    "tests/test_svgd_stein_operator.SteinTests.test_kernel_gradient_finite_difference"
+   ],
+   "dtype": "float64",
+   "units": "1",
+   "parameters": [
+    "stein.H_X",
+    "stein.H_C"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_stein_operator.SteinTests.test_kernel_gradient_finite_difference": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_particle_operator.py": "935c809dd0960b789ac07c0ab07a5a970ed12fe6afe6bb7ef249e0e7493e491d",
+    "tests/test_svgd_stein_operator.py": "08e9950729693d5f00acbea6e12836d343439c0f3d247367bf072aaf9a10df51"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "dropping colour, depth-dependent bandwidth without a model"
+  },
+  {
+   "id": "E06",
+   "label": "eq:repulsion",
+   "pdf": "(15)",
+   "spec": "B2",
+   "role": "proposal",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "grad_{x_l} K(l,i) = K(l,i) HX^-1 (x_i - x_l)",
+   "invariant": "correct sign: pushes x_i away from x_l",
+   "function": "estimator/svgd_particle_operator.py:stein_field",
+   "tests": [
+    "tests/test_svgd_stein_operator.SteinTests.test_repulsion_sign_two_particles",
+    "tests/test_svgd_stein_operator.SteinTests.test_kernel_gradient_finite_difference"
+   ],
+   "dtype": "float64",
+   "units": "1/m",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_stein_operator.SteinTests.test_repulsion_sign_two_particles": "PASS",
+    "tests/test_svgd_stein_operator.SteinTests.test_kernel_gradient_finite_difference": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "kernel_gradient_fd",
+     "max_rel": 8.388955245175858e-12,
+     "tolerance": 1e-06
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_particle_operator.py": "935c809dd0960b789ac07c0ab07a5a970ed12fe6afe6bb7ef249e0e7493e491d",
+    "tests/test_svgd_stein_operator.py": "08e9950729693d5f00acbea6e12836d343439c0f3d247367bf072aaf9a10df51"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E07",
+   "label": "eq:physicalsvgd",
+   "pdf": "(14)",
+   "spec": "B2-B3",
+   "role": "proposal",
+   "category": "B",
+   "classification": "EXACT_MODEL",
+   "expr": "Phi_i = 1/N sum_{l=1..N} [K(l,i) g(x_l,c_l) + K(l,i) HX^-1 (x_i - x_l)];  x <- x + eta Phi (accepted only if the common objective decreases)",
+   "invariant": "entire sum over all N particles, global 1/N, attraction/repulsion stored separately, colour fixed",
+   "function": "estimator/svgd_particle_operator.py:stein_field",
+   "tests": [
+    "tests/test_svgd_stein_operator.SteinTests.test_dense_numpy_oracle_all_terms",
+    "tests/test_svgd_stein_operator.SteinTests.test_liu_wang_reference_gaussian",
+    "tests/test_svgd_cuda_parity.CudaParityTests.test_stein_field"
+   ],
+   "dtype": "float64",
+   "units": "1/m (field), m (accepted step)",
+   "parameters": [
+    "stein_numerics.step_policy"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_stein_operator.SteinTests.test_dense_numpy_oracle_all_terms": "PASS",
+    "tests/test_svgd_stein_operator.SteinTests.test_liu_wang_reference_gaussian": "PASS",
+    "tests/test_svgd_cuda_parity.CudaParityTests.test_stein_field": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "cuda_parity_attraction",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 8.282579463471808e-15,
+     "p95_rel": 7.308158350122183e-16
+    },
+    {
+     "test": "cuda_parity_repulsion",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 5.893037770479765e-15,
+     "p95_rel": 1.8132423909168506e-15
+    },
+    {
+     "test": "cuda_parity_total",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 8.280379796183107e-15,
+     "p95_rel": 7.316364991480454e-16
+    },
+    {
+     "test": "cuda_parity_kernel_mass",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 3.5984728150029075e-15,
+     "p95_rel": 1.5798173334159105e-15
+    },
+    {
+     "test": "bounded_memory",
+     "N": 6000,
+     "peak_bytes": 9303040,
+     "dense_bytes": 288000000
+    },
+    {
+     "test": "dense_numpy_oracle",
+     "max_rel": 1.2232633604266344e-14,
+     "tolerance": 1e-12,
+     "basis": "float64; repulsion relative to max(|rep|, 1e-3 x summand scale eps|x'| sum K ||H^-1||/N)"
+    },
+    {
+     "test": "gaussian_target_distributional_improvement",
+     "mmd_init": 0.6159707726930101,
+     "mmd_full": 0.00698510500234184,
+     "mmd_attraction_only": 0.19616753841839363
+    },
+    {
+     "test": "mutations",
+     "detected": [
+      "degree_normalization",
+      "repulsion_removed",
+      "knn_truncation"
+     ]
+    },
+    {
+     "test": "camera_order_invariance",
+     "max_abs_m": 2.998486371832499e-08,
+     "displacement_scale_m": 0.0025971571545543234,
+     "tolerance": "1e-4 x displacement (Krylov-amplified roundoff; Stein step alone agrees to 1e-18 m)"
+    },
+    {
+     "test": "runtime_call_audit",
+     "calls": {
+      "target_score": 21,
+      "stein_field": 9,
+      "pcg": 3
+     }
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_particle_operator.py": "935c809dd0960b789ac07c0ab07a5a970ed12fe6afe6bb7ef249e0e7493e491d",
+    "tests/test_svgd_cuda_parity.py": "aea19948b6536a593311bd7836f3d07690e7e1fce15824f4f21f8903c3b3bc44",
+    "tests/test_svgd_stein_operator.py": "08e9950729693d5f00acbea6e12836d343439c0f3d247367bf072aaf9a10df51"
+   },
+   "cuda": "PASS",
+   "prohibited_substitution": "degree normalization, neighbour-only sum, repulsion removal, unreported clipping"
+  },
+  {
+   "id": "E08",
+   "label": "eq:svgd-standard",
+   "pdf": "(5)-(7)",
+   "spec": "2.1",
+   "role": "diagnostic",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "standard SVGD on samples of ONE target (Liu & Wang 2016), reference only",
+   "invariant": "physical particles are not posterior samples: no KL-theorem claim for support inference",
+   "function": "tests/test_svgd_stein_operator.py:liu_wang_svgd (reference)",
+   "tests": [
+    "tests/test_svgd_stein_operator.SteinTests.test_liu_wang_reference_gaussian"
+   ],
+   "dtype": "float64",
+   "units": "-",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_stein_operator.SteinTests.test_liu_wang_reference_gaussian": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "liu_wang_reference",
+     "max_abs": 4.263256414560601e-14,
+     "tolerance": 1e-11
+    }
+   ],
+   "source_sha256": {
+    "tests/test_svgd_stein_operator.py": "08e9950729693d5f00acbea6e12836d343439c0f3d247367bf072aaf9a10df51"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E09",
+   "label": "eq:featureobs-mean",
+   "pdf": "(17)",
+   "spec": "C1",
+   "role": "likelihood",
+   "category": "B",
+   "classification": "EXACT_MODEL",
+   "expr": "y^F_t = 1/M_t sum_j psi(y_j, d_j)",
+   "invariant": "observed feature mean over all masked samples",
+   "function": "estimator/svgd_feature_measurement.py:RFFFeatures.mean",
+   "tests": [
+    "tests/test_svgd_feature_measurement.FeatureTests.test_rff_kernel_and_mmd"
+   ],
+   "dtype": "float64",
+   "units": "feature",
+   "parameters": [
+    "features.feature_method",
+    "features.D",
+    "features.fixed_seed",
+    "features.xyz_rgb_kernel_B"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_feature_measurement.FeatureTests.test_rff_kernel_and_mmd": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_feature_measurement.py": "0415400d3eb4fb3a7494948b8dd2530c601521ff28877adf1c3772bc34dd24b4",
+    "tests/test_svgd_feature_measurement.py": "896fa98b065081442e7007ee9458891ba992f93d402264ec3024ae7201d34f41"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E10",
+   "label": "eq:featurepred",
+   "pdf": "(18)",
+   "spec": "C1",
+   "role": "likelihood",
+   "category": "B",
+   "classification": "BLOCKED_MODEL_UNSPECIFIED",
+   "expr": "h_t(X_t, V_t) = 1/|V_t| sum_{i in V_t} psi(x_it, c_i)",
+   "invariant": "comparable VISIBLE predicted support; V_t law not defined in theory",
+   "function": "estimator/svgd_feature_measurement.py:RFFFeatures.mean",
+   "tests": [
+    "tests/test_svgd_feature_measurement.FeatureTests.test_jvp_vjp_dot_product_and_fd"
+   ],
+   "dtype": "float64",
+   "units": "feature",
+   "parameters": [
+    "observations.visibility_model"
+   ],
+   "deviation": "DEV-0001",
+   "test_status": {
+    "tests/test_svgd_feature_measurement.FeatureTests.test_jvp_vjp_dot_product_and_fd": "PASS"
+   },
+   "gate": "BLOCKED_MODEL_UNSPECIFIED",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_feature_measurement.py": "0415400d3eb4fb3a7494948b8dd2530c601521ff28877adf1c3772bc34dd24b4",
+    "tests/test_svgd_feature_measurement.py": "896fa98b065081442e7007ee9458891ba992f93d402264ec3024ae7201d34f41"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E11",
+   "label": "eq:featureobs",
+   "pdf": "(19)",
+   "spec": "C2",
+   "role": "likelihood",
+   "category": "B",
+   "classification": "BLOCKED_MODEL_UNSPECIFIED",
+   "expr": "y^F_t = h_t + eps_t, eps_t ~ N_D(0, Gamma_t)",
+   "invariant": "Gamma_t must be estimated from data and the declared feature construction",
+   "function": "estimator/svgd_feature_measurement.py:FeatureGaussian",
+   "tests": [
+    "tests/test_svgd_feature_measurement.FeatureTests.test_normalized_nll_and_logdet"
+   ],
+   "dtype": "float64",
+   "units": "feature^2",
+   "parameters": [
+    "features.Gamma_model"
+   ],
+   "deviation": "DEV-0002",
+   "test_status": {
+    "tests/test_svgd_feature_measurement.FeatureTests.test_normalized_nll_and_logdet": "PASS"
+   },
+   "gate": "BLOCKED_MODEL_UNSPECIFIED",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_feature_measurement.py": "0415400d3eb4fb3a7494948b8dd2530c601521ff28877adf1c3772bc34dd24b4",
+    "tests/test_svgd_feature_measurement.py": "896fa98b065081442e7007ee9458891ba992f93d402264ec3024ae7201d34f41"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E12",
+   "label": "eq:featcost",
+   "pdf": "(20)",
+   "spec": "C5",
+   "role": "likelihood",
+   "category": "B",
+   "classification": "EXACT_MODEL",
+   "expr": "E_F,t = 1/2 e^T Gamma^-1 e + 1/2 log det(2 pi Gamma)",
+   "invariant": "single normalized feature likelihood per frame; never raw + weighted MMD twice",
+   "function": "estimator/svgd_feature_measurement.py:FeatureGaussian.nll",
+   "tests": [
+    "tests/test_svgd_feature_measurement.FeatureTests.test_normalized_nll_and_logdet"
+   ],
+   "dtype": "float64",
+   "units": "nat",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_feature_measurement.FeatureTests.test_normalized_nll_and_logdet": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "nll_vs_scipy",
+     "abs_error": 5.115907697472721e-13,
+     "tolerance": 1e-10
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_feature_measurement.py": "0415400d3eb4fb3a7494948b8dd2530c601521ff28877adf1c3772bc34dd24b4",
+    "tests/test_svgd_feature_measurement.py": "896fa98b065081442e7007ee9458891ba992f93d402264ec3024ae7201d34f41"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "unweighted + weighted MMD as two measurements; diagonal Gamma called exact"
+  },
+  {
+   "id": "E13",
+   "label": "eq:featgrad",
+   "pdf": "(21)",
+   "spec": "C3",
+   "role": "likelihood",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "grad_{x_i} log p = 1/|V| J_psi(x_i,c_i)^T Gamma^-1 (y^F - h)",
+   "invariant": "matrix-free JVP/VJP, conditional on frozen V_t",
+   "function": "estimator/svgd_feature_measurement.py:RFFFeatures.jvp/vjp",
+   "tests": [
+    "tests/test_svgd_feature_measurement.FeatureTests.test_jvp_vjp_dot_product_and_fd",
+    "tests/test_svgd_cuda_parity.CudaParityTests.test_feature_operator"
+   ],
+   "dtype": "float64",
+   "units": "nat/m",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_feature_measurement.FeatureTests.test_jvp_vjp_dot_product_and_fd": "PASS",
+    "tests/test_svgd_cuda_parity.CudaParityTests.test_feature_operator": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "cuda_parity_mean",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 6.455015069776587e-17,
+     "p95_rel": 3.2275075348882934e-17
+    },
+    {
+     "test": "cuda_parity_jvp",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 3.4070362265689594e-16,
+     "p95_rel": 1.7035181132844797e-16
+    },
+    {
+     "test": "cuda_parity_vjp",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 1.9373845585500156e-15,
+     "p95_rel": 3.946524100750032e-16
+    },
+    {
+     "test": "cuda_parity_covariance",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 2.9533727296937725e-15,
+     "p95_rel": 6.921967335219779e-17
+    },
+    {
+     "test": "objective_gradient_fd",
+     "max_rel": 4.6035335307806567e-10,
+     "tolerance": 1e-05
+    },
+    {
+     "test": "jvp_vjp",
+     "dot_product_rel": 3.277693737640979e-16,
+     "fd_rel": 1.7688902819543137e-08,
+     "tolerance": "1e-13 / 1e-7 (central FD O(h^2), h=1e-6 m vs B^1/2 >= 1.6e-2 m)"
+    },
+    {
+     "test": "textured_vs_flat_tangential_information",
+     "tangential_over_normal": {
+      "0.05": [
+       0.09424115395921222,
+       0.6815115873925947
+      ],
+      "0.1": [
+       0.0820591858004744,
+       0.9197650690280974
+      ]
+     }
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_feature_measurement.py": "0415400d3eb4fb3a7494948b8dd2530c601521ff28877adf1c3772bc34dd24b4",
+    "tests/test_svgd_cuda_parity.py": "aea19948b6536a593311bd7836f3d07690e7e1fce15824f4f21f8903c3b3bc44",
+    "tests/test_svgd_feature_measurement.py": "896fa98b065081442e7007ee9458891ba992f93d402264ec3024ae7201d34f41"
+   },
+   "cuda": "PASS",
+   "prohibited_substitution": "feature replacement, fixed denominator with changing support, untracked RFF approximation"
+  },
+  {
+   "id": "E14",
+   "label": "eq:mmd",
+   "pdf": "(22)",
+   "spec": "5.1 item 1",
+   "role": "diagnostic",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "MMD^2 = ||1/N sum psi(x_i,c_i) - 1/M sum psi(y_j,d_j)||^2 (exact Gaussian product kernel, CPU oracle)",
+   "invariant": "finite RFF map is the DECLARED feature model psi (TF.5 exception), not the infinite kernel",
+   "function": "estimator/svgd_feature_measurement.py:exact_mmd2",
+   "tests": [
+    "tests/test_svgd_feature_measurement.FeatureTests.test_rff_kernel_and_mmd"
+   ],
+   "dtype": "float64",
+   "units": "1",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_feature_measurement.FeatureTests.test_rff_kernel_and_mmd": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "rff_vs_exact_kernel",
+     "D": 40000,
+     "kernel_max_abs": 0.011721077889849996,
+     "mmd_exact": 0.10775650456969027,
+     "mmd_rff": 0.10658451920961262,
+     "bound": 0.03,
+     "basis": "finite map is the declared model; agreement with the infinite kernel only to MC accuracy"
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_feature_measurement.py": "0415400d3eb4fb3a7494948b8dd2530c601521ff28877adf1c3772bc34dd24b4",
+    "tests/test_svgd_feature_measurement.py": "896fa98b065081442e7007ee9458891ba992f93d402264ec3024ae7201d34f41"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E15",
+   "label": "visibility-law",
+   "pdf": "8.2",
+   "spec": "6.3/6.7",
+   "role": "likelihood",
+   "category": "B",
+   "classification": "NOT_DEFINED_IN_THEORY",
+   "expr": "p(V | X_0:T, C) (not specified)",
+   "invariant": "occluded point never measured by its occluder; no V_t=0 from leaving the basin",
+   "function": "estimator/svgd_visibility.py:ray_visibility (diagnostic classification only)",
+   "tests": [
+    "tests/test_svgd_mask_visibility.VisibilityTests.test_occluded_static_behind_blade"
+   ],
+   "dtype": "float64",
+   "units": "-",
+   "parameters": [
+    "observations.visibility_model"
+   ],
+   "deviation": "DEV-0001",
+   "test_status": {
+    "tests/test_svgd_mask_visibility.VisibilityTests.test_occluded_static_behind_blade": "PASS"
+   },
+   "gate": "BLOCKED_MODEL_UNSPECIFIED",
+   "measured": [
+    {
+     "test": "occluded_static_behind_blade",
+     "hidden": 70,
+     "flagged_occluded": 70,
+     "score_pulled_toward_occluder_fraction": 0.9714285714285714,
+     "note": "DEV-0001 failure mode exposed, not fixed"
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_visibility.py": "043fd94fc8579bf8568c9eb5e086cc8c1a5f08887957d06ff0b3255cd54582a5",
+    "tests/test_svgd_mask_visibility.py": "36c68a2ed6033f54bc82c5b0d94c39e376d294ee4578afa13914504c4cb3bb96"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E16",
+   "label": "unexplained-support",
+   "pdf": "8.3",
+   "spec": "6.5",
+   "role": "likelihood",
+   "category": "B",
+   "classification": "NOT_DEFINED_IN_THEORY",
+   "expr": "B_t latent new/unrepresented observed support (not specified)",
+   "invariant": "newly exposed geometry is not forced onto old IDs",
+   "function": "NONE",
+   "tests": [],
+   "dtype": "-",
+   "units": "-",
+   "parameters": [
+    "observations.unexplained_support_model"
+   ],
+   "deviation": "DEV-0006",
+   "test_status": {},
+   "gate": "BLOCKED_MODEL_UNSPECIFIED",
+   "measured": [],
+   "source_sha256": {},
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E17",
+   "label": "sampling-density",
+   "pdf": "8.4",
+   "spec": "6.4",
+   "role": "likelihood",
+   "category": "B",
+   "classification": "NOT_DEFINED_IN_THEORY",
+   "expr": "camera-overlap / footprint sampling model (not specified); 1/M_t is the PDF baseline",
+   "invariant": "duplicate cameras are not independent area",
+   "function": "estimator/svgd_target_score.py:target_score(log_weights=None -> uniform)",
+   "tests": [
+    "tests/test_svgd_target_score.TargetScoreTests.test_duplicate_identifier_vs_new_exposure"
+   ],
+   "dtype": "-",
+   "units": "-",
+   "parameters": [
+    "observations.camera_overlap_policy"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_target_score.TargetScoreTests.test_duplicate_identifier_vs_new_exposure": "PASS"
+   },
+   "gate": "BLOCKED_MODEL_UNSPECIFIED",
+   "measured": [
+    {
+     "test": "camera_duplication_bias",
+     "max_feature_shift": 0.0038726148645701185
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_target_score.py": "0cd7d39fbe9b45e0ada4f546e823b2013130ece1ac62c7c0be87d96cdb3cb0dd",
+    "tests/test_svgd_target_score.py": "80afba6f25ff434ecb75040616f00cf2ddece94f3ea648b245f99fb11cccd103"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E18",
+   "label": "eq:temporalprior",
+   "pdf": "(16)",
+   "spec": "C4",
+   "role": "prior",
+   "category": "B",
+   "classification": "EXACT_MODEL",
+   "expr": "E_time = 1/2 sum_i |s_i0 - s0bar_i|^2_{P_i0^-1} + 1/2 sum_t sum_i |s_it - F_t s_i,t-1|^2_{Q_t^-1}; F,Q white acceleration (point_kalman_cuda)",
+   "invariant": "actual timestamps, shared frame-0 source covariance once, declared velocity prior",
+   "function": "estimator/svgd_temporal.py:TemporalPrior",
+   "tests": [
+    "tests/test_svgd_temporal.TemporalTests.test_energy_gradient_and_hessian_dense",
+    "tests/test_svgd_temporal.TemporalTests.test_gauss_newton_equals_rts_smoother"
+   ],
+   "dtype": "float64",
+   "units": "nat",
+   "parameters": [
+    "motion_prior.process_model",
+    "motion_prior.initial_P"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_temporal.TemporalTests.test_energy_gradient_and_hessian_dense": "PASS",
+    "tests/test_svgd_temporal.TemporalTests.test_gauss_newton_equals_rts_smoother": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "cuda_parity_temporal_solve",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 3.192993591590261e-14,
+     "p95_rel": 1.1214416516804819e-14
+    },
+    {
+     "test": "cuda_parity_temporal_hess",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 5.098112950282348e-16,
+     "p95_rel": 1.274528237570587e-16
+    },
+    {
+     "test": "dense_autograd",
+     "solve_residual": 2.5669111280990364e-10,
+     "tolerance": 1e-08,
+     "basis": "block-Thomas vs dense Hessian, condition of L ~1e10"
+    },
+    {
+     "test": "rts_oracle",
+     "max_abs_m": 9.922618282587337e-16,
+     "tolerance": 1e-09
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_temporal.py": "fb8c3cb932c1ddce8efdc519aa05a4c9bb058776f3ceac4b8c3be6209a848e5e",
+    "tests/test_svgd_temporal.py": "530d7f91f7b7ca9d44ff72e27d20e8e7227cc5160d5b966f40cd7d8bd7570b66"
+   },
+   "cuda": "PASS",
+   "prohibited_substitution": "independent frame-to-frame registration as sequence inference"
+  },
+  {
+   "id": "E19",
+   "label": "eq:rigid",
+   "pdf": "(23)-(24)",
+   "spec": "7.2",
+   "role": "diagnostic",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "|x_it - x_lt| = |x_i0 - x_l0| under common SE(3)",
+   "invariant": "no pivot/axis/part centre",
+   "function": "estimator/svgd_rigidity.py:edge_residuals",
+   "tests": [
+    "tests/test_svgd_rigidity.RigidityTests.test_rigid_motion_preserves_and_cross_support_changes"
+   ],
+   "dtype": "float64",
+   "units": "m",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_rigidity.RigidityTests.test_rigid_motion_preserves_and_cross_support_changes": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
+    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E20",
+   "label": "eq:distdiff",
+   "pdf": "(25)",
+   "spec": "D4",
+   "role": "diagnostic",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "(x_i - x_l)^T (v_i - v_l) = 0",
+   "invariant": "check on estimated motion, not a measurement",
+   "function": "estimator/svgd_rigidity.py:differential_rigidity",
+   "tests": [
+    "tests/test_svgd_rigidity.RigidityTests.test_rigid_motion_preserves_and_cross_support_changes"
+   ],
+   "dtype": "float64",
+   "units": "m^2/s",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_rigidity.RigidityTests.test_rigid_motion_preserves_and_cross_support_changes": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
+    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E21",
+   "label": "eq:edgeresid",
+   "pdf": "(26)",
+   "spec": "D1",
+   "role": "diagnostic",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "e_il,t = |x_it - x_lt| - |x_i0 - x_l0|",
+   "invariant": "complete history, no self/coincident edges",
+   "function": "estimator/svgd_rigidity.py:edge_residuals",
+   "tests": [
+    "tests/test_svgd_rigidity.RigidityTests.test_edge_jacobian_finite_difference"
+   ],
+   "dtype": "float64",
+   "units": "m",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_rigidity.RigidityTests.test_edge_jacobian_finite_difference": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
+    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E22",
+   "label": "eq:edge-delta",
+   "pdf": "(36)-(37)",
+   "spec": "7.2",
+   "role": "diagnostic",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "de = n_t^T (dx_it - dx_lt) - n_0^T (dx_i0 - dx_l0)",
+   "invariant": "exact first-order Jacobian",
+   "function": "estimator/svgd_rigidity.py:edge_jacobian",
+   "tests": [
+    "tests/test_svgd_rigidity.RigidityTests.test_edge_jacobian_finite_difference"
+   ],
+   "dtype": "float64",
+   "units": "1",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_rigidity.RigidityTests.test_edge_jacobian_finite_difference": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "fd",
+     "max_abs": 1.652784575867372e-10,
+     "tolerance": 1e-07
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
+    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E23",
+   "label": "eq:edge-cov",
+   "pdf": "(38)",
+   "spec": "D2",
+   "role": "diagnostic",
+   "category": "C",
+   "classification": "MODEL_APPROX",
+   "expr": "Omega_il = J P_zeta J^T; production: shared-reference exact, trajectory states independent across time and points (rank-1 + diagonal)",
+   "invariant": "shared frame-0 reference counted once; Sherman-Morrison inverse/log det exact for that structure",
+   "function": "estimator/svgd_rigidity.py:edge_covariance_structured",
+   "tests": [
+    "tests/test_svgd_rigidity.RigidityTests.test_covariance_monte_carlo_and_structured_exact",
+    "tests/test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense"
+   ],
+   "dtype": "float64",
+   "units": "m^2",
+   "parameters": [
+    "rigid_graph.covariance_approximation"
+   ],
+   "deviation": "DEV-0007",
+   "test_status": {
+    "tests/test_svgd_rigidity.RigidityTests.test_covariance_monte_carlo_and_structured_exact": "PASS",
+    "tests/test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense": "PASS"
+   },
+   "gate": "BLOCKED_THEORY_FIDELITY",
+   "measured": [
+    {
+     "test": "monte_carlo",
+     "max_rel": 0.006713043913709814,
+     "samples": 200000,
+     "tolerance": 0.03
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
+    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "treating distances at different frames or edges as independent"
+  },
+  {
+   "id": "E24",
+   "label": "eq:rigidlik",
+   "pdf": "9.1",
+   "spec": "D3",
+   "role": "evidence",
+   "category": "B",
+   "classification": "EXACT_MODEL",
+   "expr": "p(e | H^R) = N_T(e; 0, Omega + Omega_model)",
+   "invariant": "conditional likelihood only, not a posterior; static pairs also satisfy it",
+   "function": "estimator/svgd_rigidity.py:rigid_edge_loglik",
+   "tests": [
+    "tests/test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense"
+   ],
+   "dtype": "float64",
+   "units": "nat",
+   "parameters": [
+    "rigid_graph.Omega_model"
+   ],
+   "deviation": "DEV-0010",
+   "test_status": {
+    "tests/test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense": "PASS"
+   },
+   "gate": "BLOCKED_THEORY_FIDELITY",
+   "measured": [
+    {
+     "test": "cuda_parity_rigid_loglik",
+     "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+     "tolerance": 1e-10,
+     "max_rel": 1.6226463657206082e-15,
+     "p95_rel": 2.0283079571507602e-16
+    },
+    {
+     "test": "sherman_morrison_vs_dense",
+     "tolerance": 1e-11
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
+    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+   },
+   "cuda": "PASS",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E25",
+   "label": "eq:edgepost",
+   "pdf": "(27)",
+   "spec": "7.1",
+   "role": "evidence",
+   "category": "B",
+   "classification": "BLOCKED_MODEL_UNSPECIFIED",
+   "expr": "w_il = P(z_il = 1 | Q_0:T)",
+   "invariant": "coherent partition, not independent Bernoulli edges",
+   "function": "NONE (production); tiny oracle",
+   "tests": [
+    "tests/test_svgd_support_posterior.PosteriorTests.test_partition_enumeration_coherent"
+   ],
+   "dtype": "float64",
+   "units": "1",
+   "parameters": [
+    "rigid_graph.support_prior"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_posterior.PosteriorTests.test_partition_enumeration_coherent": "PASS"
+   },
+   "gate": "BLOCKED_MODEL_UNSPECIFIED",
+   "measured": [],
+   "source_sha256": {
+    "tests/test_svgd_support_posterior.py": "34bb0dc6497cae24932a765c514ec4a392c347c08485c53a37e186dd60321c9d"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E26",
+   "label": "eq:fullpost",
+   "pdf": "(29)",
+   "spec": "E1",
+   "role": "evidence",
+   "category": "B",
+   "classification": "BLOCKED_MODEL_UNSPECIFIED",
+   "expr": "p(X,m,Z,V,B | Q) ~ p(Q | X,V,B) p(X | m,Z) p(V,B,m,Z)",
+   "invariant": "one posterior, one observation model",
+   "function": "estimator/svgd_support_posterior.py:support_posterior (BLOCKED in production)",
+   "tests": [
+    "tests/test_svgd_support_posterior.PosteriorTests.test_point_marginals_exact_enumeration"
+   ],
+   "dtype": "float64",
+   "units": "-",
+   "parameters": [
+    "model_evidence.method",
+    "model_evidence.priors"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_posterior.PosteriorTests.test_point_marginals_exact_enumeration": "PASS"
+   },
+   "gate": "BLOCKED_MODEL_UNSPECIFIED",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_support_posterior.py": "ab92f54fc34170316efa3b4b4081332007d5b6747c5d1313dda39030e2e169e2",
+    "tests/test_svgd_support_posterior.py": "34bb0dc6497cae24932a765c514ec4a392c347c08485c53a37e186dd60321c9d"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "independent edge probabilities as a partition; energies summed as posterior"
+  },
+  {
+   "id": "E27",
+   "label": "eq:marginal",
+   "pdf": "(30)",
+   "spec": "E2",
+   "role": "evidence",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "gamma_i = sum_{m_-i,Z} int p(..., m_i=1, ... | Q)",
+   "invariant": "exact enumeration on tiny hypothesis sets",
+   "function": "estimator/svgd_support_posterior.py:enumerate_marginals",
+   "tests": [
+    "tests/test_svgd_support_posterior.PosteriorTests.test_point_marginals_exact_enumeration"
+   ],
+   "dtype": "float64",
+   "units": "1",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_posterior.PosteriorTests.test_point_marginals_exact_enumeration": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "exact_enumeration",
+     "gamma": [
+      0.9999999999999999,
+      0.9999999999999999,
+      3.585117906019486e-05,
+      0.4874557279808531
+     ],
+     "prior_gamma_near_hinge": 0.5,
+     "hypotheses": 94
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_support_posterior.py": "ab92f54fc34170316efa3b4b4081332007d5b6747c5d1313dda39030e2e169e2",
+    "tests/test_svgd_support_posterior.py": "34bb0dc6497cae24932a765c514ec4a392c347c08485c53a37e186dd60321c9d"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E28",
+   "label": "eq:hypotheses",
+   "pdf": "(31)-(32)",
+   "spec": "8.2",
+   "role": "evidence",
+   "category": "B",
+   "classification": "EXACT_MODEL",
+   "expr": "H0: x_t = x_0; H1: x_t = R_t x_0 + b_t (latent, identity at frame 0, proper random-walk prior)",
+   "invariant": "same observations and noise under both; extra freedom penalized by integration",
+   "function": "estimator/svgd_support_posterior.py:linear_gaussian_log_evidence/laplace_log_evidence",
+   "tests": [
+    "tests/test_svgd_support_posterior.PosteriorTests.test_moving_fits_jitter_but_loses_evidence"
+   ],
+   "dtype": "float64",
+   "units": "nat",
+   "parameters": [
+    "model_evidence.priors"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_posterior.PosteriorTests.test_moving_fits_jitter_but_loses_evidence": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "occam",
+     "rss_static": 0.00011287938291661389,
+     "rss_moving": 8.37711466716654e-05,
+     "log_bayes_factor_moving": -6.6396427213413745
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_support_posterior.py": "ab92f54fc34170316efa3b4b4081332007d5b6747c5d1313dda39030e2e169e2",
+    "tests/test_svgd_support_posterior.py": "34bb0dc6497cae24932a765c514ec4a392c347c08485c53a37e186dd60321c9d"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E29",
+   "label": "eq:evidence",
+   "pdf": "(33)",
+   "spec": "E3",
+   "role": "evidence",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "L^h = int p(y | Theta, H^h) p(Theta | H^h) dTheta",
+   "invariant": "closed form (linear Gaussian) vs quadrature oracle",
+   "function": "estimator/svgd_support_posterior.py:linear_gaussian_log_evidence",
+   "tests": [
+    "tests/test_svgd_support_posterior.PosteriorTests.test_linear_gaussian_evidence_vs_quadrature"
+   ],
+   "dtype": "float64",
+   "units": "nat",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_posterior.PosteriorTests.test_linear_gaussian_evidence_vs_quadrature": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "gauss_hermite_120^3",
+     "abs_error": 0.0,
+     "tolerance": 1e-08
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_support_posterior.py": "ab92f54fc34170316efa3b4b4081332007d5b6747c5d1313dda39030e2e169e2",
+    "tests/test_svgd_support_posterior.py": "34bb0dc6497cae24932a765c514ec4a392c347c08485c53a37e186dd60321c9d"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "MAP improvement, sigmoid of displacement/Stein norm, p-value as probability"
+  },
+  {
+   "id": "E30",
+   "label": "eq:bayes",
+   "pdf": "(34)",
+   "spec": "E3",
+   "role": "evidence",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "P(H1 | y) = pi L1 / (pi L1 + (1 - pi) L0) (log-sum-exp)",
+   "invariant": "p_static + p_dynamic = 1 only for the complete binary model",
+   "function": "estimator/svgd_support_posterior.py:binary_posterior",
+   "tests": [
+    "tests/test_svgd_support_posterior.PosteriorTests.test_no_observation_returns_prior"
+   ],
+   "dtype": "float64",
+   "units": "1",
+   "parameters": [
+    "model_evidence.priors"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_posterior.PosteriorTests.test_no_observation_returns_prior": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_support_posterior.py": "ab92f54fc34170316efa3b4b4081332007d5b6747c5d1313dda39030e2e169e2",
+    "tests/test_svgd_support_posterior.py": "34bb0dc6497cae24932a765c514ec4a392c347c08485c53a37e186dd60321c9d"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E31",
+   "label": "eq:laplace",
+   "pdf": "10.2 (Laplace named)",
+   "spec": "E4",
+   "role": "evidence",
+   "category": "C",
+   "classification": "MODEL_APPROX",
+   "expr": "log L ~ -E(theta*) + d/2 log 2 pi - 1/2 log det Hess",
+   "invariant": "only with all normalizers and PD Hessian; error vs quadrature reported",
+   "function": "estimator/svgd_support_posterior.py:laplace_log_evidence",
+   "tests": [
+    "tests/test_svgd_support_posterior.PosteriorTests.test_laplace_error_nonlinear_rotation"
+   ],
+   "dtype": "float64",
+   "units": "nat",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_posterior.PosteriorTests.test_laplace_error_nonlinear_rotation": "PASS"
+   },
+   "gate": "PASS_AUTHORIZED_APPROXIMATION",
+   "measured": [
+    {
+     "test": "laplace_vs_quadrature_rotation",
+     "abs_error_nats": 1.902970723222097e-05,
+     "tolerance": 0.05,
+     "linear_case": "exact to 1e-10"
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_support_posterior.py": "ab92f54fc34170316efa3b4b4081332007d5b6747c5d1313dda39030e2e169e2",
+    "tests/test_svgd_support_posterior.py": "34bb0dc6497cae24932a765c514ec4a392c347c08485c53a37e186dd60321c9d"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E32",
+   "label": "eq:jointobjective",
+   "pdf": "(35)",
+   "spec": "C6",
+   "role": "evidence",
+   "category": "C",
+   "classification": "MODEL_APPROX",
+   "expr": "E = sum_t E_F,t - log p_motion + 1/2 sum z e^T Omega^-1 e - log p(m,Z,V,B) + C_norm; production trajectory step uses E_obs + E_time only",
+   "invariant": "conditional trajectory objective; rigidity/support/visibility terms not in the accepted-step objective",
+   "function": "estimator/svgd_support_run.py:SequenceObjective",
+   "tests": [
+    "tests/test_svgd_support_runner.RunnerTests.test_objective_monotone_on_accepted_steps"
+   ],
+   "dtype": "float64",
+   "units": "nat",
+   "parameters": [],
+   "deviation": "DEV-0008",
+   "test_status": {
+    "tests/test_svgd_support_runner.RunnerTests.test_objective_monotone_on_accepted_steps": "PASS"
+   },
+   "gate": "BLOCKED_THEORY_FIDELITY",
+   "measured": [
+    {
+     "test": "objective_monotone",
+     "accepted_values": [
+      -100850.56172794415,
+      -100850.65523365435,
+      -100997.6788516263,
+      -101007.41890875016,
+      -101008.45866584637
+     ]
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_support_run.py": "071a8c2f7e7ee7e0930fc8ab5147bfe50cbb2a25912f16f0ff64dc6c2a361b87",
+    "tests/test_svgd_support_runner.py": "848fc92dad26e84577dce815132e6cac5e61c5b3f2daadaa56c0eff28602519e"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E33",
+   "label": "eq:seedrisk",
+   "pdf": "10.3",
+   "spec": "E5",
+   "role": "decision",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "FDR(S) = sum_{i in S} (1 - gamma_i) / max(1, |S|) <= alpha",
+   "invariant": "only on established posteriors; IDs are original IDs",
+   "function": "estimator/svgd_support_posterior.py:select_seeds",
+   "tests": [
+    "tests/test_svgd_support_posterior.PosteriorTests.test_seed_risk_rule"
+   ],
+   "dtype": "float64",
+   "units": "1",
+   "parameters": [
+    "seed_selection.posterior_risk_alpha"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_posterior.PosteriorTests.test_seed_risk_rule": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [],
+   "source_sha256": {
+    "estimator/svgd_support_posterior.py": "ab92f54fc34170316efa3b4b4081332007d5b6747c5d1313dda39030e2e169e2",
+    "tests/test_svgd_support_posterior.py": "34bb0dc6497cae24932a765c514ec4a392c347c08485c53a37e186dd60321c9d"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "near-hinge labels from GT/joint axis; fake legacy outputs"
+  },
+  {
+   "id": "E34",
+   "label": "eq:hinge",
+   "pdf": "(28)",
+   "spec": "14.2",
+   "role": "diagnostic",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "|x_t - x_0| = 2 r |sin(theta/2)|",
+   "invariant": "used only to build evaluation fixtures",
+   "function": "tests fixtures",
+   "tests": [
+    "tests/test_svgd_rigidity.RigidityTests.test_hinge_displacement_identity"
+   ],
+   "dtype": "float64",
+   "units": "m",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_rigidity.RigidityTests.test_hinge_displacement_identity": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [],
+   "source_sha256": {
+    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E35",
+   "label": "eq:increments",
+   "pdf": "(4)",
+   "spec": "3.2",
+   "role": "diagnostic",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "Cov(dz_t, dz_t+1) = -R for i.i.d. errors",
+   "invariant": "noise study, not a residual",
+   "function": "scene/pointcloud_sequence.py:increment_noise_study",
+   "tests": [
+    "tests/test_svgd_mask_visibility.VisibilityTests.test_increment_anticorrelation_identity"
+   ],
+   "dtype": "float64",
+   "units": "m^2, rgb^2",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_mask_visibility.VisibilityTests.test_increment_anticorrelation_identity": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "iid_increments",
+     "lag1": -0.501774403639845,
+     "expected": -0.5
+    }
+   ],
+   "source_sha256": {
+    "scene/pointcloud_sequence.py": "9f7136c63f795f15078099b6047c08032b2e17eb3f53611d29eb0dee99be3a1d",
+    "tests/test_svgd_mask_visibility.py": "36c68a2ed6033f54bc82c5b0d94c39e376d294ee4578afa13914504c4cb3bb96"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E36",
+   "label": "stages-2-4",
+   "pdf": "(39)-(44)",
+   "spec": "10.4",
+   "role": "diagnostic",
+   "category": "B",
+   "classification": "OUT_OF_SCOPE_PHASE1",
+   "expr": "rigid recovery, joint identification, support completion",
+   "invariant": "no fake downstream outputs",
+   "function": "NONE",
+   "tests": [
+    "tests/test_svgd_support_runner.RunnerTests.test_no_legacy_stage_outputs"
+   ],
+   "dtype": "-",
+   "units": "-",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_runner.RunnerTests.test_no_legacy_stage_outputs": "NOT_RUN"
+   },
+   "gate": "NOT_TESTED",
+   "measured": [],
+   "source_sha256": {
+    "tests/test_svgd_support_runner.py": "848fc92dad26e84577dce815132e6cac5e61c5b3f2daadaa56c0eff28602519e"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  }
+ ],
+ "equivalent_optimizations": [
+  {
+   "id": "OPT-01",
+   "equations": [
+    "E01",
+    "E02",
+    "E03"
+   ],
+   "what": "tiled streaming log-sum-exp over ALL components (running max, rescaled sums)",
+   "test": "tests/test_svgd_target_score.TargetScoreTests.test_log_density_and_score_match_dense_numpy"
+  },
+  {
+   "id": "OPT-02",
+   "equations": [
+    "E05",
+    "E06",
+    "E07"
+   ],
+   "what": "tiled all-pairs Stein sums with global 1/N",
+   "test": "tests/test_svgd_stein_operator.SteinTests.test_dense_numpy_oracle_all_terms"
+  },
+  {
+   "id": "OPT-03",
+   "equations": [
+    "E13"
+   ],
+   "what": "matrix-free JVP/VJP, point-chunked, no N x D Jacobian",
+   "test": "tests/test_svgd_feature_measurement.FeatureTests.test_jvp_vjp_dot_product_and_fd"
+  },
+  {
+   "id": "OPT-04",
+   "equations": [
+    "E18"
+   ],
+   "what": "exact block-Thomas solve of the temporal Hessian, point-chunked",
+   "test": "tests/test_svgd_temporal.TemporalTests.test_energy_gradient_and_hessian_dense"
+  },
+  {
+   "id": "OPT-05",
+   "equations": [
+    "E23",
+    "E24"
+   ],
+   "what": "Sherman-Morrison inverse / log det of rank-1 + diagonal Omega",
+   "test": "tests/test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense"
+  },
+  {
+   "id": "OPT-06",
+   "equations": [
+    "E03",
+    "E07",
+    "E13",
+    "E18",
+    "E24"
+   ],
+   "what": "torch CUDA float64 execution of the same operators (TF32 off)",
+   "test": "tests/test_svgd_cuda_parity.CudaParityTests"
+  }
+ ],
+ "deviation_ids": [
+  "DEV-0001",
+  "DEV-0002",
+  "DEV-0003",
+  "DEV-0004",
+  "DEV-0005",
+  "DEV-0006",
+  "DEV-0007",
+  "DEV-0008",
+  "DEV-0009",
+  "DEV-0010"
+ ],
+ "theory_conflicts": [
+  {
+   "id": "TC-0001",
+   "status": "OPEN_REQUIRES_USER_DECISION",
+   "theory": "PDF (3),(8),(11): reference colour c_i is a fixed vector; the score is evaluated at the fixed query colour.",
+   "spec": "Spec 1.1/3.2: \"Propagate uncertainty of a_i; it is not noise-free\"; Cov(a_i) must enter colour comparison once.",
+   "consequence": "fixed c_i: colour flicker of the reference is attributed to the target bandwidth only; marginalized: N3(a_i; d_j, LambdaC_j + Sigma_a) (exact Gaussian convolution) broadens every colour factor by the same shared reference covariance.",
+   "implementation": "target_score(query_color_cov=None) = PDF; query_color_cov=Sigma_a = spec. Config key reference.color_reference_uncertainty selects; strict mode refuses to run TARGET while the choice is NOT_DEFINED_IN_THEORY."
+  }
+ ],
+ "gate4_measurements": [
+  {
+   "scenario": "a_static_depth_noise",
+   "static_points": 734,
+   "moving_points": 177,
+   "static_drift_median_m": 0.00013582719212914602,
+   "static_drift_p90_m": 0.00022112900198373786,
+   "moving_true_displacement_median_m": 0.0,
+   "moving_endpoint_error_median_m": 0.00013501431862324504,
+   "moving_recovered_fraction_median": null,
+   "convergence": "STALLED_NOT_CONVERGED"
+  },
+  {
+   "scenario": "b_static_rgb_flicker",
+   "static_points": 734,
+   "moving_points": 177,
+   "static_drift_median_m": 0.002283281107004681,
+   "static_drift_p90_m": 0.0059628010689602865,
+   "moving_true_displacement_median_m": 0.0,
+   "moving_endpoint_error_median_m": 0.002348494088287872,
+   "moving_recovered_fraction_median": null,
+   "convergence": "ITERATION_CAP_NOT_CONVERGED"
+  },
+  {
+   "scenario": "c_translation",
+   "static_points": 734,
+   "moving_points": 177,
+   "static_drift_median_m": 0.00491536039603028,
+   "static_drift_p90_m": 0.008397877718575555,
+   "moving_true_displacement_median_m": 0.015,
+   "moving_endpoint_error_median_m": 0.007147997787665263,
+   "moving_recovered_fraction_median": 0.5234668141556491,
+   "convergence": "ITERATION_CAP_NOT_CONVERGED"
+  },
+  {
+   "scenario": "d_rotation_hinge",
+   "static_points": 734,
+   "moving_points": 177,
+   "static_drift_median_m": 0.003717679381585,
+   "static_drift_p90_m": 0.006257762469859138,
+   "moving_true_displacement_median_m": 0.006021120079441441,
+   "moving_endpoint_error_median_m": 0.004748811837022672,
+   "moving_recovered_fraction_median": 0.07770831557721614,
+   "convergence": "ITERATION_CAP_NOT_CONVERGED"
+  },
+  {
+   "scenario": "e_two_moving_parts / f_intermittent / g_variable_cameras",
+   "status": "NOT_RUN (fixture has one moving plate)"
+  }
+ ],
+ "physical_motion": "NOT_ESTABLISHED (see gate4_measurements; no real-scene acceptance run)",
+ "suitability_for_joint_recovery": "NOT_SUITABLE: Stage-1 model-evidence gate BLOCKED"
+}

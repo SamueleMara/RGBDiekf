@@ -151,7 +151,27 @@ def temporal_batch_status(out):
     return head+'\n'+'\n'.join(rows)
 
 
+def svgd_status(out):
+    """tools/run_svgd_support.py run: progress.json (stage, outer iteration, frame) -> fraction and time left (upper bound:
+    the outer-iteration cap; convergence ends earlier)."""
+    p = json.loads((Path(out)/'progress.json').read_text()); man = json.loads((Path(out)/'run_manifest.json').read_text())
+    if p.get('stage') == 'DONE':
+        st = json.loads((Path(out)/'svgd_support/status.json').read_text()) if (Path(out)/'svgd_support/status.json').is_file() else {}
+        b = st.get('blocked') or {}
+        return f"{out}\nfinished (exit {p.get('exit_code')}): stage {st.get('stage_reached')} {b.get('status', '')} {b.get('stage', '')}  [{fmt(p['elapsed_s'])}]"
+    try: cap = json.loads(Path(man['config_path']).read_text())['stein_numerics']['convergence']['value']['max_outer']
+    except Exception: cap = 1
+    el, st, i, n, o = p['elapsed_s'], p.get('stage'), p.get('frame', 0), max(p.get('frames', 1), 1), p.get('outer', 0)
+    frac = {'INIT': .05*i/n, 'TARGET': .05+.05*i/n, 'FEATURES': .1+.02*i/n}.get(st, None)
+    if frac is None: frac = .12+.85*((max(o, 1)-1+(i/n if st == 'STEIN_PROPOSAL' else .9))/cap) if st in ('STEIN_PROPOSAL', 'TEMPORAL_REFINEMENT') else .97
+    left = el*(1-frac)/max(frac, 1e-6)
+    return f"{out}\nrunning: {st} outer {o}/{cap} frame {i}/{n}  {100*frac:.0f}%  elapsed {fmt(el)}  left <= {fmt(left)} (outer cap)"
+
+
 def status(out, log=None):
+    if (Path(out)/'progress.json').is_file() and (Path(out)/'run_manifest.json').is_file() and \
+            json.loads((Path(out)/'run_manifest.json').read_text()).get('run_kind') == 'svgd_support_stage1':
+        return svgd_status(out)
     if (Path(out)/'batch_summary.json').exists() and isinstance(json.loads((Path(out)/'batch_summary.json').read_text()), list):
         return temporal_batch_status(Path(out))
     out = Path(out).resolve(); now = time.time(); lines = []

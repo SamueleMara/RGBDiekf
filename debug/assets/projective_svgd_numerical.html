@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SVGD support numerical</title>
+<link rel="stylesheet" href="projective_theme.css">
+<style>body{padding:12px 20px}.grid{display:flex;flex-wrap:wrap;gap:10px}.grid canvas{border:1px solid var(--line)}
+#banners .b{padding:4px 8px;margin:3px 0;border-radius:4px;background:#21262d}#banners .b.bad{border-left:4px solid var(--bad)}#banners .b.warn{border-left:4px solid var(--warn)}
+#banners .b b{font-size:14px}.cols{display:flex;gap:24px;flex-wrap:wrap}.cols>div{min-width:340px;flex:1}</style>
+<script src="projective_common.js"></script></head>
+<body><h1>SVGD moving support — numerical diagnostics</h1><div id="errors"></div><div id="banners"></div>
+<div class="cols"><div><h2>Run status</h2><div id="status"></div></div><div><h2>Blocked reasons</h2><div id="blocked"></div></div></div>
+<h2>Objective (common objective E = E_obs + E_time + …; symlog scale toggle)</h2><label class="inline"><input type="checkbox" id="symlog" checked>symlog10(1 + |E − E_init|)·sign</label>
+<div class="grid" id="g_obj"></div>
+<h2>Stein field per frame (medians; one line per outer iteration)</h2><div class="grid" id="g_field"></div>
+<h2>Gauss–Newton / PCG</h2><div class="grid" id="g_pcg"></div>
+<h2>Observed counts, coverage and unsupported particles per frame</h2><div class="grid" id="g_counts"></div><div id="ctab"></div>
+<h2>Distributions</h2><div class="cols"><div id="dist"></div><div class="grid" id="g_dist"></div></div>
+<h2>Timings and memory</h2><div id="perf"></div>
+<h2>Clicked original ID — all frames</h2><div class="note">Provisional trajectory = INTERNAL_NOT_FINAL_TRACKS; never a final rigid-motion fit. Traced IDs carry per-iteration Stein terms; other IDs only XYZ and status.</div>
+<label class="inline">original ID <input id="tid" type="text" size="9"></label><span id="tlist" class="note"></span>
+<div class="cols"><div id="tinfo"></div><div class="grid" id="g_trace"></div></div><div id="ttab"></div>
+<h2>Gates</h2><details><summary>status.json gates</summary><pre id="gates"></pre></details>
+<h2>Theory parity summary</h2><pre id="parity"></pre>
+<script>
+const state = {ready: false, charts: 0}; window.__state = state; const $ = id => document.getElementById(id), f64 = b => new Float64Array(PD.u8(b).buffer);
+let M, N, TJ, TR, ids;
+const fin = v => typeof v === 'number' && Number.isFinite(v);
+const sl = (v, e0) => !fin(v) ? NaN : $('symlog').checked ? Math.sign(v-e0)*Math.log10(1+Math.abs(v-e0)) : v;
+const lg = v => fin(v) && v > 0 ? Math.log10(v) : NaN;
+function chart(host, series, opt) { const c = document.createElement('canvas'); c.width = opt.w || 560; c.height = opt.h || 200; $(host).appendChild(c); PD.chart(c, series, opt); state.charts++; return c; }
+function table(rows, head) { return '<table>' + (head ? '<tr>'+head.map(h => `<th>${h}</th>`).join('')+'</tr>' : '') + rows.map(r => '<tr>'+r.map(v => `<td>${v ?? '–'}</td>`).join('')+'</tr>').join('') + '</table>'; }
+const fmt = v => v === null || v === undefined ? '–' : typeof v === 'number' ? (Math.abs(v) > 1e4 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(3) : +v.toPrecision(5)) : v;
+function drawObjective() {
+  $('g_obj').innerHTML = ''; const T = N.timeline, init = T.find(r => r.step === 'init') || {}, e0 = init.E_total ?? 0;
+  const acc = T.filter(r => r.step === 'init' || ((r.step === 'stein_accept' || r.step === 'gauss_newton') && r.accepted === true)), x = acc.map((_, i) => i);
+  chart('g_obj', [{x, y: acc.map(r => sl(r.E_total, e0)), color: '#e6edf3', label: 'E_total (accepted)'}, {x, y: acc.map(r => sl(r.E_obs, init.E_obs ?? 0)), color: '#58a6ff', label: 'E_obs'},
+    {x, y: acc.map(r => sl(r.E_time, init.E_time ?? 0)), color: '#f0883e', label: 'E_time'}], {title: 'accepted iterates: ' + acc.map(r => `${r.outer}:${r.step}`).join(' ')});
+  let cur = e0; const carried = T.map(r => { if (r.step === 'init' || ((r.step === 'stein_accept' || r.step === 'gauss_newton') && r.accepted === true)) cur = r.E_total; return cur; });
+  const tr = T.filter(r => r.step === 'stein_accept'), xt = tr.map((_, i) => i), cy = T.map((r, i) => r.step === 'stein_accept' ? carried[i] : null).filter(v => v !== null);
+  chart('g_obj', [{x: xt, y: tr.map(r => sl(r.E_total, e0)), color: '#8b949e', label: 'E_total of each line-search trial'},
+    {x: xt, y: cy.map(v => sl(v, e0)), color: '#3fb950', label: 'current accepted E (carried forward)'},
+    {x: xt, y: tr.map(r => r.accepted === false ? sl(r.E_total, e0) : NaN), color: '#f85149', label: 'rejected (line)', dash: [3, 3]}], {title: 'Stein line search: common objective per trial (accepted / rejected)'});
+  chart('g_obj', [{x: xt, y: tr.map(r => lg(r.step_norm_median_m)), color: '#db61a2', label: 'log10 median step (m)'}, {x: xt, y: tr.map(r => lg(r.eta_m2)), color: '#e3b341', label: 'log10 eta (m²)'},
+    {x: xt, y: tr.map(r => r.backtrack), color: '#8b949e', label: 'backtrack', dash: [2, 2]}], {title: 'Stein step length per trial'});
+  const gn = T.filter(r => r.step === 'gauss_newton');
+  chart('g_obj', [{x: gn.map(r => r.outer), y: gn.map(r => r.alpha), color: '#58a6ff', label: 'GN alpha'}, {x: gn.map(r => r.outer), y: gn.map(r => r.accepted ? 1 : 0), color: '#3fb950', label: 'accepted (1/0)', dash: [3, 3]}], {title: 'Gauss–Newton accepted step'});
+}
+function drawField() {
+  const T = N.timeline.filter(r => r.step === 'stein_field'), outs = [...new Set(T.map(r => r.outer))], cols = ['#58a6ff', '#3fb950', '#f0883e', '#a371f7', '#e3b341', '#39c5cf', '#db61a2', '#f85149'];
+  for (const [key, title] of [['score_norm_median', 'target-score norm median'], ['attraction_norm_median', 'attraction norm median'], ['repulsion_norm_median', 'repulsion norm median'], ['kernel_mass_median', 'kernel mass median']])
+    chart('g_field', outs.map((o, i) => { const r = T.filter(q => q.outer === o); return {x: r.map(q => M.times_s[q.frame] ?? q.frame), y: r.map(q => q[key]), color: cols[i % cols.length], label: `outer ${o}`}; }), {title: title + ' vs t (s)', w: 420});
+}
+function drawPCG() {
+  const g = N.timeline.filter(r => r.step === 'gauss_newton'), x = g.map(r => r.outer);
+  chart('g_pcg', [{x, y: g.map(r => lg(r.pcg_relative_residual)), color: '#f85149', label: 'log10 PCG relative residual'}], {title: 'PCG residual (status: ' + g.map(r => r.pcg_status).join(', ') + ')', w: 420});
+  chart('g_pcg', [{x, y: g.map(r => r.pcg_iterations), color: '#58a6ff', label: 'PCG iterations'}], {title: 'PCG iterations', w: 420});
+  chart('g_pcg', [{x, y: g.map(r => lg(r.grad_certificate)), color: '#e3b341', label: 'log10 gradient certificate'}], {title: 'gradient certificate', w: 420});
+}
+function drawCounts() {
+  const C = N.counts, fr = [...new Set(C.map(r => r.frame))].sort((a, b) => a-b), t = fr.map(k => M.times_s[k]), by = k => C.filter(r => r.frame === k), cols = ['#58a6ff', '#3fb950', '#f0883e', '#a371f7', '#e3b341', '#39c5cf'];
+  const sum = key => fr.map(k => by(k).reduce((a, r) => a + (fin(r[key]) ? r[key] : 0), 0)), one = key => fr.map(k => (by(k)[0] || {})[key] ?? NaN);
+  chart('g_counts', [{x: t, y: sum('exported_world_points'), color: '#e6edf3', label: 'M_t observed masked samples'}, {x: t, y: sum('foreground_valid'), color: '#8b949e', label: 'foreground valid', dash: [3, 3]}], {title: 'observed samples vs t (s)', w: 420});
+  chart('g_counts', [{x: t, y: one('visible_particles_frame'), color: '#3fb950', label: 'visible'}, {x: t, y: one('occluded_particles_frame'), color: '#a371f7', label: 'occluded'},
+    {x: t, y: one('unsupported_particles_frame'), color: '#f85149', label: 'unsupported'}], {title: 'particles per transport status vs t (s)', w: 420});
+  const uf = fr.map((k, i) => { const a = sum('observed_samples_without_supported_particle')[i], b = sum('foreground_valid')[i]; return b ? a/b : NaN; });
+  chart('g_counts', [{x: t, y: one('visible_particles_frame').map(v => v/M.N), color: '#3fb950', label: 'visible / N (coverage)'}, {x: t, y: uf, color: '#f0883e', label: 'unknown foreground fraction'}], {title: 'coverage and unrepresented observed surface', w: 420});
+  chart('g_counts', [{x: t, y: one('E_F_frame'), color: '#58a6ff', label: 'E_F per frame'}], {title: 'per-frame feature/observation cost E_F', w: 420});
+  const keys = C.length ? Object.keys(C[0]) : [];
+  $('ctab').innerHTML = '<details><summary>observed_counts.csv (frame × camera)</summary>' + table(C.map(r => keys.map(k => fmt(r[k]))), keys) + '</details>' +
+    (N.transport_status_counts ? '<details><summary>transport status counts per frame (all N)</summary>' + table(Object.entries(N.transport_status_counts).map(([a, b]) => [a, ...b]), ['status', ...fr.map(k => 'f'+k)]) + '</details>' : '');
+}
+function drawDist() {
+  const g = (N.status.gates || {}), F = g.FEATURES || {}, Rg = g.RIGID_GRAPH || {}, E = N.edge_quantiles || {}, q = a => a ? a.map(fmt).join(' / ') : '–';
+  $('dist').innerHTML = table([['motion score (UNCALIBRATED, m) q0/50/90/99/100', q(N.score_q)], ['p_dynamic q', N.p_dynamic_q ? q(N.p_dynamic_q) : 'not published'],
+    ['p_dynamic unresolved (NaN)', N.p_dynamic_unresolved ?? '–'], ['probability status counts', JSON.stringify(N.probability_status_counts)],
+    ['moving seeds', N.seed_count ?? 'not published'], ['edges E', E.E ?? '–'], ['pairwise max |strain| (m) q', q(E.max_abs_strain_m_q)], ['rigid χ²/dof q', q(E.chi2_per_dof_q)],
+    ['rho finite edges', E.rho_finite ?? '–'], ['gamma (FEATURES gate)', JSON.stringify(F.gamma ?? null)], ['H_X (m²) / H_C', `${JSON.stringify(F.H_X_m2 ?? null)} / ${JSON.stringify(F.H_C ?? null)}`],
+    ['RFF D', F.D ?? '–'], ['TARGET tail bound', JSON.stringify((g.TARGET || {}).tail_bound ?? null)], ['RIGID_GRAPH χ²/dof q', JSON.stringify(Rg.chi2_over_dof_q ?? null)]], ['quantity', 'value']);
+  if (N.score_hist) { const h = N.score_hist, x = h.counts.map((_, i) => .5*(h.edges[i]+h.edges[i+1])); chart('g_dist', [{x, y: h.counts, color: '#58a6ff', label: 'count'}], {title: 'motion evidence score (UNCALIBRATED) histogram, m', w: 420}); }
+}
+function drawPerf() {
+  const P = N.performance || {}, ops = Object.entries(P.operators || {}).sort((a, b) => b[1].seconds-a[1].seconds);
+  $('perf').innerHTML = table(ops.map(([k, v]) => [k, v.calls, v.seconds.toFixed(4)]), ['operator', 'calls', 'seconds']) +
+    table([['device', P.device_name || P.device], ['wall seconds', fmt(P.wall_seconds)], ['peak allocated bytes', P.peak_allocated_bytes ?? 'n/a (CPU)'], ['peak reserved bytes', P.peak_reserved_bytes ?? 'n/a (CPU)']]);
+}
+function trace(id) {
+  $('g_trace').innerHTML = ''; $('ttab').innerHTML = ''; const t = TJ.ids.indexOf(id), j = ids.indexOf(id), K = M.K, f = v => fin(v) ? v.toFixed(5) : 'NaN';
+  if (t < 0 && j < 0) { $('tinfo').textContent = `original ID ${id} is not in the display payload (N_display ${ids.length} of ${M.N})`; state.trace_info = {id, available: false}; return; }
+  const X = t >= 0 ? [...Array(K).keys()].map(k => [0, 1, 2].map(a => TJ._x[(t*K+k)*3+a])) : null, S = t >= 0 ? [...Array(K).keys()].map(k => TJ._s[t*K+k]) : null;
+  const src = j >= 0 ? [0, 1, 2].map(a => SRC[3*j+a]) : null, x0 = j >= 0 ? [0, 1, 2].map(a => CAN[3*j+a]) : null, tc = M.transport_status_codes.point || {};
+  const score = SC && j >= 0 ? SC[j] : null, ps = PST && j >= 0 ? PST[j] : null, T = TR.traces[id];
+  PD.rows($('tinfo'), [['original ID', id + (T ? ' (traced)' : '') + (M.seeds && M.seeds.ids.includes(id) ? ' (seed)' : '')],
+    ['source (frame id, camera, pixel)', src ? `${src[0]}, ${(M.cameras[src[1]] || {}).name}, ${src[2]}` : '–'], ['canonical x0 (m)', x0 ? x0.map(f).join(', ') : '–'],
+    ['reference RGB (0..1)', T ? T.rgb0.map(v => v.toFixed(3)).join(', ') : j >= 0 ? [0, 1, 2].map(a => (CRGB[3*j+a]/255).toFixed(3)).join(', ') : '–'],
+    ['position prior σ0 (mm)', j >= 0 ? [0, 1, 2].map(a => SIG[3*j+a].toFixed(3)).join(', ') : '–'], ['motion evidence score (UNCALIBRATED, m)', score === null ? '–' : String(score)],
+    ['probability status', ps === null ? '–' : `${ps} ${M.probability_status_codes[ps] || ''}`], ['p_dynamic', PDY && j >= 0 ? String(PDY[j]) : 'not published'],
+    ['gamma (global, FEATURES gate)', JSON.stringify(((N.status.gates || {}).FEATURES || {}).gamma ?? null)],
+    ['visibility (transport status) per frame', S ? S.map(s => s === 255 ? '–' : (tc[s] || s)).join(' ') : '–']]);
+  if (X) { const ts = M.times_s, d = X.map(x => Math.hypot(...x.map((v, a) => v-X[0][a])));
+    chart('g_trace', [{x: ts, y: d, color: '#ffd33d', label: '|x(t) − x(t0)| provisional (m)'}], {title: `ID ${id}: temporal displacement vs t (s)`, w: 420});
+    chart('g_trace', [0, 1, 2].map(a => ({x: ts, y: X.map(x => x[a]-X[0][a]), color: ['#f85149', '#3fb950', '#58a6ff'][a], label: 'xyz'[a]+' − '+'xyz'[a]+'0'})), {title: `ID ${id}: provisional XYZ trajectory (m)`, w: 420}); }
+  if (T) { const I = T.iterations, last = I[I.length-1], fr = last ? last.frames : [], n3 = v => v ? Math.hypot(...v) : NaN;
+    chart('g_trace', [{x: fr.map(q => tt(q.frame)), y: fr.map(q => n3(q.attraction)), color: '#3fb950', label: '|attraction|'}, {x: fr.map(q => tt(q.frame)), y: fr.map(q => n3(q.repulsion)), color: '#f0883e', label: '|repulsion|'},
+      {x: fr.map(q => tt(q.frame)), y: fr.map(q => n3(q.score)), color: '#8b949e', label: '|target score|', dash: [3, 3]}], {title: `ID ${id}: Stein terms, last outer iteration`, w: 420});
+    const inc = (TJ.incident_edges || {})[id] || [];
+    $('ttab').innerHTML = '<h2>per outer iteration × frame</h2>' + table(I.flatMap(it => it.frames.map(q => [it.outer, q.frame, fmt(q.log_density), fmt(n3(q.score)), fmt(q.effective_components),
+      (q.camera_score_mass || []).map(fmt).join(' / '), fmt(n3(q.attraction)), fmt(n3(q.repulsion)), fmt(n3(q.stein_total)), fmt(q.kernel_mass),
+      fmt(it.accepted_delta_xyz ? n3(it.accepted_delta_xyz[q.frame]) : NaN), it.x_after ? it.x_after[q.frame].map(f).join(', ') : '–'])),
+      ['outer', 'frame', 'log density', '|score|', 'eff. comps', 'camera score mass', '|attraction|', '|repulsion|', '|stein total|', 'kernel mass', '|accepted step| m', 'x after']) +
+      `<h2>rigid neighbours (${inc.length} candidate edges; rho_il NaN = BLOCKED)</h2>` + table(inc.slice(0, 40).map(r => r.map(fmt)), TJ.incident_edge_fields); }
+  state.trace_info = {id, available: true, motion_score: score, probability_status: ps, source: src, trajectory: X, traced: !!T};
+  history.replaceState(null, '', `#id=${id}`);
+}
+const tt = k => M.times_s[k] ?? k;
+let SC = null, PDY = null, PST = null, SRC, CAN, CRGB, SIG;
+(async () => {
+  [M, N, TJ, TR] = await Promise.all(['svgd_support_meta', 'svgd_support_numeric', 'svgd_support_traj', 'svgd_support_traces'].map(PD.load));
+  TJ._x = PD.f32(TJ.xyz); TJ._s = PD.u8(TJ.status); ids = Array.from(PD.i32(M.display_ids)); SRC = PD.i32(M.source); CAN = PD.f32(M.canonical_xyz); CRGB = PD.u8(M.canonical_rgb); SIG = PD.f32(M.sigma0_mm);
+  if (M.motion_score) SC = f64(M.motion_score); if (M.p_dynamic) PDY = f64(M.p_dynamic); if (M.probability_status) PST = PD.u8(M.probability_status);
+  $('banners').innerHTML = M.banners.map(b => `<div class="b ${b.level}"><b>${b.code}</b> ${b.text}</div>`).join(''); state.banners = M.banners.map(b => b.code);
+  PD.rows($('status'), [['stage reached', M.stage_reached], ['probability semantics', M.probability_semantics], ['theory fidelity', M.theory_fidelity], ['sequence scope', M.sequence_scope],
+    ['result', (M.result || {}).status], ['debug level', `${M.level} (${M.frames.length}/${M.K} frames)`], ['N / K / cameras', `${M.N} / ${M.K} / ${M.cameras.length}`],
+    ['transported label', M.transport_label], ['debug status', M.debug_status || '–']]);
+  $('blocked').innerHTML = M.blocked ? `<b class="bad">${M.blocked.status}</b> at ${M.blocked.stage}` + table((M.blocked.reasons || []).map(r => [r.parameter, r.reason]), ['parameter', 'reason']) : '<span class="good">not blocked</span>';
+  $('gates').textContent = JSON.stringify(N.status.gates || {}, null, 1);
+  $('parity').textContent = typeof N.theory_parity_summary === 'string' ? N.theory_parity_summary : JSON.stringify(N.theory_parity_summary, null, 1);
+  drawObjective(); drawField(); drawPCG(); drawCounts(); drawDist(); drawPerf();
+  $('symlog').onchange = () => { state.charts = 0; drawObjective(); drawField(); drawPCG(); };
+  $('tlist').innerHTML = ' traced: ' + M.traced_ids.map(i => `<a href="#" data-id="${i}">${i}</a>`).join(' ');
+  $('tlist').querySelectorAll('a').forEach(a => a.onclick = e => { e.preventDefault(); $('tid').value = a.dataset.id; trace(+a.dataset.id); });
+  $('tid').onchange = e => trace(+e.target.value);
+  const id0 = PD.param('id', null), first = id0 !== null ? +id0 : M.traced_ids[0];
+  if (first !== undefined && Number.isFinite(first)) { $('tid').value = first; trace(first); }
+  window.addEventListener('hashchange', () => { const i = PD.param('id', null); if (i !== null) { $('tid').value = i; trace(+i); } });
+  state.ready = true;
+})().catch(e => { state.error = String(e); window.__errors.push(String(e)); $('errors').textContent = 'ERROR: '+e; });
+</script></body></html>
