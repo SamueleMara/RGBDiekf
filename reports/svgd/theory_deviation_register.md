@@ -2,18 +2,20 @@
 
 | # | date | entry |
 |---|---|---|
-| 0 | 2026-11-03 | `NO_DEVIATIONS_RECORDED` (initial entry at Gate TF0; **superseded** by entries 1-11 below) |
+| 0 | 2026-11-03 | `NO_DEVIATIONS_RECORDED` (initial entry at Gate TF0; **superseded** by entries 1-12 below) |
 | 1 | 2026-11-03 | **DEV-0001** MODEL_APPROX / PROPOSED / NON_EQUIVALENT |
 | 2 | 2026-11-03 | **DEV-0002** MODEL_APPROX / PROPOSED / NON_EQUIVALENT |
 | 3 | 2026-11-03 | **DEV-0003** THEORY_CHANGE / PROPOSED / UNDETERMINED |
 | 4 | 2026-11-03 | **DEV-0004** THEORY_CHANGE / PROPOSED / UNDETERMINED |
 | 5 | 2026-11-03 | **DEV-0005** THEORY_CHANGE / PROPOSED / UNDETERMINED |
 | 6 | 2026-11-03 | **DEV-0006** MODEL_APPROX / PROPOSED / NON_EQUIVALENT |
-| 7 | 2026-11-03 | **DEV-0007** MODEL_APPROX / PROPOSED / CONTROLLED_APPROXIMATION |
+| 7 | 2026-11-03 | **DEV-0007** MODEL_APPROX / PROPOSED / UNDETERMINED |
 | 8 | 2026-11-03 | **DEV-0008** MODEL_APPROX / PROPOSED / NON_EQUIVALENT |
 | 9 | 2026-11-03 | **DEV-0009** NUMERICAL_APPROX / PROPOSED / CONTROLLED_APPROXIMATION |
 | 10 | 2026-11-03 | **DEV-0010** THEORY_CHANGE / PROPOSED / UNDETERMINED |
-| 11 | 2026-11-03 | **TC-0001** THEORY_CONFLICT / OPEN_REQUIRES_USER_DECISION |
+| 11 | 2026-11-03 | **DEV-0011** OPTIMIZER_MODIFICATION (TF.5 solver-policy row; no probability-model change) / PROPOSED / EXACT_EQUIVALENT objective / NON_EQUIVALENT map |
+| 12 | 2026-11-03 | **TC-0001** THEORY_CONFLICT / OPEN_REQUIRES_USER_DECISION |
+| 13 | 2026-11-03 | **DEV-0007 amended** (audit b62c7cee F7): 'conservative' withdrawn -> bias sign UNDETERMINED, conclusion UNDETERMINED |
 
 Authorization: none of the entries is authorized; each is reachable only with `--svgd-theory-fidelity experimental` and is excluded from
 theory-fidelity acceptance and from any advertised probability (spec TF.4).
@@ -102,16 +104,16 @@ theory-fidelity acceptance and from any advertised probability (spec TF.4).
 - **ablation_command**: -
 - **authorization**: source: `none`, decision: `NOT_AUTHORIZED (experimental mode only; excluded from theory-fidelity acceptance)`
 
-## DEV-0007 — MODEL_APPROX (PROPOSED, CONTROLLED_APPROXIMATION)
+## DEV-0007 — MODEL_APPROX (PROPOSED, UNDETERMINED)
 
 - **original_theory**: document: `docs/references/Stein_SVGD_Moving_Support_Pipeline.pdf`, equation: `(38)`, exact_expression: `Omega = J P_zeta J^T with the joint covariance of all states`
 - **actual_implementation**: file: `estimator/svgd_rigidity.py`, function: `edge_covariance_structured / prior_position_marginals`, exact_expression_or_algorithm: `shared-reference exact (rank 1) + independent prior-propagated marginals per time and point`
 - **reason**: joint posterior covariance of 6N(T+1) states infeasible
 - **mathematical_difference**: drops cross-time/cross-point correlation of trajectory states and all data information
 - **affected_outputs**: rigid_chi2, rigid_loglik
-- **error_or_bias**: units: `m^2`, measured: `dense vs structured identical when structure holds; MC agreement 3%`, bound_or_limitation: `conservative (prior marginals broader than posterior)`
-- **independent_oracle**: test: `tests/test_svgd_rigidity.RigidityTests.test_covariance_monte_carlo_and_structured_exact`, result: `PASS`, tolerance_basis: `MC 2e5 samples`
-- **correctness_risk**: understated rigidity evidence
+- **error_or_bias**: units: `m^2`, measured: `dense vs structured identical when structure holds; MC agreement 3%; log det bias +/- with the sign of the dropped correlation`, bound_or_limitation: `bias sign UNDETERMINED (corrected 2026-11-03 per audit F7: Var(x_i - x_l) = Var_i + Var_l - 2 Cov; dropping a negative covariance deflates Omega)`
+- **independent_oracle**: test: `tests/test_svgd_rigidity.RigidityTests.test_dropped_cross_covariance_bias_sign_undetermined`, result: `opposite log-det bias for rho = +/-0.8`, tolerance_basis: `sign test`
+- **correctness_risk**: over- OR under-stated rigidity evidence; no calibrated rho_ij while Omega is unverified
 - **alternatives_considered**: selected-inverse posterior covariance (earlier temporal-sparse work)
 - **ablation_command**: -
 - **authorization**: source: `none`, decision: `NOT_AUTHORIZED (experimental mode only; excluded from theory-fidelity acceptance)`
@@ -156,6 +158,20 @@ theory-fidelity acceptance and from any advertised probability (spec TF.4).
 - **correctness_risk**: spurious strain on real data
 - **alternatives_considered**: calibrate on static intervals
 - **ablation_command**: -
+- **authorization**: source: `none`, decision: `NOT_AUTHORIZED (experimental mode only; excluded from theory-fidelity acceptance)`
+
+## DEV-0011 — OPTIMIZER_MODIFICATION (TF.5 solver-policy row; no probability-model change) (PROPOSED, EXACT_EQUIVALENT objective / NON_EQUIVALENT map)
+
+- **original_theory**: document: `CODEX_RGBDiekf_SVGD_Sequence_Moving_Support_CUDA_THEORY_PARITY_2026-11-03.md`, equation: `B3`, exact_expression: `x <- x + eta Phi (positions only)`
+- **actual_implementation**: file: `estimator/svgd_support_run.py`, function: `_stages (velocity_lift = conditional_temporal_lift)`, exact_expression_or_algorithm: `[x, v] <- [x + eta Phi, v + dV(eta Phi)], dV = E37`
+- **reason**: audit F2: a positions-only proposal raises E_time through inconsistent velocities and can be rejected although dE_obs < 0
+- **mathematical_difference**: different proposal map; SAME accepted objective E
+- **affected_outputs**: accepted transport only
+- **error_or_bias**: units: `-`, measured: `dE_time of both families logged per backtrack (STEIN_DIAGNOSTICS)`, bound_or_limitation: `not the original SVGD map`
+- **independent_oracle**: test: `tests/test_svgd_temporal.TemporalTests.test_subblock_solve_and_velocity_lift_exact`, result: `PASS vs dense autograd minimization`, tolerance_basis: `1e-9 rel`
+- **correctness_risk**: none for the objective; changes which proposals are accepted
+- **alternatives_considered**: positions-only (default, original)
+- **ablation_command**: stein_numerics.step_policy.velocity_lift = 'conditional_temporal_lift' (strict needs velocity_lift_authorization = AUTHORIZED)
 - **authorization**: source: `none`, decision: `NOT_AUTHORIZED (experimental mode only; excluded from theory-fidelity acceptance)`
 
 ## TC-0001 — THEORY_CONFLICT (OPEN_REQUIRES_USER_DECISION)

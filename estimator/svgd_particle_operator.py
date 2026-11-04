@@ -27,7 +27,9 @@ class SteinResult:
     truncation_error_bound: float    # 0: exact
 
 
-def stein_field(x, c, g, H_x, H_c=None, attraction=True, repulsion=True, kernel_color=True, workspace_bytes=512*2**20):
+def stein_field(x, c, g, H_x, H_c=None, attraction=True, repulsion=True, kernel_color=True, workspace_bytes=512*2**20, source_mask=None):
+    """source_mask [N] (0/1, post-hoc audits only): restricts the SOURCE particles l of every sum (global 1/N kept), so the
+    fields of complementary masks add up to the full field exactly. Inference always uses source_mask=None."""
     N, dt, dev = len(x), x.dtype, x.device
     Px, _ = _precision(torch.as_tensor(H_x, dtype=dt, device=dev), 'H_X')
     if kernel_color and H_c is None: raise ValueError('kernel_color needs H_C')
@@ -43,6 +45,7 @@ def stein_field(x, c, g, H_x, H_c=None, attraction=True, repulsion=True, kernel_
             q = fx@Ax.T+kx[None]
             if kernel_color: Ac, kc, _, _ = quad_coefficients(Pc, c[l0:l0+nl]-oc); q = q+fc@Ac.T+kc[None]
             K = torch.exp(-.5*q)
+            if source_mask is not None: K = K*source_mask[l0:l0+nl].to(dt)[None]
             ms += K.sum(1)
             if attraction: a += K@g[l0:l0+nl]
             if repulsion: kx_sum += K@xl

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SVGD falsification 3D</title>
+<link rel="stylesheet" href="projective_theme.css">
+<style>#banners .b{padding:3px 6px;margin:3px 0;border-radius:4px;background:#21262d;font-size:11px}#banners .b.bad{border-left:3px solid var(--bad)}#banners .b.warn{border-left:3px solid var(--warn)}
+#cls{font-size:13px;padding:5px 8px;margin:6px 0;border-left:4px solid var(--warn);background:#21262d}#hud b.o{color:var(--warn)}</style>
+<script src="three.min.js"></script><script src="projective_common.js"></script></head>
+<body class="app"><div id="app">
+<div id="view"><div id="hud"></div>
+ <div id="bar"><button id="play">play</button><button id="first">|&lt;</button><button id="prev">&lt;</button><button id="next">&gt;</button>
+  <input id="frame" type="range" min="0" value="0" step="1"><span id="flabel"></span>
+  <label class="inline">speed × real time <select id="speed"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option></select></label></div></div>
+<div id="side" class="wide">
+ <h1>SVGD falsification audit — 3D (post hoc)</h1><div id="errors"></div><div id="cls"></div><div id="banners"></div>
+ <h2>This frame</h2><div id="counts"></div>
+ <h2>Show</h2><div id="toggles"></div>
+ <label>view from <select id="viewfrom" style="flex:1"><option value="-1">free orbit</option></select></label>
+ <label>point size <input id="psize" type="range" min="0.3" max="3" step="0.1" value="1" style="flex:1"></label>
+ <h2>Point colour (X0 and GT layers)</h2><select id="mode"></select><div id="legend" style="margin-top:6px"></div><div id="lsem" class="note"></div>
+ <h2>Counterfactual arms</h2><div class="note" id="anote"></div>
+ <label>display exaggeration of (X_arm − X0) <select id="aex"><option selected>1</option><option>10</option><option>100</option><option>1000</option><option>10000</option></select></label>
+ <h2>Stein vectors Φ_t</h2><div class="note" id="vnote"></div>
+ <label>length <select id="vmode"></select></label><label>× 10^ <input id="vscale" type="range" min="-3" max="3" step="0.1" value="0" style="flex:1"><span id="vsv"></span></label>
+ <h2>Inspect original ID</h2><input id="pid" type="text" size="9" placeholder="original id"><div id="info" class="note">enter a displayed original ID</div>
+</div></div>
+<script>
+const state = {ready: false, frame: 0, drawn_frame: null, selected: null}; window.__state = state;
+let M, V, ids, idx = new Map(), X0, MOV, RGB = null, VI, cache = {}, obj = {}, cur = null, want = null;
+const $ = id => document.getElementById(id), hexn = c => parseInt(c.slice(1), 16);
+const COL = {moving: '#f0883e', static: '#58a6ff', x0: '#565e69', gt: '#3fb950', A: '#e3b341', B: '#db61a2', C: '#a371f7', D: '#39c5cf'};
+const show = {x0: true, gt: true, gttrail: true, vectors: true, frusta: true}; const camsOn = [];
+const frameKey = k => `falsification_f${String(k).padStart(4, '0')}`;
+const frameData = k => cache[k] || (cache[k] = PD.load(frameKey(k)).then(F => { F._gt = PD.f32(F.gt); F._pv = PD.f32(F.phi_vec); F._pn = PD.f32(F.phi_norm); F._gd = PD.f32(F.gt_disp);
+  F._cos = PD.f32(F.cos_gt); F._arms = Object.fromEntries(Object.entries(F.arms).map(([a, b]) => [a, PD.f32(b)])); return F; }));
+const sz = f => V.state.radius*f*(+$('psize').value);
+function put(name, o) { if (obj[name]) { V.scene.remove(obj[name]); obj[name].traverse(x => { x.geometry && x.geometry.dispose(); x.material && x.material.dispose(); }); } obj[name] = o || null; if (o) V.scene.add(o); }
+function squares(pos, col, size) { const p = PD.points(pos, col, size); p.material.map = null; p.material.alphaTest = 0; p.material.needsUpdate = true; return p; }
+function colours(F) {          // per displayed point colour of the active layer; legend endpoints fixed by python (meta.layers)
+  const mode = $('mode').value, L = M.layers[mode], n = ids.length, out = new Float32Array(3*n), Lg = $('legend'), nanc = PD.hex3(M.nan_colour); let vals = null;
+  if (mode === 'support') { const cm = PD.hex3(COL.moving), cs = PD.hex3(COL.static); for (let j = 0; j < n; j++) out.set(MOV[j] ? cm : cs, 3*j);
+    PD.legend(Lg, [[COL.moving, `moving (post hoc) — ${M.n_moving_full} of N ${M.N}`], [COL.static, `static (post hoc) — ${M.N-M.n_moving_full}`]]); }
+  else if (mode === 'rgb') { for (let j = 0; j < n; j++) out.set([RGB[3*j]/255, RGB[3*j+1]/255, RGB[3*j+2]/255], 3*j); PD.legend(Lg, [['#888', L.name]]); }
+  else { vals = mode === 'gt_disp' ? F._gd : mode === 'phi_norm' ? F._pn : F._cos; const f = L.kind === 'diverging' ? PD.diverging : PD.viridis;
+    for (let j = 0; j < n; j++) { const v = vals[j]; out.set(!Number.isFinite(v) ? nanc : L.kind === 'diverging' ? PD.diverging(v) : PD.viridis((v-L.lo)/Math.max(L.hi-L.lo, 1e-300)), 3*j); }
+    PD.colorbar(Lg, L.kind === 'diverging' ? (t => PD.diverging(2*t-1)) : PD.viridis, L.lo_label, L.hi_label);
+    if (L.nan_label) Lg.insertAdjacentHTML('beforeend', `<div class="legend"><span><span class="sw" style="background:${M.nan_colour}"></span>${L.nan_label}</span></div>`); }
+  Lg.insertAdjacentHTML('afterbegin', `<div><b>${L.name}</b></div>`); $('lsem').textContent = L.semantics || '';
+  state.legend = {mode, name: L.name, lo_label: L.lo_label, hi_label: L.hi_label}; state.layer_values = vals; return out;
+}
+function vecLen(F) {           // world length factor for Φ: either display-normalized or a true step η Φ (metres)
+  const m = $('vmode').value, s = Math.pow(10, +$('vscale').value); $('vsv').textContent = s.toPrecision(3);
+  if (m === 'display') { const a = [[], []], md = v => { v.sort((p, q) => p-q); return v.length ? v[Math.floor(v.length/2)] : 0; };
+    for (let i = 0; i < VI.length; i++) a[MOV[VI[i]] ? 1 : 0].push(Math.hypot(F._pv[3*i], F._pv[3*i+1], F._pv[3*i+2]));
+    const med = Math.max(md(a[0]), md(a[1]));                               // larger class median: the dominant class sets the scale, the other stays comparable
+    return {f: med > 0 ? s*.08*V.state.radius/med : 0, label: `display-normalized: max(moving, static) median |Φ| of the vector subset = 8% of scene radius × ${s.toPrecision(3)}`}; }
+  const e = M.arms.find(x => x.arm === m); return {f: s*e.eta_m2, label: `true step η_${m} Φ (η = ${e.eta_m2.toExponential(3)} m²) × ${s.toPrecision(3)} (metres)`};
+}
+function drawFrame(F) {
+  const k = F.k, n = ids.length;
+  if (!F.complete || F._gt.length !== 3*n || F._pv.length !== 3*VI.length) { state.frame_complete = false; $('errors').textContent = `frame ${k} payload incomplete: not drawn`; return; }
+  const col = colours(F), ex = +$('aex').value;
+  put('x0', show.x0 ? PD.points(X0, col, sz(.03), .55) : null);
+  put('gt', show.gt ? squares(F._gt, col, sz(.026)) : null);
+  const armsDrawn = {};
+  for (const a of M.arms) { const X = F._arms[a.arm], on = show['arm_'+a.arm]; let P = X;
+    if (ex !== 1) { P = new Float32Array(X.length); for (let i = 0; i < X.length; i++) P[i] = X0[i]+ex*(X[i]-X0[i]); }
+    put('arm_'+a.arm, on ? PD.points(P, COL[a.arm] || '#ffffff', sz(.012)) : null); armsDrawn[a.arm] = on ? P : null; }
+  // GT trails of the vector subset over all frames (needs every frame; drawn once loaded)
+  if (show.gttrail && state.trails) put('gttrail', PD.lines(state.trails, hexn(COL.gt), .5)); else put('gttrail', null);
+  const L = vecLen(F), segM = [], segS = [];
+  for (let i = 0; i < VI.length; i++) { const j = VI[i], o = [X0[3*j], X0[3*j+1], X0[3*j+2]], d = [F._pv[3*i], F._pv[3*i+1], F._pv[3*i+2]];
+    (MOV[j] ? segM : segS).push(...o, o[0]+L.f*d[0], o[1]+L.f*d[1], o[2]+L.f*d[2]); }
+  put('vm', show.vectors && segM.length ? PD.lines(segM, hexn(COL.moving), .95) : null); put('vs', show.vectors && segS.length ? PD.lines(segS, hexn(COL.static), .75) : null);
+  $('vnote').textContent = `${M.vector_rule}. ${L.label}. Moving arrows orange, static blue.`;
+  if (obj.frusta) obj.frusta.visible = show.frusta;
+  const t = M.times_s[k], st = F.stats_full_N, mm = v => v === null || v === undefined ? '–' : (1e3*v).toFixed(4)+' mm';
+  $('hud').innerHTML = `frame ${k} · t = <span id="tsec">${t.toFixed(4)}</span> s · <b class="o">${M.gt_label}</b>` + (M.arms.length ? ` · <b class="o">${M.arm_label}</b>` : '') + (ex !== 1 ? ` · arm displacement ×${ex} (display only)` : '');
+  $('flabel').textContent = `t ${t.toFixed(4)} s · frame ${k+1}/${M.K}`;
+  PD.rows($('counts'), [['N_full (canonical particles)', M.N], ['N_display (same IDs every frame)', n], ['moving (post hoc) full / displayed', `${M.n_moving_full} / ${M.n_moving_display}`],
+    ['Stein vectors drawn (fixed subset)', show.vectors ? VI.length : 0], ['median |X_GT,t − X0| moving (all N)', mm(st.gt_disp_moving_median_m)], ['max |X_GT,t − X0| static (all N)', mm(st.gt_disp_static_max_m)],
+    ['median |Φ_t| moving / static (1/m)', `${(st.phi_norm_moving_median ?? NaN).toExponential(3)} / ${(st.phi_norm_static_median ?? NaN).toExponential(3)}`],
+    ...M.arms.map(a => [`median |X_${a.arm},t − X0| moving (all N)`, mm(st[`arm_${a.arm}_disp_moving_median_m`])]), ['timestamps from', M.times_source]]);
+  state.frame = k; state.drawn_frame = k; state.frame_complete = true; state.gt = F._gt; state.arms = armsDrawn; state.arms_raw = F._arms; state.phi_vec = F._pv; state.time_s = t;
+  state.layer_colors = col; state.vectors_drawn = show.vectors ? (segM.length+segS.length)/6 : 0; state.vector_factor = L.f; state.arm_exaggeration = ex;
+  info(F); history.replaceState(null, '', `#frame=${k}` + (state.selected !== null ? `&id=${state.selected}` : ''));
+}
+function info(F) {
+  const id = state.selected, el = $('info'); if (id === null) return; const j = idx.get(id), f = v => Number.isFinite(v) ? v.toFixed(6) : 'NaN';
+  if (j === undefined) { el.textContent = `original ID ${id} is not in the displayed subset (N_display ${ids.length} of ${M.N})`; state.selected_info = {id, displayed: false}; return; }
+  const g = a => [0, 1, 2].map(q => a[3*j+q]), x0 = g(X0), gt = g(F._gt), vi = VI.indexOf(j);
+  const rows = [['original ID', id], ['support (post hoc)', MOV[j] ? 'moving' : 'static'], ['X0 (m)', x0.map(f).join(', ')], [`X_GT,t (m) — POST-HOC`, gt.map(f).join(', ')],
+    ['|X_GT,t − X0| (m)', f(F._gd[j])], ['|Φ_t| (1/m)', F._pn[j].toExponential(4)], ['cos(Φ_t, X_GT,t − X0)', Number.isFinite(F._cos[j]) ? F._cos[j].toFixed(4) : 'undefined'],
+    ...M.arms.map(a => [`X_${a.arm},t (m) — OFFLINE COUNTERFACTUAL`, g(F._arms[a.arm]).map(f).join(', ')])];
+  if (vi >= 0) rows.push(['Φ_t (1/m, vector subset)', [0, 1, 2].map(q => F._pv[3*vi+q].toExponential(3)).join(', ')]);
+  PD.rows(el, rows); state.selected_info = {id, displayed: true, frame: F.k, moving: !!MOV[j], x0, gt, arms: Object.fromEntries(M.arms.map(a => [a.arm, g(F._arms[a.arm])]))};
+}
+async function go(k) { want = k; const F = await frameData(k); if (want !== k) return; cur = F; drawFrame(F); if (k+1 < M.K) frameData(k+1); }
+const redraw = () => cur && drawFrame(cur);
+function select(id) { state.selected = Number.isFinite(id) ? id : null; $('pid').value = state.selected ?? ''; redraw(); }
+(async () => {
+  const gl = document.createElement('canvas'); if (!(gl.getContext('webgl2') || gl.getContext('webgl'))) { state.error = 'NO_WEBGL'; state.webgl = false; $('errors').textContent = 'NO_WEBGL: this browser has no WebGL; the 3D view cannot be drawn'; return; }
+  state.webgl = true; M = await PD.load('falsification_meta');
+  ids = Array.from(PD.i32(M.display_ids)); ids.forEach((id, j) => idx.set(id, j)); X0 = PD.f32(M.X0); MOV = PD.u8(M.moving); VI = Array.from(PD.i32(M.vector_index)); if (M.rgb0) RGB = PD.u8(M.rgb0);
+  state.display_ids = ids; state.vector_ids = M.vector_ids; state.X0 = X0; state.moving = MOV; state.meta = {N: M.N, N_display: ids.length, K: M.K};
+  $('cls').innerHTML = `classification <b>${M.classification}</b><br><span class="note">GT ${M.gt_status} · reconstruction valid ${M.reconstruction_valid}</span>`;
+  $('banners').innerHTML = [['warn', 'GT', `green squares / trails = ${M.gt_label}: post-hoc GT trajectory, built only by the audit`],
+    ...M.arms.map(a => ['warn', ARM(a.arm), `${a.label}: ${a.definition || ''}`]),
+    ...(M.arms_missing.length ? [['bad', 'NO_MEANINGFUL_STEP', `arms ${M.arms_missing.join(', ')}: no meaningful accepted step, nothing to show`]] : []),
+    ['warn', 'Φ', 'Stein field saved at the stationary state S0 (X = X0 every frame): arrows start at X0'],
+    ['warn', 'OBSERVED', 'observed masked clouds are not shown on this page (see RUN/debug)']].map(([l, c, t]) => `<div class="b ${l}"><b>${c}</b> ${t}</div>`).join('');
+  function ARM(a) { return `ARM ${a}`; }
+  const mode = $('mode'); Object.entries(M.layers).forEach(([k, L]) => mode.add(new Option(L.name, k)));
+  const TOG = [['x0', 'canonical X0 (discs, translucent)', COL.x0], ['gt', M.gt_label+' — positions at t (squares)', COL.gt], ['gttrail', 'GT trajectories of the vector subset (all frames)', COL.gt],
+    ...M.arms.map(a => ['arm_'+a.arm, `${M.arm_label} arm ${a.arm} positions at t`, COL[a.arm]]), ['vectors', 'Stein vectors Φ_t (fixed subset)', COL.moving], ['frusta', 'camera frusta (run manifest)', PD.C.cam]];
+  M.arms.forEach(a => show['arm_'+a.arm] = true);
+  const tg = $('toggles'); TOG.forEach(([key, text, col]) => tg.insertAdjacentHTML('beforeend', `<label><input type="checkbox" data-k="${key}" ${show[key] ? 'checked' : ''}><span class="sw" style="background:${col}"></span>${text}</label>`));
+  tg.querySelectorAll('input').forEach(e => e.onchange = () => { show[e.dataset.k] = e.checked; redraw(); });
+  $('anote').textContent = M.arms.length ? 'Arm positions X0 + η Φ (frame 0 kept fixed for C/D) at the first meaningful accepted step of each arm; offline, never inference.' : 'no arm has a meaningful accepted step';
+  const vm = $('vmode'); vm.add(new Option('display-normalized', 'display')); M.arms.forEach(a => vm.add(new Option(`true step η_${a.arm} Φ (m)`, a.arm)));
+  V = PD.viewer($('view')); V.fit(X0);
+  if (M.cameras.length) { const fr = new THREE.Group(), st = V.state, far = Math.max(...M.cameras.map(c => Math.hypot(c.T_wc[0][3]-st.target.x, c.T_wc[1][3]-st.target.y, c.T_wc[2][3]-st.target.z)));
+    M.cameras.forEach(c => fr.add(PD.frustum(c, Math.min(.25*far, 3*st.radius)))); V.scene.add(fr); obj.frusta = fr; }
+  const vf = $('viewfrom'); M.cameras.forEach((c, i) => vf.add(new Option(c.name, i))); vf.onchange = () => { if (+vf.value >= 0) V.lookFrom(M.cameras[+vf.value]); state.view_from = +vf.value; };
+  const sl = $('frame'); sl.max = M.K-1; sl.oninput = () => go(+sl.value);
+  const step = d => { sl.value = Math.max(0, Math.min(M.K-1, +sl.value+d)); sl.oninput(); };
+  $('first').onclick = () => { sl.value = 0; sl.oninput(); }; $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
+  ['mode', 'aex', 'vmode', 'vscale', 'psize'].forEach(e => { $(e).onchange = redraw; $(e).oninput = redraw; });
+  $('pid').onchange = e => select(e.target.value === '' ? NaN : +e.target.value);
+  let playing = false, t0w = 0, t0s = 0;                                  // play follows the TRUE timestamps (real time × speed)
+  const tick = () => { if (!playing) return; const T = M.times_s, ts = t0s+(performance.now()-t0w)/1000*(+$('speed').value);
+    if (ts > T[M.K-1]) { t0w = performance.now(); t0s = T[0]; }
+    let i = 0; for (let q = 0; q < M.K; q++) if (T[q] <= ts) i = q;
+    if (i !== want) { sl.value = i; go(i); } requestAnimationFrame(tick); };
+  $('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'pause' : 'play'; if (playing) { t0w = performance.now(); t0s = M.times_s[state.frame]; tick(); } };
+  const fromHash = () => { const f = PD.param('frame', null), i = PD.param('id', null); if (i !== null && i !== '') state.selected = +i; $('pid').value = state.selected ?? '';
+    const k = Math.max(0, Math.min(M.K-1, f === null ? 0 : +f)); sl.value = k; return go(k); };
+  window.addEventListener('hashchange', fromHash);
+  await fromHash();
+  // GT trails need every frame of the vector subset: loaded after the first frame is drawn (the first draw does not wait for them)
+  const all = await Promise.all([...Array(M.K).keys()].map(frameData)), seg = [];
+  for (const j of VI) for (let k = 1; k < M.K; k++) { const a = all[k-1]._gt, b = all[k]._gt; seg.push(a[3*j], a[3*j+1], a[3*j+2], b[3*j], b[3*j+1], b[3*j+2]); }
+  state.trails = seg; redraw(); state.ready = true;
+})().catch(e => { state.error = String(e); window.__errors.push(String(e)); $('errors').textContent = 'ERROR: '+e; });
+</script></body></html>

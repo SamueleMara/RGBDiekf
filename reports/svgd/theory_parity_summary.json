@@ -1,66 +1,66 @@
 {
- "generated": "2026-11-03 17:14:25",
- "commit": "d0b470b75e9ec9181f7561e1a80d2909fb75c7e5",
+ "generated": "2026-11-03 17:46:55",
+ "commit": "b62c7ceeb300c852a58f34dd748d5a1ce26d987a",
  "working_tree_dirty": [
-  " M tools/run_status.py",
-  "?? CODEX_RGBDiekf_SVGD_Sequence_Moving_Support_CUDA_THEORY_PARITY_2026-11-03.md",
-  "?? configs/svgd_support.json",
-  "?? configs/svgd_support_experimental.json",
-  "?? debug/assets/projective_svgd_numerical.html",
-  "?? debug/assets/projective_svgd_support.html",
-  "?? debug/svgd_support_debug.py",
-  "?? docs/SVGD_THEORY_TO_CODE_CONTRACT.md",
-  "?? docs/references/Stein_SVGD_Moving_Support_Pipeline.pdf",
-  "?? estimator/svgd_contract.py",
-  "?? estimator/svgd_feature_measurement.py",
-  "?? estimator/svgd_particle_operator.py",
-  "?? estimator/svgd_rigidity.py",
-  "?? estimator/svgd_support_posterior.py",
-  "?? estimator/svgd_support_run.py",
-  "?? estimator/svgd_target_score.py",
-  "?? estimator/svgd_temporal.py",
-  "?? estimator/svgd_visibility.py",
-  "?? reports/svgd/",
-  "?? scene/pointcloud_sequence.py",
-  "?? tests/svgd_fixtures.py",
-  "?? tests/test_svgd_cuda_parity.py",
-  "?? tests/test_svgd_feature_measurement.py",
-  "?? tests/test_svgd_mask_visibility.py",
-  "?? tests/test_svgd_rigidity.py",
-  "?? tests/test_svgd_stein_operator.py",
-  "?? tests/test_svgd_support_posterior.py",
-  "?? tests/test_svgd_support_runner.py",
-  "?? tests/test_svgd_target_score.py",
-  "?? tests/test_svgd_temporal.py",
-  "?? tests/test_svgd_visual_debug.py",
-  "?? tools/profile_svgd_support_cuda.py",
-  "?? tools/qa_svgd_support_debug.py",
-  "?? tools/run_svgd_support.py",
-  "?? tools/svgd_theory_parity.py",
-  "?? utils/svgd_support_output.py"
+  " D CODEX_RGBDiekf_Exact_Sparse_GPU_Temporal_IEKF_Implementation_2026-11-01.md",
+  " D RGBDiekf_Codex_Depth_Sorted_Temporal_RGBD_Full_FixedLag_IEKF.md",
+  " D RGBDiekf_Codex_Fifth_Pass_Source_Responsibility_Causal_Experiments.md",
+  " D RGBDiekf_Codex_Final_Joint_Responsibility_8444_45588_Test.md",
+  " D RGBDiekf_Codex_Next_Actions_Temporal_Validation_Noise_Runtime.md",
+  " D RGBDiekf_Codex_Rendered_Binary_Mask_IEKF_Replacement.md",
+  " D RGBDiekf_Codex_Static_Point_Equilibrium_Root_Cause_Audit.md",
+  " D RGBDiekf_Definitive_F1_Static_Drift_Causal_Forensics_Codex.md",
+  " D RGBDiekf_F1_Fourth_Pass_Sequential_Replay_and_Diagnostic_Bugfix_Codex.md",
+  " D RGBDiekf_F1_Temporal_Reference_Depth_Surface_Reacquisition_Debug_Codex.md",
+  " D RGBDiekf_Inner_F1_Second_Pass_Causal_Debug_Codex.md",
+  " D RGBDiekf_Multiview_Visual_Hull_Constrained_IEKF_Codex.md",
+  " D RGBDiekf_Phase1_Iterated_Temporal_IEKF_IEKS_Spec.md",
+  " D RGBDiekf_Static_Drift_INNER_IEKF_Only_Codex_2026-10-30.md",
+  " D RGBDiekf_deterministic_root_cause_debug_spec.md",
+  " D RGBDiekf_static_point_explosion_code_audit_2026-10-28.md",
+  " M configs/svgd_support.json",
+  " M configs/svgd_support_experimental.json",
+  " M docs/SVGD_THEORY_TO_CODE_CONTRACT.md",
+  " M estimator/svgd_contract.py",
+  " M estimator/svgd_particle_operator.py",
+  " M estimator/svgd_support_run.py",
+  " M estimator/svgd_temporal.py",
+  " M reports/svgd/cuda_profile_1k_10k.json",
+  " M reports/svgd/theory_parity_summary.json",
+  " M tests/svgd_fixtures.py",
+  " M tests/test_svgd_rigidity.py",
+  " M tests/test_svgd_stein_operator.py",
+  " M tests/test_svgd_support_runner.py",
+  " M tests/test_svgd_temporal.py",
+  " M tools/profile_svgd_support_cuda.py",
+  " M tools/run_svgd_support.py",
+  " M tools/svgd_theory_parity.py",
+  "?? RGBDiekf_SVGD_Commit_b62c7cee_Technical_Audit_2026-11-03.md",
+  "?? docs/SVGD_THEORY_AMENDMENT_PROPOSAL_2026-11-03.md",
+  "?? tools/audit_svgd_stein_rejection.py"
  ],
  "theory_pdf_sha256": "33ebd5ffb7aeb43d7171b533a9e542209813406f993793fbcfabad4ef7935ea8",
  "spec_sha256": "041bdf580203e42f8317474fa6c91531223ad45a737f8be29ae891b29a6deced",
- "contract_sha256": "b671731f61a2a6e4a08d51ab10a21abc9f32d0af9818edd93d25f957169352d2",
+ "contract_sha256": "2dbc3aeecf562f7a72fb15a2a415761cbe909ea130869ea6856d27c6bcc6dc18",
  "label_mapping": "TEX_UNAVAILABLE_LABELS_MAPPED_BY_CONTENT",
  "overall_theory_fidelity": "BLOCKED_MODEL_UNSPECIFIED",
  "counts": {
-  "exact_model_operators": 23,
+  "exact_model_operators": 25,
   "verified_equivalent_optimizations": 6,
   "controlled_numerical_approximations": 1,
   "model_approximations": 5,
   "non_equivalent_deviations": 4,
-  "unapproved_deviations": 10,
+  "unapproved_deviations": 11,
   "blocked_equations": 11,
   "untested_equations": 1,
   "failed_equations": 0
  },
  "test_summary": {
-  "ran": 67,
+  "ran": 71,
   "failures": 0,
   "errors": 0,
   "skipped": 0,
-  "seconds": 56.77763390541077
+  "seconds": 90.27783966064453
  },
  "test_outcomes": {
   "tests.test_svgd_cuda_parity.CudaParityTests.test_feature_operator": "PASS",
@@ -81,6 +81,7 @@
   "tests.test_svgd_mask_visibility.VisibilityTests.test_nonbinary_mask_rejected": "PASS",
   "tests.test_svgd_mask_visibility.VisibilityTests.test_occluded_static_behind_blade": "PASS",
   "tests.test_svgd_rigidity.RigidityTests.test_covariance_monte_carlo_and_structured_exact": "PASS",
+  "tests.test_svgd_rigidity.RigidityTests.test_dropped_cross_covariance_bias_sign_undetermined": "PASS",
   "tests.test_svgd_rigidity.RigidityTests.test_edge_jacobian_finite_difference": "PASS",
   "tests.test_svgd_rigidity.RigidityTests.test_hinge_displacement_identity": "PASS",
   "tests.test_svgd_rigidity.RigidityTests.test_knn_graph_exact": "PASS",
@@ -93,6 +94,7 @@
   "tests.test_svgd_stein_operator.SteinTests.test_liu_wang_reference_gaussian": "PASS",
   "tests.test_svgd_stein_operator.SteinTests.test_mutations_detected": "PASS",
   "tests.test_svgd_stein_operator.SteinTests.test_repulsion_sign_two_particles": "PASS",
+  "tests.test_svgd_stein_operator.SteinTests.test_source_mask_split_adds_up": "PASS",
   "tests.test_svgd_support_posterior.PosteriorTests.test_laplace_error_nonlinear_rotation": "PASS",
   "tests.test_svgd_support_posterior.PosteriorTests.test_linear_gaussian_evidence_vs_quadrature": "PASS",
   "tests.test_svgd_support_posterior.PosteriorTests.test_moving_fits_jitter_but_loses_evidence": "PASS",
@@ -106,6 +108,7 @@
   "tests.test_svgd_support_runner.RunnerTests.test_no_legacy_stage_outputs_and_immutable_dir": "PASS",
   "tests.test_svgd_support_runner.RunnerTests.test_objective_monotone_on_accepted_steps": "PASS",
   "tests.test_svgd_support_runner.RunnerTests.test_production_path_calls_tested_operators": "PASS",
+  "tests.test_svgd_support_runner.RunnerTests.test_stein_decomposition_diagnostics": "PASS",
   "tests.test_svgd_support_runner.RunnerTests.test_strict_blocks_without_probability_files": "PASS",
   "tests.test_svgd_target_score.TargetScoreTests.test_constant_rgb_and_colour_distinct_surfaces": "PASS",
   "tests.test_svgd_target_score.TargetScoreTests.test_duplicate_identifier_vs_new_exposure": "PASS",
@@ -121,6 +124,7 @@
   "tests.test_svgd_temporal.TemporalTests.test_improper_process_covariance_blocked": "PASS",
   "tests.test_svgd_temporal.TemporalTests.test_log_normalizer_matches_markov_density": "PASS",
   "tests.test_svgd_temporal.TemporalTests.test_pcg_cap_is_reported": "PASS",
+  "tests.test_svgd_temporal.TemporalTests.test_subblock_solve_and_velocity_lift_exact": "PASS",
   "tests.test_svgd_visual_debug.SvgdVisualDebug.test_arrays_equal_saved_at_display_ids": "PASS",
   "tests.test_svgd_visual_debug.SvgdVisualDebug.test_bad_input_raises": "PASS",
   "tests.test_svgd_visual_debug.SvgdVisualDebug.test_headless_qa": "PASS",
@@ -347,8 +351,8 @@
    "gate": "PASS_THEORY_EXACT",
    "measured": [],
    "source_sha256": {
-    "estimator/svgd_particle_operator.py": "935c809dd0960b789ac07c0ab07a5a970ed12fe6afe6bb7ef249e0e7493e491d",
-    "tests/test_svgd_stein_operator.py": "08e9950729693d5f00acbea6e12836d343439c0f3d247367bf072aaf9a10df51"
+    "estimator/svgd_particle_operator.py": "1217b04eb8d56cb9aaa18c103eab5d2d9ca8d24016835e7e9a661758b51b89a4",
+    "tests/test_svgd_stein_operator.py": "df58e91e206b280d902e82320195c56412d0efe3ce41cb6508d7f8f9734c692c"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "dropping colour, depth-dependent bandwidth without a model"
@@ -385,8 +389,8 @@
     }
    ],
    "source_sha256": {
-    "estimator/svgd_particle_operator.py": "935c809dd0960b789ac07c0ab07a5a970ed12fe6afe6bb7ef249e0e7493e491d",
-    "tests/test_svgd_stein_operator.py": "08e9950729693d5f00acbea6e12836d343439c0f3d247367bf072aaf9a10df51"
+    "estimator/svgd_particle_operator.py": "1217b04eb8d56cb9aaa18c103eab5d2d9ca8d24016835e7e9a661758b51b89a4",
+    "tests/test_svgd_stein_operator.py": "df58e91e206b280d902e82320195c56412d0efe3ce41cb6508d7f8f9734c692c"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "any change without a deviation record"
@@ -490,9 +494,9 @@
     }
    ],
    "source_sha256": {
-    "estimator/svgd_particle_operator.py": "935c809dd0960b789ac07c0ab07a5a970ed12fe6afe6bb7ef249e0e7493e491d",
+    "estimator/svgd_particle_operator.py": "1217b04eb8d56cb9aaa18c103eab5d2d9ca8d24016835e7e9a661758b51b89a4",
     "tests/test_svgd_cuda_parity.py": "aea19948b6536a593311bd7836f3d07690e7e1fce15824f4f21f8903c3b3bc44",
-    "tests/test_svgd_stein_operator.py": "08e9950729693d5f00acbea6e12836d343439c0f3d247367bf072aaf9a10df51"
+    "tests/test_svgd_stein_operator.py": "df58e91e206b280d902e82320195c56412d0efe3ce41cb6508d7f8f9734c692c"
    },
    "cuda": "PASS",
    "prohibited_substitution": "degree normalization, neighbour-only sum, repulsion removal, unreported clipping"
@@ -527,7 +531,7 @@
     }
    ],
    "source_sha256": {
-    "tests/test_svgd_stein_operator.py": "08e9950729693d5f00acbea6e12836d343439c0f3d247367bf072aaf9a10df51"
+    "tests/test_svgd_stein_operator.py": "df58e91e206b280d902e82320195c56412d0efe3ce41cb6508d7f8f9734c692c"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "any change without a deviation record"
@@ -742,7 +746,8 @@
        0.0820591858004744,
        0.9197650690280974
       ]
-     }
+     },
+     "test_semantics": "FAILURE_REVEALING: PASS = the failure mode was detected, NOT that recovery passed"
     }
    ],
    "source_sha256": {
@@ -823,7 +828,8 @@
      "hidden": 70,
      "flagged_occluded": 70,
      "score_pulled_toward_occluder_fraction": 0.9714285714285714,
-     "note": "DEV-0001 failure mode exposed, not fixed"
+     "note": "DEV-0001 failure mode exposed, not fixed",
+     "test_semantics": "FAILURE_REVEALING: PASS = the failure mode was detected, NOT that recovery passed"
     }
    ],
    "source_sha256": {
@@ -885,7 +891,8 @@
    "measured": [
     {
      "test": "camera_duplication_bias",
-     "max_feature_shift": 0.0038726148645701185
+     "max_feature_shift": 0.0038726148645701185,
+     "test_semantics": "FAILURE_REVEALING: PASS = the failure mode was detected, NOT that recovery passed"
     }
    ],
    "source_sha256": {
@@ -950,8 +957,8 @@
     }
    ],
    "source_sha256": {
-    "estimator/svgd_temporal.py": "fb8c3cb932c1ddce8efdc519aa05a4c9bb058776f3ceac4b8c3be6209a848e5e",
-    "tests/test_svgd_temporal.py": "530d7f91f7b7ca9d44ff72e27d20e8e7227cc5160d5b966f40cd7d8bd7570b66"
+    "estimator/svgd_temporal.py": "72086f9d3d76a74b2629cf8c9ab89a55def8ef23049f00a4a81cf740bbfbfb3d",
+    "tests/test_svgd_temporal.py": "ef70664caffdde78dd5f5c2048110f10fa9c95aaf675814fe7968e07ba5d6754"
    },
    "cuda": "PASS",
    "prohibited_substitution": "independent frame-to-frame registration as sequence inference"
@@ -981,7 +988,7 @@
    "measured": [],
    "source_sha256": {
     "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
-    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+    "tests/test_svgd_rigidity.py": "dd3ac8d80b5fb3201834648adab209fc06677127d891414fa80a7f9e66b587fc"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "any change without a deviation record"
@@ -1011,7 +1018,7 @@
    "measured": [],
    "source_sha256": {
     "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
-    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+    "tests/test_svgd_rigidity.py": "dd3ac8d80b5fb3201834648adab209fc06677127d891414fa80a7f9e66b587fc"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "any change without a deviation record"
@@ -1041,7 +1048,7 @@
    "measured": [],
    "source_sha256": {
     "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
-    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+    "tests/test_svgd_rigidity.py": "dd3ac8d80b5fb3201834648adab209fc06677127d891414fa80a7f9e66b587fc"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "any change without a deviation record"
@@ -1077,7 +1084,7 @@
    ],
    "source_sha256": {
     "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
-    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+    "tests/test_svgd_rigidity.py": "dd3ac8d80b5fb3201834648adab209fc06677127d891414fa80a7f9e66b587fc"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "any change without a deviation record"
@@ -1091,11 +1098,12 @@
    "category": "C",
    "classification": "MODEL_APPROX",
    "expr": "Omega_il = J P_zeta J^T; production: shared-reference exact, trajectory states independent across time and points (rank-1 + diagonal)",
-   "invariant": "shared frame-0 reference counted once; Sherman-Morrison inverse/log det exact for that structure",
+   "invariant": "shared frame-0 reference counted once; Sherman-Morrison exact for that structure; dropped cross-point/cross-time covariance biases Omega with UNDETERMINED sign (audit F7)",
    "function": "estimator/svgd_rigidity.py:edge_covariance_structured",
    "tests": [
     "tests/test_svgd_rigidity.RigidityTests.test_covariance_monte_carlo_and_structured_exact",
-    "tests/test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense"
+    "tests/test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense",
+    "tests/test_svgd_rigidity.RigidityTests.test_dropped_cross_covariance_bias_sign_undetermined"
    ],
    "dtype": "float64",
    "units": "m^2",
@@ -1105,7 +1113,8 @@
    "deviation": "DEV-0007",
    "test_status": {
     "tests/test_svgd_rigidity.RigidityTests.test_covariance_monte_carlo_and_structured_exact": "PASS",
-    "tests/test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense": "PASS"
+    "tests/test_svgd_rigidity.RigidityTests.test_structured_inverse_equals_dense": "PASS",
+    "tests/test_svgd_rigidity.RigidityTests.test_dropped_cross_covariance_bias_sign_undetermined": "PASS"
    },
    "gate": "BLOCKED_THEORY_FIDELITY",
    "measured": [
@@ -1114,11 +1123,20 @@
      "max_rel": 0.006713043913709814,
      "samples": 200000,
      "tolerance": 0.03
+    },
+    {
+     "test": "bias_sign_undetermined",
+     "logdet_approx_minus_exact": {
+      "0.8": 3.218875824868203,
+      "-0.8": -1.1755733298042372
+     },
+     "conclusion": "bias sign undetermined (not conservative)",
+     "test_semantics": "FAILURE_REVEALING: PASS = the failure mode was detected, NOT that recovery passed"
     }
    ],
    "source_sha256": {
     "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
-    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+    "tests/test_svgd_rigidity.py": "dd3ac8d80b5fb3201834648adab209fc06677127d891414fa80a7f9e66b587fc"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "treating distances at different frames or edges as independent"
@@ -1162,7 +1180,7 @@
    ],
    "source_sha256": {
     "estimator/svgd_rigidity.py": "e0b82741be95a1316c8df59e510c806e913948c8212cd55089d8d4aff15cdaee",
-    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+    "tests/test_svgd_rigidity.py": "dd3ac8d80b5fb3201834648adab209fc06677127d891414fa80a7f9e66b587fc"
    },
    "cuda": "PASS",
    "prohibited_substitution": "any change without a deviation record"
@@ -1302,7 +1320,8 @@
      "test": "occam",
      "rss_static": 0.00011287938291661389,
      "rss_moving": 8.37711466716654e-05,
-     "log_bayes_factor_moving": -6.6396427213413745
+     "log_bayes_factor_moving": -6.6396427213413745,
+     "test_semantics": "FAILURE_REVEALING: PASS = the failure mode was detected, NOT that recovery passed"
     }
    ],
    "source_sha256": {
@@ -1452,8 +1471,8 @@
     }
    ],
    "source_sha256": {
-    "estimator/svgd_support_run.py": "071a8c2f7e7ee7e0930fc8ab5147bfe50cbb2a25912f16f0ff64dc6c2a361b87",
-    "tests/test_svgd_support_runner.py": "848fc92dad26e84577dce815132e6cac5e61c5b3f2daadaa56c0eff28602519e"
+    "estimator/svgd_support_run.py": "e89b4b057023d203fc10f2624136677bcd297e970324e6ba14e77cc2fc59b396",
+    "tests/test_svgd_support_runner.py": "7039f5ac0fc62c418d74a31f0f14a82fd0084bc05d36a2c051b5ba867333bfe5"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "any change without a deviation record"
@@ -1514,7 +1533,7 @@
    "gate": "PASS_THEORY_EXACT",
    "measured": [],
    "source_sha256": {
-    "tests/test_svgd_rigidity.py": "dcd3f760f90278ddbaefa24f960a500b142b5c26e8e86718ff4c57a2ea42810b"
+    "tests/test_svgd_rigidity.py": "dd3ac8d80b5fb3201834648adab209fc06677127d891414fa80a7f9e66b587fc"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "any change without a deviation record"
@@ -1556,6 +1575,96 @@
    "prohibited_substitution": "any change without a deviation record"
   },
   {
+   "id": "E37",
+   "label": "temporal-lift",
+   "pdf": "(16) (derived)",
+   "spec": "audit F2",
+   "role": "proposal",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "dV = argmin_dV E_time(S + [dX, dV]) = -L_vv^-1 [grad E_time(S + [dX, 0])]_v",
+   "invariant": "exact conditional minimizer of the SAME temporal quadratic; optimizer-only (DEV-0011), never a change of E",
+   "function": "estimator/svgd_temporal.py:TemporalPrior.velocity_lift",
+   "tests": [
+    "tests/test_svgd_temporal.TemporalTests.test_subblock_solve_and_velocity_lift_exact"
+   ],
+   "dtype": "float64",
+   "units": "m/s",
+   "parameters": [
+    "stein_numerics.step_policy"
+   ],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_temporal.TemporalTests.test_subblock_solve_and_velocity_lift_exact": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "velocity_lift_vs_dense",
+     "max_rel": 1.7429974316344064e-16,
+     "tolerance": 1e-09
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_temporal.py": "72086f9d3d76a74b2629cf8c9ab89a55def8ef23049f00a4a81cf740bbfbfb3d",
+    "tests/test_svgd_temporal.py": "ef70664caffdde78dd5f5c2048110f10fa9c95aaf675814fe7968e07ba5d6754"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
+   "id": "E38",
+   "label": "proposal-decomposition",
+   "pdf": "(14) vs (20)+(16)",
+   "spec": "audit F2/F3",
+   "role": "diagnostic",
+   "category": "A",
+   "classification": "EXACT_MODEL",
+   "expr": "<grad E_obs, [Phi,0]>, <grad E_time, [Phi,0]>, cos(Phi, -grad E_obs), dE_obs / dE_time per backtrack (positions-only and lifted)",
+   "invariant": "diagnostic of the SAME common objective; GT never used in the run (post-hoc split by tools/audit_svgd_stein_rejection.py)",
+   "function": "estimator/svgd_support_run.py:_stages (STEIN_DIAGNOSTICS)",
+   "tests": [
+    "tests/test_svgd_support_runner.RunnerTests.test_stein_decomposition_diagnostics",
+    "tests/test_svgd_stein_operator.SteinTests.test_source_mask_split_adds_up"
+   ],
+   "dtype": "float64",
+   "units": "nat",
+   "parameters": [],
+   "deviation": "NONE",
+   "test_status": {
+    "tests/test_svgd_support_runner.RunnerTests.test_stein_decomposition_diagnostics": "PASS",
+    "tests/test_svgd_stein_operator.SteinTests.test_source_mask_split_adds_up": "PASS"
+   },
+   "gate": "PASS_THEORY_EXACT",
+   "measured": [
+    {
+     "test": "stein_decomposition",
+     "dEobs_dP": -257184.3491640117,
+     "dEtime_dP": 0.0,
+     "cos": 0.48863207630363514,
+     "first_backtrack": {
+      "eta_m2": 0.00324440149763405,
+      "positions_only": {
+       "dE_obs": 1750.3203030555621,
+       "dE_time": 6456773.754568551
+      },
+      "temporal_lift": {
+       "dE_obs": 1750.3203030555621,
+       "dE_time": 49621.41988322406
+      },
+      "accepted": false
+     }
+    }
+   ],
+   "source_sha256": {
+    "estimator/svgd_support_run.py": "e89b4b057023d203fc10f2624136677bcd297e970324e6ba14e77cc2fc59b396",
+    "tests/test_svgd_stein_operator.py": "df58e91e206b280d902e82320195c56412d0efe3ce41cb6508d7f8f9734c692c",
+    "tests/test_svgd_support_runner.py": "7039f5ac0fc62c418d74a31f0f14a82fd0084bc05d36a2c051b5ba867333bfe5"
+   },
+   "cuda": "NOT_RUN",
+   "prohibited_substitution": "any change without a deviation record"
+  },
+  {
    "id": "E36",
    "label": "stages-2-4",
    "pdf": "(39)-(44)",
@@ -1579,7 +1688,7 @@
    "gate": "NOT_TESTED",
    "measured": [],
    "source_sha256": {
-    "tests/test_svgd_support_runner.py": "848fc92dad26e84577dce815132e6cac5e61c5b3f2daadaa56c0eff28602519e"
+    "tests/test_svgd_support_runner.py": "7039f5ac0fc62c418d74a31f0f14a82fd0084bc05d36a2c051b5ba867333bfe5"
    },
    "cuda": "NOT_RUN",
    "prohibited_substitution": "any change without a deviation record"
@@ -1654,7 +1763,8 @@
   "DEV-0007",
   "DEV-0008",
   "DEV-0009",
-  "DEV-0010"
+  "DEV-0010",
+  "DEV-0011"
  ],
  "theory_conflicts": [
   {
@@ -1666,6 +1776,7 @@
    "implementation": "target_score(query_color_cov=None) = PDF; query_color_cov=Sigma_a = spec. Config key reference.color_reference_uncertainty selects; strict mode refuses to run TARGET while the choice is NOT_DEFINED_IN_THEORY."
   }
  ],
+ "gate4_criterion": "toy reporting criterion (declared, GT post hoc only): static drift median <= 0.5 mm (half the fixture 1 mm depth sigma); moving recovered-fraction median >= 0.9 with the same static criterion",
  "gate4_measurements": [
   {
    "scenario": "a_static_depth_noise",
@@ -1676,7 +1787,8 @@
    "moving_true_displacement_median_m": 0.0,
    "moving_endpoint_error_median_m": 0.00013501431862324504,
    "moving_recovered_fraction_median": null,
-   "convergence": "STALLED_NOT_CONVERGED"
+   "convergence": "STALLED_NOT_CONVERGED",
+   "physical_outcome": "NO_FALSE_DRIFT"
   },
   {
    "scenario": "b_static_rgb_flicker",
@@ -1687,7 +1799,8 @@
    "moving_true_displacement_median_m": 0.0,
    "moving_endpoint_error_median_m": 0.002348494088287872,
    "moving_recovered_fraction_median": null,
-   "convergence": "ITERATION_CAP_NOT_CONVERGED"
+   "convergence": "ITERATION_CAP_NOT_CONVERGED",
+   "physical_outcome": "FALSE_DRIFT_FAILED"
   },
   {
    "scenario": "c_translation",
@@ -1698,7 +1811,8 @@
    "moving_true_displacement_median_m": 0.015,
    "moving_endpoint_error_median_m": 0.007147997787665263,
    "moving_recovered_fraction_median": 0.5234668141556491,
-   "convergence": "ITERATION_CAP_NOT_CONVERGED"
+   "convergence": "ITERATION_CAP_NOT_CONVERGED",
+   "physical_outcome": "PHYSICAL_MOTION_NOT_RECOVERED"
   },
   {
    "scenario": "d_rotation_hinge",
@@ -1709,13 +1823,70 @@
    "moving_true_displacement_median_m": 0.006021120079441441,
    "moving_endpoint_error_median_m": 0.004748811837022672,
    "moving_recovered_fraction_median": 0.07770831557721614,
-   "convergence": "ITERATION_CAP_NOT_CONVERGED"
+   "convergence": "ITERATION_CAP_NOT_CONVERGED",
+   "physical_outcome": "PHYSICAL_MOTION_NOT_RECOVERED"
   },
   {
    "scenario": "e_two_moving_parts / f_intermittent / g_variable_cameras",
-   "status": "NOT_RUN (fixture has one moving plate)"
+   "status": "NOT_RUN (fixture has one moving plate)",
+   "physical_outcome": "NOT_RUN (fixture has one moving plate)"
   }
  ],
- "physical_motion": "NOT_ESTABLISHED (see gate4_measurements; no real-scene acceptance run)",
+ "physical_motion": "PHYSICAL_MOTION_NOT_RECOVERED (Gate-4 toys; no real-scene acceptance run)",
+ "scope_of_operator_parity": "algebra and small fixtures only: operator parity is NOT end-to-end model fidelity, CUDA parity is NOT workload acceptance",
+ "end_to_end_model_fidelity": "NOT_ESTABLISHED",
+ "workload_acceptance": "NOT_ESTABLISHED (synthetic 1k/10k/34k operator sizes + a 2-frame Blade smoke only)",
+ "legacy_baseline": "observation only (7 failures at d0b470b); see reports/svgd/preflight_audit_2026-11-03.md for the source-matched rerun",
+ "audit_b62c7cee_findings": {
+  "F1": {
+   "status": "BLOCKED_AWAITING_THEORY_APPROVAL",
+   "response": "coupled rigidity needs a different-support likelihood, coherent-partition prior and support-conditional motion prior: proposed in docs/SVGD_THEORY_AMENDMENT_PROPOSAL_2026-11-03.md (A4); not implemented"
+  },
+  "F2": {
+   "status": "DIAGNOSED_AND_OPTIONAL_FIX",
+   "response": "per-backtrack dE_obs/dE_time, consistency residual, directional derivatives (E38); exact conditional velocity lift (E37, DEV-0011, opt-in)"
+  },
+  "F3": {
+   "status": "DIAGNOSED",
+   "response": "cos(Phi, -grad E_obs) per frame and stacked, <grad E_total, P> logged; Stein remains a heuristic proposal"
+  },
+  "F4": {
+   "status": "BLOCKED_AWAITING_THEORY_APPROVAL",
+   "response": "normalized visibility + unexplained-support observation model proposed (A2/A3); experimental DEV-0001/0006 unchanged"
+  },
+  "F5": {
+   "status": "BLOCKED_AWAITING_THEORY_APPROVAL",
+   "response": "Gamma calibration procedure proposed (A5); DEV-0002 unchanged"
+  },
+  "F6": {
+   "status": "DIAGNOSED",
+   "response": "post-hoc cross-support kernel mass / Stein split by GT support: tools/audit_svgd_stein_rejection.py (separate process); scale separation proposed (A6)"
+  },
+  "F7": {
+   "status": "CORRECTED",
+   "response": "DEV-0007 'conservative' -> 'bias sign undetermined' with a sign oracle; conclusion UNDETERMINED"
+  },
+  "F8": {
+   "status": "BLOCKED_AWAITING_THEORY_APPROVAL",
+   "response": "scalable coherent posterior with unknown alternative proposed (A7); production stays BLOCKED"
+  },
+  "F9": {
+   "status": "PARTIAL",
+   "response": "profile extended (Gamma factorization, objective gradient, GN/PCG, visibility, debug writing; 34k size); 34k/near-full and real-scene QA commands handed over"
+  }
+ },
+ "posthoc_diagnostics": [
+  {
+   "test": "posthoc_cross_support_mass_synthetic",
+   "static_mass_from_moving": {
+    "n": 734,
+    "median": 0.0014524813103683025,
+    "p10": 1.525970791543551e-06,
+    "p90": 0.21090986445908347
+   },
+   "static_dominated": 0.21389645776566757,
+   "semantics": "POST_HOC_GT_DIAGNOSTIC"
+  }
+ ],
  "suitability_for_joint_recovery": "NOT_SUITABLE: Stage-1 model-evidence gate BLOCKED"
 }

@@ -1,0 +1,2012 @@
+{
+ "synthetic_static": {
+  "svgd": [
+   {
+    "iteration": 0,
+    "F_mean": 125333.765625,
+    "F_std": 932.8358154296875,
+    "F_max": 126020.7890625,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 2.676869699078634e-22,
+    "gamma_particle_std_mean": 3.9747064589427187e-22,
+    "pi_mean": 0.3822053505221013,
+    "qmc_fallback_max": 0,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 62.39495089329827,
+    "mean_kernel_mass": 1.6607558918433785,
+    "repulsion_norm": 0.08173535731537673,
+    "attraction_norm": 671.4790170647058,
+    "score_norm_mean": 761.0514109085184,
+    "particle_diversity": 9.033421842466883,
+    "seconds": 0.9686779975891113
+   },
+   {
+    "iteration": 1,
+    "F_mean": 125447.6015625,
+    "F_std": 842.7138671875,
+    "F_max": 126054.2265625,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 2.1375238713541994e-22,
+    "gamma_particle_std_mean": 3.1738675736450613e-22,
+    "pi_mean": 0.3457895118553579,
+    "qmc_fallback_max": 0,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 53.69190091078928,
+    "mean_kernel_mass": 1.6785053232361755,
+    "repulsion_norm": 0.09004198026918017,
+    "attraction_norm": 619.5233292214623,
+    "score_norm_mean": 688.3988760848889,
+    "particle_diversity": 8.320793407060401,
+    "seconds": 0.6807165145874023
+   },
+   {
+    "iteration": 2,
+    "F_mean": 125543.0,
+    "F_std": 758.6077880859375,
+    "F_max": 126079.2265625,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 1.7305264152228963e-22,
+    "gamma_particle_std_mean": 2.5646223313065127e-22,
+    "pi_mean": 0.31373160859479227,
+    "qmc_fallback_max": 1,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 45.534404594477394,
+    "mean_kernel_mass": 1.6754380414861498,
+    "repulsion_norm": 0.09774872068987925,
+    "attraction_norm": 565.9410072153373,
+    "score_norm_mean": 624.44099904648,
+    "particle_diversity": 7.581581815578204,
+    "seconds": 0.7642717361450195
+   },
+   {
+    "iteration": 3,
+    "F_mean": 125623.4375,
+    "F_std": 681.0402221679688,
+    "F_max": 126097.96875,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 1.4217758155953484e-22,
+    "gamma_particle_std_mean": 2.0953061914102723e-22,
+    "pi_mean": 0.2855149911402426,
+    "qmc_fallback_max": 1,
+    "certificate_max": 3.096319734389418e+299,
+    "kernel_bandwidth": 37.08628131633975,
+    "mean_kernel_mass": 1.6552192249271651,
+    "repulsion_norm": 0.10632341862409586,
+    "attraction_norm": 513.666288095322,
+    "score_norm_mean": 568.1465054598657,
+    "particle_diversity": 7.002414939210325,
+    "seconds": 0.758833646774292
+   },
+   {
+    "iteration": 4,
+    "F_mean": 125691.2734375,
+    "F_std": 610.5671997070312,
+    "F_max": 126112.3828125,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 1.180471172151968e-22,
+    "gamma_particle_std_mean": 1.7327375465370913e-22,
+    "pi_mean": 0.2605791986629379,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.1065278227826506e+263,
+    "kernel_bandwidth": 32.17674643931349,
+    "mean_kernel_mass": 1.669997443315327,
+    "repulsion_norm": 0.11603671415152295,
+    "attraction_norm": 475.47428462773524,
+    "score_norm_mean": 518.3973028121477,
+    "particle_diversity": 6.458771973765259,
+    "seconds": 0.7794358730316162
+   },
+   {
+    "iteration": 5,
+    "F_mean": 125749.890625,
+    "F_std": 546.740478515625,
+    "F_max": 126123.8671875,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 9.905538235358907e-23,
+    "gamma_particle_std_mean": 1.445022575893426e-22,
+    "pi_mean": 0.23788196560966485,
+    "qmc_fallback_max": 2,
+    "certificate_max": 2.4462065911500236e+226,
+    "kernel_bandwidth": 26.75900175995176,
+    "mean_kernel_mass": 1.6467170530240238,
+    "repulsion_norm": 0.12442363997249237,
+    "attraction_norm": 431.51580405834596,
+    "score_norm_mean": 473.11440067140245,
+    "particle_diversity": 5.963347128745921,
+    "seconds": 0.8107421398162842
+   },
+   {
+    "iteration": 6,
+    "F_mean": 125799.953125,
+    "F_std": 489.5609436035156,
+    "F_max": 126132.9765625,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 8.401309371734356e-23,
+    "gamma_particle_std_mean": 1.2164900996942447e-22,
+    "pi_mean": 0.2175710672374536,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.0065029865198809e+199,
+    "kernel_bandwidth": 22.979558070930427,
+    "mean_kernel_mass": 1.6523301735940108,
+    "repulsion_norm": 0.13523710946037884,
+    "attraction_norm": 397.3062896876153,
+    "score_norm_mean": 432.5918912033361,
+    "particle_diversity": 5.533905425068484,
+    "seconds": 0.821845293045044
+   },
+   {
+    "iteration": 7,
+    "F_mean": 125843.359375,
+    "F_std": 438.4600524902344,
+    "F_max": 126140.390625,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 7.18555368904072e-23,
+    "gamma_particle_std_mean": 1.0324897544314003e-22,
+    "pi_mean": 0.19905198623437442,
+    "qmc_fallback_max": 2,
+    "certificate_max": 1.0631880952884806e+171,
+    "kernel_bandwidth": 19.942129625866748,
+    "mean_kernel_mass": 1.6591256202185116,
+    "repulsion_norm": 0.14629443973518463,
+    "attraction_norm": 365.7256871268118,
+    "score_norm_mean": 395.64447140486993,
+    "particle_diversity": 5.134498450990912,
+    "seconds": 0.9407227039337158
+   },
+   {
+    "iteration": 8,
+    "F_mean": 125881.1015625,
+    "F_std": 393.0133361816406,
+    "F_max": 126146.5859375,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 6.193421005478308e-23,
+    "gamma_particle_std_mean": 8.830747530954458e-23,
+    "pi_mean": 0.1821610417661383,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.8818427090093383e+150,
+    "kernel_bandwidth": 17.338732251598937,
+    "mean_kernel_mass": 1.6675566566953792,
+    "repulsion_norm": 0.1584265048211456,
+    "attraction_norm": 336.57678995639475,
+    "score_norm_mean": 361.9450382797221,
+    "particle_diversity": 4.79033846191854,
+    "seconds": 0.8654146194458008
+   },
+   {
+    "iteration": 9,
+    "F_mean": 125913.953125,
+    "F_std": 352.70440673828125,
+    "F_max": 126151.734375,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 5.376971079887887e-23,
+    "gamma_particle_std_mean": 7.608100305288436e-23,
+    "pi_mean": 0.1667746684252424,
+    "qmc_fallback_max": 0,
+    "certificate_max": 6.917027894227406e+128,
+    "kernel_bandwidth": 15.275435599324222,
+    "mean_kernel_mass": 1.6788716149495815,
+    "repulsion_norm": 0.17078883109108262,
+    "attraction_norm": 310.25626149854,
+    "score_norm_mean": 331.24761248572133,
+    "particle_diversity": 4.463448214004826,
+    "seconds": 0.8092420101165771
+   },
+   {
+    "iteration": 10,
+    "F_mean": 125942.671875,
+    "F_std": 317.0285339355469,
+    "F_max": 126156.1171875,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 4.6985589938451577e-23,
+    "gamma_particle_std_mean": 6.599202249316761e-23,
+    "pi_mean": 0.15274892132257917,
+    "qmc_fallback_max": 2,
+    "certificate_max": 2.2397859554738343e+113,
+    "kernel_bandwidth": 13.4266913079393,
+    "mean_kernel_mass": 1.6899629184779508,
+    "repulsion_norm": 0.18434168686149208,
+    "attraction_norm": 285.5524840567077,
+    "score_norm_mean": 303.2644927075169,
+    "particle_diversity": 4.189713873889709,
+    "seconds": 0.9803106784820557
+   },
+   {
+    "iteration": 11,
+    "F_mean": 125967.75,
+    "F_std": 285.4827575683594,
+    "F_max": 126159.8046875,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 4.131308942570129e-23,
+    "gamma_particle_std_mean": 5.761108970117211e-23,
+    "pi_mean": 0.14000719617817892,
+    "qmc_fallback_max": 2,
+    "certificate_max": 3.6947610896355204e+96,
+    "kernel_bandwidth": 11.954231146425277,
+    "mean_kernel_mass": 1.6997885579428889,
+    "repulsion_norm": 0.19731597275354185,
+    "attraction_norm": 263.21948437558535,
+    "score_norm_mean": 277.8434499290595,
+    "particle_diversity": 3.91814525972816,
+    "seconds": 1.0493028163909912
+   },
+   {
+    "iteration": 12,
+    "F_mean": 125989.78125,
+    "F_std": 257.603515625,
+    "F_max": 126162.9921875,
+    "F_identity": 126194.2169496973,
+    "gamma_mean": 3.65283207325991e-23,
+    "gamma_particle_std_mean": 5.0593268165144236e-23,
+    "pi_mean": 0.1284256303606917,
+    "qmc_fallback_max": 2,
+    "certificate_max": 2.499153508567362e+86
+   }
+  ],
+  "map": [
+   {
+    "start": "best_svgd_particle",
+    "iteration": 0,
+    "F": 126162.9943163364,
+    "grad_norm": 38.20243043347866
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 1,
+    "F": 126165.22709816004,
+    "grad_norm": 35.383363087824165
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 2,
+    "F": 126167.25264233103,
+    "grad_norm": 32.767720317779734
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 3,
+    "F": 126169.07635772406,
+    "grad_norm": 30.345493099679064
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 4,
+    "F": 126170.72089666643,
+    "grad_norm": 28.10591360593381
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 5,
+    "F": 126172.20991764877,
+    "grad_norm": 26.037981799674743
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 6,
+    "F": 126173.55602147183,
+    "grad_norm": 24.131048634995054
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 7,
+    "F": 126174.77027939048,
+    "grad_norm": 22.374648665403324
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 8,
+    "F": 126175.86674476803,
+    "grad_norm": 20.758393567045577
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 9,
+    "F": 126176.86082729948,
+    "grad_norm": 19.272070704742962
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 10,
+    "F": 126177.76427846724,
+    "grad_norm": 17.90594064080236
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 11,
+    "F": 126178.58458343684,
+    "grad_norm": 16.650873634121087
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": "final",
+    "F": 126179.32809772239
+   },
+   {
+    "start": "identity",
+    "iteration": 0,
+    "F": 126194.2169496973,
+    "grad_norm": 1478.7684898469006
+   },
+   {
+    "start": "identity",
+    "iteration": 1,
+    "F": 125273.64999391367,
+    "grad_norm": 996.000067771082
+   },
+   {
+    "start": "identity",
+    "iteration": 2,
+    "F": 125310.08077174828,
+    "grad_norm": 968.1720375812345
+   },
+   {
+    "start": "identity",
+    "iteration": 3,
+    "F": 125350.80353514981,
+    "grad_norm": 936.1519832895566
+   },
+   {
+    "start": "identity",
+    "iteration": 4,
+    "F": 125392.4083953203,
+    "grad_norm": 902.4118624053816
+   },
+   {
+    "start": "identity",
+    "iteration": 5,
+    "F": 125433.65295596547,
+    "grad_norm": 867.9090158532302
+   },
+   {
+    "start": "identity",
+    "iteration": 6,
+    "F": 125473.93905552055,
+    "grad_norm": 833.1636738173378
+   },
+   {
+    "start": "identity",
+    "iteration": 7,
+    "F": 125512.93554855132,
+    "grad_norm": 798.5181337822324
+   },
+   {
+    "start": "identity",
+    "iteration": 8,
+    "F": 125550.44637564363,
+    "grad_norm": 764.2247622167569
+   },
+   {
+    "start": "identity",
+    "iteration": 9,
+    "F": 125586.35429588359,
+    "grad_norm": 730.4820427585283
+   },
+   {
+    "start": "identity",
+    "iteration": 10,
+    "F": 125620.59307313601,
+    "grad_norm": 697.4512182226186
+   },
+   {
+    "start": "identity",
+    "iteration": 11,
+    "F": 125653.1320148904,
+    "grad_norm": 665.2646926475057
+   },
+   {
+    "start": "identity",
+    "iteration": "final",
+    "F": 125683.9663941419
+   }
+  ],
+  "F_identity": 126194.2169496973,
+  "semantics": "F is a conditional Gibbs log-posterior, not a calibrated evidence"
+ },
+ "synthetic_prismatic_textured": {
+  "svgd": [
+   {
+    "iteration": 0,
+    "F_mean": 101654.6484375,
+    "F_std": 925.1412353515625,
+    "F_max": 102336.4375,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.0033537306828591937,
+    "gamma_particle_std_mean": 0.0036968893965358724,
+    "pi_mean": 0.3822053505221013,
+    "qmc_fallback_max": 0,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 62.39495089329827,
+    "mean_kernel_mass": 1.6607558918433785,
+    "repulsion_norm": 0.08173535731537673,
+    "attraction_norm": 665.3240205118451,
+    "score_norm_mean": 754.3711191876839,
+    "particle_diversity": 9.03342184246664,
+    "seconds": 0.9089376926422119
+   },
+   {
+    "iteration": 1,
+    "F_mean": 101767.546875,
+    "F_std": 836.0562744140625,
+    "F_max": 102369.703125,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.002916092747274285,
+    "gamma_particle_std_mean": 0.0033286334759939297,
+    "pi_mean": 0.34578951185633877,
+    "qmc_fallback_max": 0,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 53.691900910788306,
+    "mean_kernel_mass": 1.678505323236219,
+    "repulsion_norm": 0.09004198026918409,
+    "attraction_norm": 614.0879705869924,
+    "score_norm_mean": 682.5903311822858,
+    "particle_diversity": 8.320789320078433,
+    "seconds": 0.6638607978820801
+   },
+   {
+    "iteration": 2,
+    "F_mean": 101862.203125,
+    "F_std": 752.7947387695312,
+    "F_max": 102394.578125,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.002548984003876583,
+    "gamma_particle_std_mean": 0.0029927835486224376,
+    "pi_mean": 0.3137213962763139,
+    "qmc_fallback_max": 1,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 45.534406792904775,
+    "mean_kernel_mass": 1.675439226757539,
+    "repulsion_norm": 0.09774881307032583,
+    "attraction_norm": 561.1540085196347,
+    "score_norm_mean": 619.3433424126929,
+    "particle_diversity": 7.581572679376632,
+    "seconds": 0.7466466426849365
+   },
+   {
+    "iteration": 3,
+    "F_mean": 101942.078125,
+    "F_std": 675.914306640625,
+    "F_max": 102413.234375,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.0022406948590520848,
+    "gamma_particle_std_mean": 0.002688919096000053,
+    "pi_mean": 0.28548836969189145,
+    "qmc_fallback_max": 1,
+    "certificate_max": 3.05117244180762e+299,
+    "kernel_bandwidth": 37.08635532950219,
+    "mean_kernel_mass": 1.655223943932124,
+    "repulsion_norm": 0.10632377352785995,
+    "attraction_norm": 509.4486220573268,
+    "score_norm_mean": 563.6302170303279,
+    "particle_diversity": 7.002494332041551,
+    "seconds": 0.825190544128418
+   },
+   {
+    "iteration": 4,
+    "F_mean": 102009.4453125,
+    "F_std": 606.0068359375,
+    "F_max": 102427.578125,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.0019802867122910507,
+    "gamma_particle_std_mean": 0.0024154809131104347,
+    "pi_mean": 0.26053288584974954,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.2098297842810796e+263,
+    "kernel_bandwidth": 32.18066713842456,
+    "mean_kernel_mass": 1.6700970002065012,
+    "repulsion_norm": 0.11604077141285882,
+    "attraction_norm": 471.6890022679933,
+    "score_norm_mean": 514.3604425205644,
+    "particle_diversity": 6.458827480786354,
+    "seconds": 0.8291313648223877
+   },
+   {
+    "iteration": 5,
+    "F_mean": 102067.6953125,
+    "F_std": 542.6586303710938,
+    "F_max": 102439.015625,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.0017552843771711868,
+    "gamma_particle_std_mean": 0.0021695340441441158,
+    "pi_mean": 0.23781357658105012,
+    "qmc_fallback_max": 2,
+    "certificate_max": 3.1118621577007324e+226,
+    "kernel_bandwidth": 26.760432886707807,
+    "mean_kernel_mass": 1.6467568286894936,
+    "repulsion_norm": 0.12442504238464591,
+    "attraction_norm": 428.1237573757689,
+    "score_norm_mean": 469.4816935036948,
+    "particle_diversity": 5.963356873338577,
+    "seconds": 0.8173604011535645
+   },
+   {
+    "iteration": 6,
+    "F_mean": 102117.4375,
+    "F_std": 485.887451171875,
+    "F_max": 102448.078125,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.001562952204417512,
+    "gamma_particle_std_mean": 0.0019496573517032685,
+    "pi_mean": 0.21748210948709254,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.0005222941295409e+199,
+    "kernel_bandwidth": 22.981483073710198,
+    "mean_kernel_mass": 1.6524100928059982,
+    "repulsion_norm": 0.13524238956751813,
+    "attraction_norm": 394.2298794160797,
+    "score_norm_mean": 429.30126333546525,
+    "particle_diversity": 5.533903754766831,
+    "seconds": 0.864661693572998
+   },
+   {
+    "iteration": 7,
+    "F_mean": 102160.5703125,
+    "F_std": 435.13348388671875,
+    "F_max": 102455.4609375,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.001395706036040218,
+    "gamma_particle_std_mean": 0.0017532705621382265,
+    "pi_mean": 0.19894358142278046,
+    "qmc_fallback_max": 2,
+    "certificate_max": 1.19971815761254e+171,
+    "kernel_bandwidth": 19.93989126571221,
+    "mean_kernel_mass": 1.6590206810920562,
+    "repulsion_norm": 0.14628661903022538,
+    "attraction_norm": 362.8828731106779,
+    "score_norm_mean": 392.6481923976798,
+    "particle_diversity": 5.134368028078824,
+    "seconds": 0.8600516319274902
+   },
+   {
+    "iteration": 8,
+    "F_mean": 102198.078125,
+    "F_std": 389.9918212890625,
+    "F_max": 102461.625,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.0012498027061550803,
+    "gamma_particle_std_mean": 0.0015782289222740738,
+    "pi_mean": 0.18203722793093455,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.7861341346047047e+150,
+    "kernel_bandwidth": 17.336459095163583,
+    "mean_kernel_mass": 1.6674795074680073,
+    "repulsion_norm": 0.15842439899005428,
+    "attraction_norm": 333.9749124517236,
+    "score_norm_mean": 359.20864587053677,
+    "particle_diversity": 4.790195777889066,
+    "seconds": 0.8207986354827881
+   },
+   {
+    "iteration": 9,
+    "F_mean": 102230.7265625,
+    "F_std": 349.9498291015625,
+    "F_max": 102466.7421875,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.0011222239706437799,
+    "gamma_particle_std_mean": 0.0014225412019955813,
+    "pi_mean": 0.16663776689497883,
+    "qmc_fallback_max": 0,
+    "certificate_max": 7.553875154546146e+128,
+    "kernel_bandwidth": 15.272396138574193,
+    "mean_kernel_mass": 1.6787390076220206,
+    "repulsion_norm": 0.17078296685594604,
+    "attraction_norm": 307.8493372537145,
+    "score_norm_mean": 328.739238645728,
+    "particle_diversity": 4.463225616409757,
+    "seconds": 0.7718925476074219
+   },
+   {
+    "iteration": 10,
+    "F_mean": 102259.2578125,
+    "F_std": 314.51263427734375,
+    "F_max": 102471.1015625,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.0010102136685018236,
+    "gamma_particle_std_mean": 0.001284143094838176,
+    "pi_mean": 0.1526023083303314,
+    "qmc_fallback_max": 2,
+    "certificate_max": 2.0147576059009023e+113,
+    "kernel_bandwidth": 13.424240075764708,
+    "mean_kernel_mass": 1.6898827031113073,
+    "repulsion_norm": 0.18434391437725767,
+    "attraction_norm": 283.33959020415887,
+    "score_norm_mean": 300.95985850282136,
+    "particle_diversity": 4.1894861582606495,
+    "seconds": 0.9306998252868652
+   },
+   {
+    "iteration": 11,
+    "F_mean": 102284.1875,
+    "F_std": 283.181396484375,
+    "F_max": 102474.7734375,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.0009118188683710374,
+    "gamma_particle_std_mean": 0.0011612590232073783,
+    "pi_mean": 0.1398533008723081,
+    "qmc_fallback_max": 2,
+    "certificate_max": 4.157611235805983e+96,
+    "kernel_bandwidth": 11.95074446732326,
+    "mean_kernel_mass": 1.6996123370006992,
+    "repulsion_norm": 0.19731090663204945,
+    "attraction_norm": 261.15798588997404,
+    "score_norm_mean": 275.72028333398714,
+    "particle_diversity": 3.9178607625006148,
+    "seconds": 0.9433708190917969
+   },
+   {
+    "iteration": 12,
+    "F_mean": 102306.0625,
+    "F_std": 255.4995574951172,
+    "F_max": 102477.9453125,
+    "F_identity": 102508.98627896477,
+    "gamma_mean": 0.0008250585689856988,
+    "gamma_particle_std_mean": 0.0010520710265869394,
+    "pi_mean": 0.12826778623050533,
+    "qmc_fallback_max": 2,
+    "certificate_max": 2.0941867347809355e+86
+   }
+  ],
+  "map": [
+   {
+    "start": "best_svgd_particle",
+    "iteration": 0,
+    "F": 102477.94213946072,
+    "grad_norm": 37.936046931668386
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 1,
+    "F": 102480.16199677825,
+    "grad_norm": 35.13591047591717
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 2,
+    "F": 102482.17560895992,
+    "grad_norm": 32.53782656111047
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 3,
+    "F": 102483.98822392007,
+    "grad_norm": 30.1318651074179
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 4,
+    "F": 102485.62251627355,
+    "grad_norm": 27.907329105633984
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 5,
+    "F": 102487.10211914877,
+    "grad_norm": 25.853289583564088
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 6,
+    "F": 102488.43956482121,
+    "grad_norm": 23.959171679663005
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 7,
+    "F": 102489.64586117027,
+    "grad_norm": 22.21458302831485
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 8,
+    "F": 102490.73503256337,
+    "grad_norm": 20.60919619254495
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 9,
+    "F": 102491.72301154965,
+    "grad_norm": 19.132500870134596
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 10,
+    "F": 102492.62682995861,
+    "grad_norm": 17.769335308220246
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 11,
+    "F": 102493.46725800518,
+    "grad_norm": 16.519669378757897
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": "final",
+    "F": 102494.3232191885
+   },
+   {
+    "start": "identity",
+    "iteration": 0,
+    "F": 102508.98627896477,
+    "grad_norm": 15234.229979900847
+   },
+   {
+    "start": "identity",
+    "iteration": 1,
+    "F": 102297.43347643546,
+    "grad_norm": 20481.131509304585
+   },
+   {
+    "start": "identity",
+    "iteration": 2,
+    "F": 105453.68693769262,
+    "grad_norm": 109171.57008516075
+   },
+   {
+    "start": "identity",
+    "iteration": 3,
+    "F": 114992.03545512132,
+    "grad_norm": 240004.5925798761
+   },
+   {
+    "start": "identity",
+    "iteration": 4,
+    "F": 103972.76400973221,
+    "grad_norm": 70124.94837835967
+   },
+   {
+    "start": "identity",
+    "iteration": 5,
+    "F": 102532.58107674487,
+    "grad_norm": 26818.67427479732
+   },
+   {
+    "start": "identity",
+    "iteration": 6,
+    "F": 102050.06599404277,
+    "grad_norm": 10526.16336285432
+   },
+   {
+    "start": "identity",
+    "iteration": 7,
+    "F": 101969.45985495248,
+    "grad_norm": 1801.0156953378482
+   },
+   {
+    "start": "identity",
+    "iteration": 8,
+    "F": 101954.34369713333,
+    "grad_norm": 889.3079369933484
+   },
+   {
+    "start": "identity",
+    "iteration": 9,
+    "F": 101956.33292021364,
+    "grad_norm": 1406.0785792999088
+   },
+   {
+    "start": "identity",
+    "iteration": 10,
+    "F": 101978.68983856875,
+    "grad_norm": 733.4058064046986
+   },
+   {
+    "start": "identity",
+    "iteration": 11,
+    "F": 102001.23182223208,
+    "grad_norm": 1020.2210989306144
+   },
+   {
+    "start": "identity",
+    "iteration": "final",
+    "F": 102027.82911215178
+   }
+  ],
+  "F_identity": 102508.98627896477,
+  "semantics": "F is a conditional Gibbs log-posterior, not a calibrated evidence"
+ },
+ "synthetic_prismatic_uniform_colour": {
+  "svgd": [
+   {
+    "iteration": 0,
+    "F_mean": 103153.3515625,
+    "F_std": 932.48193359375,
+    "F_max": 103840.1484375,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 0.00017805711197704387,
+    "gamma_particle_std_mean": 0.0002595883650015619,
+    "pi_mean": 0.3822053505221013,
+    "qmc_fallback_max": 0,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 62.39495089329827,
+    "mean_kernel_mass": 1.6607558918433785,
+    "repulsion_norm": 0.08173535731537673,
+    "attraction_norm": 671.1357429567705,
+    "score_norm_mean": 760.6967323075778,
+    "particle_diversity": 9.033421842466874,
+    "seconds": 3.469954490661621
+   },
+   {
+    "iteration": 1,
+    "F_mean": 103267.1328125,
+    "F_std": 842.427001953125,
+    "F_max": 103873.578125,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 0.00014385071253500165,
+    "gamma_particle_std_mean": 0.0002104762472656819,
+    "pi_mean": 0.3457895118554072,
+    "qmc_fallback_max": 0,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 53.691900910789236,
+    "mean_kernel_mass": 1.6785053232361773,
+    "repulsion_norm": 0.09004198026918032,
+    "attraction_norm": 619.2429180736988,
+    "score_norm_mean": 688.112335122132,
+    "particle_diversity": 8.32079281999013,
+    "seconds": 1.8452129364013672
+   },
+   {
+    "iteration": 2,
+    "F_mean": 103362.5,
+    "F_std": 758.368408203125,
+    "F_max": 103898.578125,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 0.00011752000939858875,
+    "gamma_particle_std_mean": 0.00017208487005622496,
+    "pi_mean": 0.31373015606367555,
+    "qmc_fallback_max": 1,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 45.53440496308301,
+    "mean_kernel_mass": 1.6754382136175436,
+    "repulsion_norm": 0.0977487339931225,
+    "attraction_norm": 565.7092043553495,
+    "score_norm_mean": 624.2040103312856,
+    "particle_diversity": 7.581580301845333,
+    "seconds": 2.2676901817321777
+   },
+   {
+    "iteration": 3,
+    "F_mean": 103442.921875,
+    "F_std": 680.8286743164062,
+    "F_max": 103917.3203125,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 9.712719748227938e-05,
+    "gamma_particle_std_mean": 0.000141965301416903,
+    "pi_mean": 0.28551129002477604,
+    "qmc_fallback_max": 0,
+    "certificate_max": 2.0140848889689476e+299,
+    "kernel_bandwidth": 37.08628238312244,
+    "mean_kernel_mass": 1.6552197121101833,
+    "repulsion_norm": 0.10632346210774338,
+    "attraction_norm": 513.4716500869025,
+    "score_norm_mean": 567.9456529221295,
+    "particle_diversity": 7.002412246550877,
+    "seconds": 1.379255771636963
+   },
+   {
+    "iteration": 4,
+    "F_mean": 103510.734375,
+    "F_std": 610.3761596679688,
+    "F_max": 103931.7265625,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 8.118313758134833e-05,
+    "gamma_particle_std_mean": 0.00011816718158619284,
+    "pi_mean": 0.2605728939773092,
+    "qmc_fallback_max": 1,
+    "certificate_max": 7.205096119710017e+262,
+    "kernel_bandwidth": 32.1767475864533,
+    "mean_kernel_mass": 1.6699983642328398,
+    "repulsion_norm": 0.11603680175858863,
+    "attraction_norm": 475.30463339148423,
+    "score_norm_mean": 518.2230165498083,
+    "particle_diversity": 6.458767870622054,
+    "seconds": 1.8220093250274658
+   },
+   {
+    "iteration": 5,
+    "F_mean": 103569.3359375,
+    "F_std": 546.568359375,
+    "F_max": 103943.21875,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 6.84242114351883e-05,
+    "gamma_particle_std_mean": 9.910620384042186e-05,
+    "pi_mean": 0.23787297513021696,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.595072834084898e+226,
+    "kernel_bandwidth": 26.75900334312349,
+    "mean_kernel_mass": 1.646718548751581,
+    "repulsion_norm": 0.12442380409294382,
+    "attraction_norm": 431.36746216362843,
+    "score_norm_mean": 472.96017199835836,
+    "particle_diversity": 5.963341504661817,
+    "seconds": 1.8431997299194336
+   },
+   {
+    "iteration": 6,
+    "F_mean": 103619.390625,
+    "F_std": 489.403076171875,
+    "F_max": 103952.3203125,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 5.823888346168565e-05,
+    "gamma_particle_std_mean": 8.381043494793475e-05,
+    "pi_mean": 0.217559534720965,
+    "qmc_fallback_max": 1,
+    "certificate_max": 8.789810254648428e+198,
+    "kernel_bandwidth": 22.97956014727344,
+    "mean_kernel_mass": 1.6523323856894576,
+    "repulsion_norm": 0.13523737242523426,
+    "attraction_norm": 397.17266031636393,
+    "score_norm_mean": 432.4528802372641,
+    "particle_diversity": 5.533898247244773,
+    "seconds": 1.706498384475708
+   },
+   {
+    "iteration": 7,
+    "F_mean": 103662.7890625,
+    "F_std": 438.31231689453125,
+    "F_max": 103959.734375,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 4.995346606766233e-05,
+    "gamma_particle_std_mean": 7.139456644840404e-05,
+    "pi_mean": 0.19903818020512457,
+    "qmc_fallback_max": 1,
+    "certificate_max": 8.578162988897788e+170,
+    "kernel_bandwidth": 19.941984759698954,
+    "mean_kernel_mass": 1.6591214110173857,
+    "repulsion_norm": 0.14629429324606458,
+    "attraction_norm": 365.60240071082507,
+    "score_norm_mean": 395.5174292912483,
+    "particle_diversity": 5.134485255050209,
+    "seconds": 1.8552734851837158
+   },
+   {
+    "iteration": 8,
+    "F_mean": 103700.5234375,
+    "F_std": 392.8725891113281,
+    "F_max": 103965.9296875,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 4.315633493786523e-05,
+    "gamma_particle_std_mean": 6.124559997260524e-05,
+    "pi_mean": 0.18214537453316437,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.646933645981817e+150,
+    "kernel_bandwidth": 17.338534717892323,
+    "mean_kernel_mass": 1.6675509471680081,
+    "repulsion_norm": 0.15842643274741816,
+    "attraction_norm": 336.46258906639883,
+    "score_norm_mean": 361.82782275696155,
+    "particle_diversity": 4.790322273379545,
+    "seconds": 1.9427094459533691
+   },
+   {
+    "iteration": 9,
+    "F_mean": 103733.3671875,
+    "F_std": 352.5713195800781,
+    "F_max": 103971.078125,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 3.753893491921364e-05,
+    "gamma_particle_std_mean": 5.289648137480849e-05,
+    "pi_mean": 0.16675754273653692,
+    "qmc_fallback_max": 4,
+    "certificate_max": 6.057847944439782e+128,
+    "kernel_bandwidth": 15.275211796359757,
+    "mean_kernel_mass": 1.6788643144932092,
+    "repulsion_norm": 0.1707887751195368,
+    "attraction_norm": 310.1495045637651,
+    "score_norm_mean": 331.1386770916055,
+    "particle_diversity": 4.463428765856424,
+    "seconds": 1.8728671073913574
+   },
+   {
+    "iteration": 10,
+    "F_mean": 103762.09375,
+    "F_std": 316.9049072265625,
+    "F_max": 103975.4609375,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 3.291180811083584e-05,
+    "gamma_particle_std_mean": 4.6090036445436534e-05,
+    "pi_mean": 0.15273074197653413,
+    "qmc_fallback_max": 2,
+    "certificate_max": 1.9615860870120075e+113,
+    "kernel_bandwidth": 13.426430337624188,
+    "mean_kernel_mass": 1.6899527589485648,
+    "repulsion_norm": 0.18434158873394185,
+    "attraction_norm": 285.4520896329844,
+    "score_norm_mean": 303.16267541071875,
+    "particle_diversity": 4.189891505935375,
+    "seconds": 2.0725302696228027
+   },
+   {
+    "iteration": 11,
+    "F_mean": 103787.1640625,
+    "F_std": 285.36297607421875,
+    "F_max": 103979.1484375,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 2.991852573131751e-05,
+    "gamma_particle_std_mean": 4.218306529918995e-05,
+    "pi_mean": 0.13998835350749506,
+    "qmc_fallback_max": 2,
+    "certificate_max": 2.8688888158828683e+96,
+    "kernel_bandwidth": 11.953093715389475,
+    "mean_kernel_mass": 1.6996009414011273,
+    "repulsion_norm": 0.19729231481156845,
+    "attraction_norm": 263.1092877030023,
+    "score_norm_mean": 277.7463022609592,
+    "particle_diversity": 3.919912408515086,
+    "seconds": 2.5103750228881836
+   },
+   {
+    "iteration": 12,
+    "F_mean": 103809.1875,
+    "F_std": 257.4735412597656,
+    "F_max": 103982.328125,
+    "F_identity": 104013.55304869547,
+    "gamma_mean": 3.1855006010544546e-05,
+    "gamma_particle_std_mean": 4.782862312864853e-05,
+    "pi_mean": 0.12840703692019145,
+    "qmc_fallback_max": 4,
+    "certificate_max": 2.074464798424909e+85
+   }
+  ],
+  "map": [
+   {
+    "start": "best_svgd_particle",
+    "iteration": 0,
+    "F": 103982.32902665697,
+    "grad_norm": 38.19224967538838
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 1,
+    "F": 103984.56170583275,
+    "grad_norm": 35.37392621890486
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 2,
+    "F": 103986.5873678289,
+    "grad_norm": 32.75896802555672
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 3,
+    "F": 103988.41126518918,
+    "grad_norm": 30.33737260481582
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 4,
+    "F": 103990.05605834615,
+    "grad_norm": 28.09837410807164
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 5,
+    "F": 103991.5453166938,
+    "grad_norm": 26.030978009795597
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 6,
+    "F": 103992.89160142439,
+    "grad_norm": 24.124539784163254
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 7,
+    "F": 103994.106015044,
+    "grad_norm": 22.368595788561457
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 8,
+    "F": 103995.20284716223,
+    "grad_norm": 20.75266282643717
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 9,
+    "F": 103996.19832729753,
+    "grad_norm": 19.26551832199722
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 10,
+    "F": 103997.10531239973,
+    "grad_norm": 17.896146671220766
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 11,
+    "F": 103997.93292823386,
+    "grad_norm": 16.633270274470018
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": "final",
+    "F": 103998.68918220725
+   },
+   {
+    "start": "identity",
+    "iteration": 0,
+    "F": 104013.55304869547,
+    "grad_norm": 13042.874873809578
+   },
+   {
+    "start": "identity",
+    "iteration": 1,
+    "F": 103238.03170358333,
+    "grad_norm": 9332.864321615887
+   },
+   {
+    "start": "identity",
+    "iteration": 2,
+    "F": 103701.37069703572,
+    "grad_norm": 23875.84287316185
+   },
+   {
+    "start": "identity",
+    "iteration": 3,
+    "F": 104829.84686448284,
+    "grad_norm": 21857.28445583795
+   },
+   {
+    "start": "identity",
+    "iteration": 4,
+    "F": 104886.89644849933,
+    "grad_norm": 40039.46374433839
+   },
+   {
+    "start": "identity",
+    "iteration": 5,
+    "F": 105641.79058709039,
+    "grad_norm": 38039.85922191481
+   },
+   {
+    "start": "identity",
+    "iteration": 6,
+    "F": 106183.85834790145,
+    "grad_norm": 11999.411467170832
+   },
+   {
+    "start": "identity",
+    "iteration": 7,
+    "F": 105933.7318122309,
+    "grad_norm": 25286.930887160997
+   },
+   {
+    "start": "identity",
+    "iteration": 8,
+    "F": 105651.3533611713,
+    "grad_norm": 26304.960844463443
+   },
+   {
+    "start": "identity",
+    "iteration": 9,
+    "F": 105725.42021243724,
+    "grad_norm": 19215.92650286454
+   },
+   {
+    "start": "identity",
+    "iteration": 10,
+    "F": 105907.88717062048,
+    "grad_norm": 15603.989498109691
+   },
+   {
+    "start": "identity",
+    "iteration": 11,
+    "F": 106068.25798005478,
+    "grad_norm": 23148.867676520655
+   },
+   {
+    "start": "identity",
+    "iteration": "final",
+    "F": 106333.85934129822
+   }
+  ],
+  "F_identity": 104013.55304869547,
+  "semantics": "F is a conditional Gibbs log-posterior, not a calibrated evidence"
+ },
+ "synthetic_hinge_0p9rad": {
+  "svgd": [
+   {
+    "iteration": 0,
+    "F_mean": 109006.5,
+    "F_std": 932.7040405273438,
+    "F_max": 109693.4296875,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 6.591254571080408e-05,
+    "gamma_particle_std_mean": 9.560425555326464e-05,
+    "pi_mean": 0.3822053505221013,
+    "qmc_fallback_max": 0,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 62.39495089329827,
+    "mean_kernel_mass": 1.6607558918433785,
+    "repulsion_norm": 0.08173535731537673,
+    "attraction_norm": 671.3520710611316,
+    "score_norm_mean": 760.920117296117,
+    "particle_diversity": 9.03342184246688,
+    "seconds": 1.7392935752868652
+   },
+   {
+    "iteration": 1,
+    "F_mean": 109120.3125,
+    "F_std": 842.606689453125,
+    "F_max": 109726.8671875,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 5.339396150590681e-05,
+    "gamma_particle_std_mean": 7.779194947644445e-05,
+    "pi_mean": 0.34578951185537615,
+    "qmc_fallback_max": 0,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 53.69190091078928,
+    "mean_kernel_mass": 1.6785053232361762,
+    "repulsion_norm": 0.0900419802691802,
+    "attraction_norm": 619.4193341730044,
+    "score_norm_mean": 688.2925189333758,
+    "particle_diversity": 8.320793194499728,
+    "seconds": 1.407550573348999
+   },
+   {
+    "iteration": 2,
+    "F_mean": 109215.6953125,
+    "F_std": 758.51904296875,
+    "F_max": 109751.8671875,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 4.371975470132411e-05,
+    "gamma_particle_std_mean": 6.37906680628221e-05,
+    "pi_mean": 0.3137310827762725,
+    "qmc_fallback_max": 1,
+    "certificate_max": Infinity,
+    "kernel_bandwidth": 45.53440472764202,
+    "mean_kernel_mass": 1.6754381037944779,
+    "repulsion_norm": 0.0977487255064867,
+    "attraction_norm": 565.8548595467726,
+    "score_norm_mean": 624.3528636390471,
+    "particle_diversity": 7.581581266881067,
+    "seconds": 1.1630845069885254
+   },
+   {
+    "iteration": 3,
+    "F_mean": 109296.125,
+    "F_std": 680.962890625,
+    "F_max": 109770.609375,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 3.6201353618730815e-05,
+    "gamma_particle_std_mean": 5.275364174512796e-05,
+    "pi_mean": 0.28551364949675373,
+    "qmc_fallback_max": 1,
+    "certificate_max": 2.8880637978695025e+299,
+    "kernel_bandwidth": 37.08628170046628,
+    "mean_kernel_mass": 1.6552194014248127,
+    "repulsion_norm": 0.1063234343831229,
+    "attraction_norm": 513.5938548274535,
+    "score_norm_mean": 568.0717189913127,
+    "particle_diversity": 7.002413962235936,
+    "seconds": 1.1172263622283936
+   },
+   {
+    "iteration": 4,
+    "F_mean": 109363.953125,
+    "F_std": 610.4954833984375,
+    "F_max": 109785.0234375,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 3.0305731406362767e-05,
+    "gamma_particle_std_mean": 4.3997934791282845e-05,
+    "pi_mean": 0.2605769104978613,
+    "qmc_fallback_max": 0,
+    "certificate_max": 1.0373792375423293e+263,
+    "kernel_bandwidth": 32.176746850636135,
+    "mean_kernel_mass": 1.6699977772482586,
+    "repulsion_norm": 0.1160367459311616,
+    "attraction_norm": 475.4111051616975,
+    "score_norm_mean": 518.3323720444034,
+    "particle_diversity": 6.458770483341278,
+    "seconds": 1.4866094589233398
+   },
+   {
+    "iteration": 5,
+    "F_mean": 109422.5625,
+    "F_std": 546.6764526367188,
+    "F_max": 109796.5078125,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 2.5575671965977065e-05,
+    "gamma_particle_std_mean": 3.69617324490232e-05,
+    "pi_mean": 0.23787869928246877,
+    "qmc_fallback_max": 2,
+    "certificate_max": 2.3094804124644718e+226,
+    "kernel_bandwidth": 26.759002327467165,
+    "mean_kernel_mass": 1.6467175959691072,
+    "repulsion_norm": 0.12442369957194299,
+    "attraction_norm": 431.46055268001203,
+    "score_norm_mean": 473.05694073169394,
+    "particle_diversity": 5.963345083950777,
+    "seconds": 2.4068093299865723
+   },
+   {
+    "iteration": 6,
+    "F_mean": 109472.6171875,
+    "F_std": 489.5035400390625,
+    "F_max": 109805.609375,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 2.17916630086389e-05,
+    "gamma_particle_std_mean": 3.1299539495136146e-05,
+    "pi_mean": 0.2175668734464337,
+    "qmc_fallback_max": 1,
+    "certificate_max": 9.5744565714004e+198,
+    "kernel_bandwidth": 22.979558815362406,
+    "mean_kernel_mass": 1.6523309772976997,
+    "repulsion_norm": 0.13523720504109044,
+    "attraction_norm": 397.25653083141344,
+    "score_norm_mean": 432.54011867701934,
+    "particle_diversity": 5.533902813189681,
+    "seconds": 1.9422235488891602
+   },
+   {
+    "iteration": 7,
+    "F_mean": 109516.0234375,
+    "F_std": 438.4068298339844,
+    "F_max": 109813.03125,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 1.870785120049634e-05,
+    "gamma_particle_std_mean": 2.6692758076099593e-05,
+    "pi_mean": 0.1990469614760883,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.0140386513889298e+171,
+    "kernel_bandwidth": 19.942076919060344,
+    "mean_kernel_mass": 1.6591240887658676,
+    "repulsion_norm": 0.14629438646323906,
+    "attraction_norm": 365.67981330799915,
+    "score_norm_mean": 395.597184033452,
+    "particle_diversity": 5.13449364732155,
+    "seconds": 1.181135654449463
+   },
+   {
+    "iteration": 8,
+    "F_mean": 109553.765625,
+    "F_std": 392.96014404296875,
+    "F_max": 109819.2265625,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 1.617406022377255e-05,
+    "gamma_particle_std_mean": 2.291976258737996e-05,
+    "pi_mean": 0.18215533530009034,
+    "qmc_fallback_max": 1,
+    "certificate_max": 1.806601464669224e+150,
+    "kernel_bandwidth": 17.33866033983308,
+    "mean_kernel_mass": 1.6675545778991052,
+    "repulsion_norm": 0.15842647857436654,
+    "attraction_norm": 336.534326563485,
+    "score_norm_mean": 361.901438139218,
+    "particle_diversity": 4.790332564257351,
+    "seconds": 1.1653022766113281
+   },
+   {
+    "iteration": 9,
+    "F_mean": 109586.609375,
+    "F_std": 352.65325927734375,
+    "F_max": 109824.3671875,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 1.40771874596621e-05,
+    "gamma_particle_std_mean": 1.9810563933918946e-05,
+    "pi_mean": 0.16676842649121562,
+    "qmc_fallback_max": 0,
+    "certificate_max": 6.6702620627868594e+128,
+    "kernel_bandwidth": 15.275354074335812,
+    "mean_kernel_mass": 1.6788689557214502,
+    "repulsion_norm": 0.17078881075965585,
+    "attraction_norm": 310.21659529818066,
+    "score_norm_mean": 331.2071210045533,
+    "particle_diversity": 4.463440542041109,
+    "seconds": 1.1188724040985107
+   },
+   {
+    "iteration": 10,
+    "F_mean": 109615.3359375,
+    "F_std": 316.9822998046875,
+    "F_max": 109828.7578125,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 1.2326664286347367e-05,
+    "gamma_particle_std_mean": 1.7229942044635683e-05,
+    "pi_mean": 0.152742291260408,
+    "qmc_fallback_max": 2,
+    "certificate_max": 2.1661887600804395e+113,
+    "kernel_bandwidth": 13.426597687905836,
+    "mean_kernel_mass": 1.6899596058949047,
+    "repulsion_norm": 0.18434170568833338,
+    "attraction_norm": 285.5152875440267,
+    "score_norm_mean": 303.2267138611443,
+    "particle_diversity": 4.1897050176365545,
+    "seconds": 2.6336188316345215
+   },
+   {
+    "iteration": 11,
+    "F_mean": 109640.421875,
+    "F_std": 285.44110107421875,
+    "F_max": 109832.4453125,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 1.0857272273857792e-05,
+    "gamma_particle_std_mean": 1.5075759921246127e-05,
+    "pi_mean": 0.14000031717390732,
+    "qmc_fallback_max": 3,
+    "certificate_max": 3.586802177767756e+96,
+    "kernel_bandwidth": 11.954130487790025,
+    "mean_kernel_mass": 1.6997845826643165,
+    "repulsion_norm": 0.19731602115926788,
+    "attraction_norm": 263.1844668043358,
+    "score_norm_mean": 277.808101406471,
+    "particle_diversity": 3.9181348026535994,
+    "seconds": 1.7018232345581055
+   },
+   {
+    "iteration": 12,
+    "F_mean": 109662.4453125,
+    "F_std": 257.5657043457031,
+    "F_max": 109835.6328125,
+    "F_identity": 109866.85110166372,
+    "gamma_mean": 9.61377647342684e-06,
+    "gamma_particle_std_mean": 1.3264560866757813e-05,
+    "pi_mean": 0.12841862605044221,
+    "qmc_fallback_max": 2,
+    "certificate_max": 2.4432655566210224e+86
+   }
+  ],
+  "map": [
+   {
+    "start": "best_svgd_particle",
+    "iteration": 0,
+    "F": 109835.63110298899,
+    "grad_norm": 38.19845888357462
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 1,
+    "F": 109837.8636921431,
+    "grad_norm": 35.37967330753987
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 2,
+    "F": 109839.88905787226,
+    "grad_norm": 32.76429196308767
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 3,
+    "F": 109841.7126082196,
+    "grad_norm": 30.342306941889234
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 4,
+    "F": 109843.35699488732,
+    "grad_norm": 28.10295148674873
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 5,
+    "F": 109844.84587551445,
+    "grad_norm": 26.03522662716795
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 6,
+    "F": 109846.19184996498,
+    "grad_norm": 24.128484413375418
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 7,
+    "F": 109847.40598870757,
+    "grad_norm": 22.372260476410954
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 8,
+    "F": 109848.50234443448,
+    "grad_norm": 20.75616752034689
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 9,
+    "F": 109849.49632619323,
+    "grad_norm": 19.26999388168583
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 10,
+    "F": 109850.39968482331,
+    "grad_norm": 17.90400102475372
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 11,
+    "F": 109851.21990510394,
+    "grad_norm": 16.64905987097236
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": "final",
+    "F": 109851.9633432208
+   },
+   {
+    "start": "identity",
+    "iteration": 0,
+    "F": 109866.85110166372,
+    "grad_norm": 39717.08011144818
+   },
+   {
+    "start": "identity",
+    "iteration": 1,
+    "F": 110071.7327737577,
+    "grad_norm": 45638.42598940166
+   },
+   {
+    "start": "identity",
+    "iteration": 2,
+    "F": 112138.6806983219,
+    "grad_norm": 27447.36756825862
+   },
+   {
+    "start": "identity",
+    "iteration": 3,
+    "F": 110933.72111117552,
+    "grad_norm": 9495.18596513925
+   },
+   {
+    "start": "identity",
+    "iteration": 4,
+    "F": 109915.0538055405,
+    "grad_norm": 19402.43437857767
+   },
+   {
+    "start": "identity",
+    "iteration": 5,
+    "F": 109673.85400346524,
+    "grad_norm": 4983.78136998321
+   },
+   {
+    "start": "identity",
+    "iteration": 6,
+    "F": 109428.47643439595,
+    "grad_norm": 16788.342987760607
+   },
+   {
+    "start": "identity",
+    "iteration": 7,
+    "F": 109597.2894228908,
+    "grad_norm": 5888.316707334188
+   },
+   {
+    "start": "identity",
+    "iteration": 8,
+    "F": 109919.7716598776,
+    "grad_norm": 18470.076206052654
+   },
+   {
+    "start": "identity",
+    "iteration": 9,
+    "F": 110664.30269774607,
+    "grad_norm": 35800.816687711136
+   },
+   {
+    "start": "identity",
+    "iteration": 10,
+    "F": 111964.33847449646,
+    "grad_norm": 36615.44573902131
+   },
+   {
+    "start": "identity",
+    "iteration": 11,
+    "F": 112439.6064962261,
+    "grad_norm": 62923.166152096586
+   },
+   {
+    "start": "identity",
+    "iteration": "final",
+    "F": 112966.07957455666
+   }
+  ],
+  "F_identity": 109866.85110166372,
+  "semantics": "F is a conditional Gibbs log-posterior, not a calibrated evidence"
+ },
+ "USB_100109_10f": {
+  "svgd": [
+   {
+    "iteration": 0,
+    "F_mean": 6981471.5,
+    "F_std": 72281.3359375,
+    "F_max": 7037194.0,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.01722295480796563,
+    "gamma_particle_std_mean": 0.0270994223766177,
+    "pi_mean": 0.3822053505221013,
+    "qmc_fallback_max": 13563,
+    "certificate_max": 1.9866812854199033e+39,
+    "kernel_bandwidth": 62.39495089329827,
+    "mean_kernel_mass": 1.6607558918433785,
+    "repulsion_norm": 0.08173535731537673,
+    "attraction_norm": 122060.78815048074,
+    "score_norm_mean": 225127.11548733793,
+    "particle_diversity": 9.864124000002738,
+    "seconds": 636.8685262203217
+   },
+   {
+    "iteration": 1,
+    "F_mean": 7005958.0,
+    "F_std": 88818.6875,
+    "F_max": 7109111.0,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.023195871340546924,
+    "gamma_particle_std_mean": 0.03956452678910947,
+    "pi_mean": 0.34578951174215883,
+    "qmc_fallback_max": 15855,
+    "certificate_max": 2.494305212075087e+38,
+    "kernel_bandwidth": 61.57378156055307,
+    "mean_kernel_mass": 1.647049196845301,
+    "repulsion_norm": 0.08107401613423841,
+    "attraction_norm": 116369.614302089,
+    "score_norm_mean": 248733.29953255155,
+    "particle_diversity": 10.14789923092587,
+    "seconds": 645.2634601593018
+   },
+   {
+    "iteration": 2,
+    "F_mean": 7022487.5,
+    "F_std": 100129.6640625,
+    "F_max": 7152093.5,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.022611053480645488,
+    "gamma_particle_std_mean": 0.03878288156034542,
+    "pi_mean": 0.314987750085129,
+    "qmc_fallback_max": 16793,
+    "certificate_max": 6.27913677849314e+38,
+    "kernel_bandwidth": 64.22135263085804,
+    "mean_kernel_mass": 1.646871846600955,
+    "repulsion_norm": 0.0783947395547074,
+    "attraction_norm": 190912.39185069804,
+    "score_norm_mean": 339407.2886835984,
+    "particle_diversity": 10.28843935920054,
+    "seconds": 686.3967800140381
+   },
+   {
+    "iteration": 3,
+    "F_mean": 6998177.0,
+    "F_std": 52072.83203125,
+    "F_max": 7035936.5,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.013110828782742303,
+    "gamma_particle_std_mean": 0.02131077618114477,
+    "pi_mean": 0.287664991845325,
+    "qmc_fallback_max": 14107,
+    "certificate_max": 5.037505832939887e+38,
+    "kernel_bandwidth": 70.89056052396063,
+    "mean_kernel_mass": 1.7094343648227515,
+    "repulsion_norm": 0.07943597716449433,
+    "attraction_norm": 52079.63588445069,
+    "score_norm_mean": 78067.83162917563,
+    "particle_diversity": 10.233102944683148,
+    "seconds": 666.8028540611267
+   },
+   {
+    "iteration": 4,
+    "F_mean": 7010922.0,
+    "F_std": 56490.04296875,
+    "F_max": 7069373.0,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.017252097469955062,
+    "gamma_particle_std_mean": 0.029814571639284693,
+    "pi_mean": 0.26137634960291883,
+    "qmc_fallback_max": 13751,
+    "certificate_max": 4.653428434561826e+38,
+    "kernel_bandwidth": 68.84922450364371,
+    "mean_kernel_mass": 1.691850160661999,
+    "repulsion_norm": 0.07934446224674582,
+    "attraction_norm": 130236.04908218152,
+    "score_norm_mean": 148084.16694525335,
+    "particle_diversity": 10.232788175302655,
+    "seconds": 583.8658871650696
+   },
+   {
+    "iteration": 5,
+    "F_mean": 7030872.5,
+    "F_std": 78243.5234375,
+    "F_max": 7134550.0,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.022652558129626035,
+    "gamma_particle_std_mean": 0.03978498823686866,
+    "pi_mean": 0.23858029116441237,
+    "qmc_fallback_max": 12378,
+    "certificate_max": 9.170582230947166e+38,
+    "kernel_bandwidth": 67.94379044152988,
+    "mean_kernel_mass": 1.681267366205398,
+    "repulsion_norm": 0.07896938191238856,
+    "attraction_norm": 136358.58555588516,
+    "score_norm_mean": 161735.13911848768,
+    "particle_diversity": 10.27464663091716,
+    "seconds": 605.780987739563
+   },
+   {
+    "iteration": 6,
+    "F_mean": 7050118.5,
+    "F_std": 104474.59375,
+    "F_max": 7198944.0,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.025421127407233582,
+    "gamma_particle_std_mean": 0.04556704543761316,
+    "pi_mean": 0.21859092160527935,
+    "qmc_fallback_max": 12305,
+    "certificate_max": 4.773899248128234e+38,
+    "kernel_bandwidth": 65.90501516886705,
+    "mean_kernel_mass": 1.6491320769334932,
+    "repulsion_norm": 0.0774583618626666,
+    "attraction_norm": 170057.8158011522,
+    "score_norm_mean": 182481.81360694367,
+    "particle_diversity": 10.138115064144364,
+    "seconds": 625.1828861236572
+   },
+   {
+    "iteration": 7,
+    "F_mean": 7031124.0,
+    "F_std": 63149.28515625,
+    "F_max": 7114764.5,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.018979559415878654,
+    "gamma_particle_std_mean": 0.033376253381448555,
+    "pi_mean": 0.200995740481917,
+    "qmc_fallback_max": 11878,
+    "certificate_max": 3.739088125828884e+39,
+    "kernel_bandwidth": 65.65742677371856,
+    "mean_kernel_mass": 1.6676548714624526,
+    "repulsion_norm": 0.07927150842557147,
+    "attraction_norm": 120500.18077426414,
+    "score_norm_mean": 170885.1825163849,
+    "particle_diversity": 10.190847926453804,
+    "seconds": 558.6222193241119
+   },
+   {
+    "iteration": 8,
+    "F_mean": 7040062.0,
+    "F_std": 71099.4921875,
+    "F_max": 7138796.0,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.021322583457636494,
+    "gamma_particle_std_mean": 0.03723150447430233,
+    "pi_mean": 0.18427834427348783,
+    "qmc_fallback_max": 11787,
+    "certificate_max": 8.95995634013818e+38,
+    "kernel_bandwidth": 66.56409186413417,
+    "mean_kernel_mass": 1.6716721166574828,
+    "repulsion_norm": 0.07900842050863294,
+    "attraction_norm": 78519.38540857357,
+    "score_norm_mean": 112168.64662845503,
+    "particle_diversity": 10.114743230377798,
+    "seconds": 596.0309112071991
+   },
+   {
+    "iteration": 9,
+    "F_mean": 7019212.0,
+    "F_std": 31112.1796875,
+    "F_max": 7048535.5,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.012524576273823288,
+    "gamma_particle_std_mean": 0.02186722278016324,
+    "pi_mean": 0.1692838367531757,
+    "qmc_fallback_max": 10456,
+    "certificate_max": 9.707080167550238e+39,
+    "kernel_bandwidth": 66.08740409620609,
+    "mean_kernel_mass": 1.676846083752875,
+    "repulsion_norm": 0.0798415900950821,
+    "attraction_norm": 48468.22125892773,
+    "score_norm_mean": 70637.09484319328,
+    "particle_diversity": 10.072840436484523,
+    "seconds": 547.4878284931183
+   },
+   {
+    "iteration": 10,
+    "F_mean": 7025181.0,
+    "F_std": 34140.734375,
+    "F_max": 7064403.0,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.014751331218221071,
+    "gamma_particle_std_mean": 0.025893472262965542,
+    "pi_mean": 0.15509884121967196,
+    "qmc_fallback_max": 10915,
+    "certificate_max": 3.5015528858357216e+40,
+    "kernel_bandwidth": 66.11284599048503,
+    "mean_kernel_mass": 1.683397905962442,
+    "repulsion_norm": 0.08044323771294525,
+    "attraction_norm": 46321.98802196063,
+    "score_norm_mean": 95613.33165117732,
+    "particle_diversity": 10.000665922864393,
+    "seconds": 566.678998708725
+   },
+   {
+    "iteration": 11,
+    "F_mean": 7038391.0,
+    "F_std": 52429.015625,
+    "F_max": 7111363.0,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.01830670090949274,
+    "gamma_particle_std_mean": 0.03275900104621796,
+    "pi_mean": 0.14240064190289597,
+    "qmc_fallback_max": 11019,
+    "certificate_max": 1.4586600837102215e+41,
+    "kernel_bandwidth": 63.52729960273082,
+    "mean_kernel_mass": 1.6615109361213998,
+    "repulsion_norm": 0.08021134282581902,
+    "attraction_norm": 32953.8951514866,
+    "score_norm_mean": 49660.892621200364,
+    "particle_diversity": 10.021853967996858,
+    "seconds": 547.9192581176758
+   },
+   {
+    "iteration": 12,
+    "F_mean": 7040263.5,
+    "F_std": 51852.78125,
+    "F_max": 7113397.5,
+    "F_identity": 7033057.274732672,
+    "gamma_mean": 0.01681714523333638,
+    "gamma_particle_std_mean": 0.03079413053603987,
+    "pi_mean": 0.13128291889635368,
+    "qmc_fallback_max": 11332,
+    "certificate_max": 1.0319152825680953e+41
+   }
+  ],
+  "map": [
+   {
+    "start": "best_svgd_particle",
+    "iteration": 0,
+    "F": 7113397.513679682,
+    "grad_norm": 47064.93399649125
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 1,
+    "F": 7108854.827949698,
+    "grad_norm": 162770.5516302405
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 2,
+    "F": 7152714.96517446,
+    "grad_norm": 114871.7552092828
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 3,
+    "F": 7175640.374306154,
+    "grad_norm": 1529622.1085898315
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 4,
+    "F": 7139821.913866426,
+    "grad_norm": 254948.263019441
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 5,
+    "F": 7120624.369790838,
+    "grad_norm": 246491.64368301054
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 6,
+    "F": 7110316.160323584,
+    "grad_norm": 118274.5161685155
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 7,
+    "F": 7103112.331147041,
+    "grad_norm": 326205.3838035449
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 8,
+    "F": 7101689.235933168,
+    "grad_norm": 156572.91120649732
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 9,
+    "F": 7102203.313298709,
+    "grad_norm": 318130.2607685183
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 10,
+    "F": 7107343.000710843,
+    "grad_norm": 245915.48842734276
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": 11,
+    "F": 7116458.136898015,
+    "grad_norm": 342717.14759833575
+   },
+   {
+    "start": "best_svgd_particle",
+    "iteration": "final",
+    "F": 7131021.364371028
+   },
+   {
+    "start": "identity",
+    "iteration": 0,
+    "F": 7033057.274732672,
+    "grad_norm": 575588.6250470491
+   },
+   {
+    "start": "identity",
+    "iteration": 1,
+    "F": 7165479.3320473535,
+    "grad_norm": 8837014.913845498
+   },
+   {
+    "start": "identity",
+    "iteration": 2,
+    "F": 7239280.594967557,
+    "grad_norm": 3670915.0432396373
+   },
+   {
+    "start": "identity",
+    "iteration": 3,
+    "F": 7316548.308898155,
+    "grad_norm": 2086762.512169372
+   },
+   {
+    "start": "identity",
+    "iteration": 4,
+    "F": 7396476.494527512,
+    "grad_norm": 1543621.8268419823
+   },
+   {
+    "start": "identity",
+    "iteration": 5,
+    "F": 7506775.011703585,
+    "grad_norm": 1654356.7165255074
+   },
+   {
+    "start": "identity",
+    "iteration": 6,
+    "F": 7670730.737770715,
+    "grad_norm": 2513541.9290618114
+   },
+   {
+    "start": "identity",
+    "iteration": 7,
+    "F": 7870471.007761354,
+    "grad_norm": 1598149.8864505137
+   },
+   {
+    "start": "identity",
+    "iteration": 8,
+    "F": 8020890.737599875,
+    "grad_norm": 2564826.6412449917
+   },
+   {
+    "start": "identity",
+    "iteration": 9,
+    "F": 8015154.400558497,
+    "grad_norm": 3381639.9343179855
+   },
+   {
+    "start": "identity",
+    "iteration": 10,
+    "F": 7953340.168768609,
+    "grad_norm": 1577950.5045763862
+   },
+   {
+    "start": "identity",
+    "iteration": 11,
+    "F": 7903690.497699529,
+    "grad_norm": 2875827.773346029
+   },
+   {
+    "start": "identity",
+    "iteration": "final",
+    "F": 7908391.435000233
+   }
+  ],
+  "F_identity": 7033057.274732672,
+  "semantics": "F is a conditional Gibbs log-posterior, not a calibrated evidence"
+ }
+}

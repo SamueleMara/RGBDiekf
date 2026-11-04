@@ -79,6 +79,28 @@ class TemporalTests(unittest.TestCase):
         b = torch.tensor(rng.normal(size=(3, 5, 6))); _, cert = pcg(lambda U: tp.hess_apply(U)+U, b, lambda r: r, 1e-14, 2)
         self.assertEqual(cert['status'], 'ITERATION_CAP')
 
+    def test_subblock_solve_and_velocity_lift_exact(self):
+        """E37: dV = argmin E_time(S + [dX, dV]) against dense autograd minimization; L_vv solve against the dense sub-block."""
+        tp, x0, rng = prior(seed=7)
+        S = torch.tensor(rng.normal(0, .02, (3, 5, 6))); dX = torch.tensor(rng.normal(0, .003, (3, 5, 3)))
+        def E_of(v):
+            Z = S.clone(); Z[:, :, :3] += dX; Z[:, :, 3:] = S[:, :, 3:]+v.reshape(3, 5, 3)
+            E = .5*((Z[:, 0]-tp.s0bar)[:, None]@tp.P0i@(Z[:, 0]-tp.s0bar)[:, :, None]).sum()
+            for t in range(1, 5):
+                w = Z[:, t]-Z[:, t-1]@tp.F[t-1].T; E = E+.5*(w@tp.Qi[t-1]*w).sum()
+            return E
+        v0 = torch.zeros(45, dtype=torch.float64, requires_grad=True)
+        g = torch.autograd.grad(E_of(v0), v0, create_graph=True)[0]
+        H = torch.stack([torch.autograd.grad(g[k], v0, retain_graph=True)[0] for k in range(45)])
+        dense = -torch.linalg.solve(H, g.detach())
+        lift = tp.velocity_lift(S, dX).reshape(-1)
+        np.testing.assert_allclose(lift.numpy(), dense.numpy(), rtol=1e-9, atol=1e-12*float(dense.abs().max()))
+        Z = S.clone(); Z[:, :, :3] += dX
+        self.assertLessEqual(tp.energy(Z+torch.cat([torch.zeros_like(dX), lift.reshape(3, 5, 3)], -1)), tp.energy(Z))
+        Zl = Z.clone(); Zl[:, :, 3:] += lift.reshape(3, 5, 3)
+        self.assertLess(float(tp.grad(Zl)[:, :, 3:].abs().max()), 1e-6*float(tp.grad(Z)[:, :, 3:].abs().max()))     # stationary in v
+        record('E37', test='velocity_lift_vs_dense', max_rel=float((lift-dense).abs().max()/dense.abs().max()), tolerance=1e-9)
+
 
 if __name__ == '__main__':
     unittest.main()

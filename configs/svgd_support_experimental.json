@@ -164,11 +164,12 @@
    "value": {
     "initial": "N_lambda_over_kernel_mass",
     "backtracking_factor": 0.5,
-    "max_backtracks": 20
+    "max_backtracks": 20,
+    "velocity_lift": "none"
    },
    "class": "numerical-error-budget",
    "units": "m^2",
-   "provenance": "solver policy (spec TF.5), estimator/svgd_particle_operator.initial_step",
+   "provenance": "solver policy (spec TF.5), estimator/svgd_particle_operator.initial_step; velocity_lift: 'none' = original B3 map on positions, 'conditional_temporal_lift' = DEV-0011 optimizer-only lift",
    "deviation": "NONE"
   },
   "convergence": {

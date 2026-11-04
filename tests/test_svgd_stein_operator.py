@@ -129,6 +129,17 @@ class SteinTests(unittest.TestCase):
         self.assertLess(peak, N*N*8/4)                                                                 # far below one dense N x N float64
         record('E07', test='bounded_memory', N=N, peak_bytes=peak, dense_bytes=N*N*8)
 
+    def test_source_mask_split_adds_up(self):
+        """Post-hoc audit split (source_mask): complementary source sets add up to the full field exactly (global 1/N kept)."""
+        x, c, g, Hx, Hc = fixture(11, 25); m = np.random.default_rng(1).uniform(size=25) < .4
+        full = stein_field(T(x), T(c), T(g), T(Hx), T(Hc))
+        a = stein_field(T(x), T(c), T(g), T(Hx), T(Hc), source_mask=T(m.astype(float))); b = stein_field(T(x), T(c), T(g), T(Hx), T(Hc), source_mask=T((~m).astype(float)))
+        for nm in ('attraction', 'repulsion', 'total', 'kernel_mass'):
+            u, w = getattr(a, nm)+getattr(b, nm), getattr(full, nm)
+            self.assertLess(float((u-w).abs().max()/w.abs().max()), 1e-12)
+        _, _, K = oracle(x, c, g, Hx, Hc)
+        np.testing.assert_allclose(a.kernel_mass.numpy(), K[m].sum(0), rtol=1e-12)
+
 
 if __name__ == '__main__':
     unittest.main()

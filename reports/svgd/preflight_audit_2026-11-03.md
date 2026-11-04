@@ -33,3 +33,10 @@ Reused unchanged: `scene.endpoint.samples/backproject` (masked back-projection +
 ## Existing files changed
 
 Only `tools/run_status.py` (+20 lines): a branch that recognises `run_kind = svgd_support_stage1` runs via their `progress.json`; every other path unchanged.
+
+## Source-matched rerun of the 7 baseline failures (audit b62c7cee, "verify source-matched reruns")
+
+`git diff --stat d0b470b HEAD` outside the new SVGD files touches only `tools/run_status.py` (+20, a new branch) and the spec Markdown: every legacy
+source exercised by these tests is byte-identical to the base. Rerun at HEAD b62c7ce + working tree (2026-11-03, 1137 s): the same **7 tests fail
+again** (`FAILED (failures=7)`), the same set as at d0b470b. Conclusion: pre-existing failures of the legacy image / rigid-joint / forensics paths,
+not regressions of this work; the full 441-test suite was not re-run after b62c7ce.

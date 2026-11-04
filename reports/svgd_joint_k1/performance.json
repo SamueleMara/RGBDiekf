@@ -1,0 +1,62 @@
+{
+ "synthetic_static": {
+  "stages": {
+   "CALIBRATE": 1793748879.5850375,
+   "STATIC": 1793748880.3839822,
+   "SVGD": 1793748880.752398,
+   "MAP": 1793748891.1951897,
+   "OUTPUTS": 1793748916.3878136
+  },
+  "wall_seconds": 37.19184899330139,
+  "peak_allocated_bytes": 1700141568,
+  "peak_reserved_bytes": 6318718976
+ },
+ "synthetic_prismatic_textured": {
+  "stages": {
+   "CALIBRATE": 1793748950.5525944,
+   "STATIC": 1793748951.3383923,
+   "SVGD": 1793748952.0144367,
+   "MAP": 1793748962.2087603,
+   "OUTPUTS": 1793748999.466669
+  },
+  "wall_seconds": 49.250937700271606,
+  "peak_allocated_bytes": 1700509184,
+  "peak_reserved_bytes": 6385827840
+ },
+ "synthetic_prismatic_uniform_colour": {
+  "stages": {
+   "CALIBRATE": 1793749135.086238,
+   "STATIC": 1793749136.529801,
+   "SVGD": 1793749137.44985,
+   "MAP": 1793749162.4071758,
+   "OUTPUTS": 1793749200.6258914
+  },
+  "wall_seconds": 69.76421236991882,
+  "peak_allocated_bytes": 1701080576,
+  "peak_reserved_bytes": 6717177856
+ },
+ "synthetic_hinge_0p9rad": {
+  "stages": {
+   "CALIBRATE": 1793749333.2561088,
+   "STATIC": 1793749335.1787567,
+   "SVGD": 1793749335.9072123,
+   "MAP": 1793749355.3963625,
+   "OUTPUTS": 1793749398.542599
+  },
+  "wall_seconds": 70.94729113578796,
+  "peak_allocated_bytes": 1700146688,
+  "peak_reserved_bytes": 6723469312
+ },
+ "USB_100109_10f": {
+  "stages": {
+   "CALIBRATE": 1793749599.2115862,
+   "STATIC": 1793749635.4562225,
+   "SVGD": 1793749858.7964303,
+   "MAP": 1793757341.8477848,
+   "OUTPUTS": 1793766957.035633
+  },
+  "wall_seconds": 17367.81042575836,
+  "peak_allocated_bytes": 4366427136,
+  "peak_reserved_bytes": 6874464256
+ }
+}

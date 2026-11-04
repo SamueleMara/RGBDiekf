@@ -1,0 +1,5 @@
+{
+ "status": "NOT_RUN",
+ "probability_semantics": "UNCALIBRATED_APPROXIMATION",
+ "reason": "no held-out synthetic reliability study and no low-dimensional exact pose-posterior comparison (Gate 4) were run in this batch"
+}

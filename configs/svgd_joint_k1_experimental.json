@@ -1,0 +1,152 @@
+{
+ "schema_version": 1,
+ "pipeline": "svgd_joint_k1",
+ "spec": "CODEX_RGBDiekf_SVGD_JOINT_RIGID_SUPPORT_K1_2026-11-03.md",
+ "observation": {
+  "weights": {
+   "value": "uniform",
+   "class": "declared-research-assumption",
+   "provenance": "spec 3.1 audited baseline; inverse_density is the declared ablation",
+   "units": "-"
+  },
+  "certificate_tolerance_nats": {
+   "value": 1e-06,
+   "class": "numerical-error-budget",
+   "provenance": "per point-frame bound on log ell truncation error (estimator/svgd_k1_observation.py)",
+   "units": "nat"
+  },
+  "domain_tail_probability": {
+   "value": 1e-06,
+   "class": "numerical-error-budget",
+   "provenance": "certified domain {b_0 >= b_0 at chi2_6(1 - p)}; queries outside are counted, not hidden",
+   "units": "-"
+  },
+  "rho": {
+   "value": {
+    "prior_beta": [
+     1.0,
+     1.0
+    ],
+    "block_edge_spacing_factor": 8.0,
+    "folds": 4
+   },
+   "class": "declared-research-assumption",
+   "provenance": "held-out spatial-block CV (spec 3.2); block edge = 8 x the frame KDE spacing; sensitivity reported per run",
+   "units": "-"
+  },
+  "first_pass_kappa": {
+   "value": null,
+   "class": "numerical-error-budget",
+   "provenance": "two-level certified grid: rows with certificate > tolerance are recomputed on the full radius; null = single certified grid (measured: the first pass did not pay at tau = 1e-6)",
+   "units": "-"
+  }
+ },
+ "reference": {
+  "integration": {
+   "value": "laplace_at_prior_mean_with_crn_qmc_fallback",
+   "class": "declared-research-assumption",
+   "provenance": "spec 3.3: one shared 6D latent anchor; error measured vs QMC oracle",
+   "units": "-"
+  },
+  "qmc_nodes": {
+   "value": 64,
+   "class": "numerical-error-budget",
+   "provenance": "scrambled Sobol nodes for points whose Laplace matrix is not SPD (64 nodes; accuracy measured against 8192-node QMC in tests)",
+   "units": "-"
+  },
+  "qmc_seed": {
+   "value": 0,
+   "class": "numerical-error-budget",
+   "provenance": "common random numbers",
+   "units": "-"
+  },
+  "a_eff": {
+   "value": {
+    "method": "kernel_correlation",
+    "kappa": 6.0
+   },
+   "class": "declared-research-assumption",
+   "provenance": "spec 3.3 formula with H_X = s_0^2 I, H_C = Lambda_C of frame 0 (point-cloud spacing / representation statistics); unit = sensitivity control",
+   "units": "-"
+  }
+ },
+ "motion_prior": {
+  "value": {
+   "P_nu0_diag": [
+    1.0,
+    1.0,
+    1.0,
+    4.0,
+    4.0,
+    4.0
+   ],
+   "Q_nu_diag": [
+    0.01,
+    0.01,
+    0.01,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "class": "declared-research-assumption",
+  "provenance": "translation: repository noise file (velocity 1 m^2/s^2, q_c 0.01 m^2/s^3); rotation: declared 2 rad/s initial sd, 1 rad^2/s^3 random walk (NOT calibrated)",
+  "units": "m/s, rad/s"
+ },
+ "support_prior": {
+  "beta": {
+   "value": [
+    1.0,
+    1.0
+   ],
+   "class": "declared-research-assumption",
+   "provenance": "uniform prior on the moving fraction pi (never set from GT)",
+   "units": "-"
+  }
+ },
+ "svgd": {
+  "value": {
+   "particles": 16,
+   "iterations": 60,
+   "step": 0.05,
+   "alpha": 0.9,
+   "fudge": 1e-06,
+   "seed": 0,
+   "sigma_h": 1.5
+  },
+  "class": "numerical-error-budget",
+  "provenance": "Liu & Wang reference AdaGrad + median-heuristic RBF in whitened motion coordinates; M is NOT a number of parts",
+  "units": "-"
+ },
+ "map": {
+  "value": {
+   "enabled": true,
+   "iterations": 60,
+   "lr": 0.05,
+   "starts": [
+    "best_svgd_particle",
+    "identity"
+   ]
+  },
+  "class": "numerical-error-budget",
+  "provenance": "Adam on the SAME F in the same coordinates, started at the best final SVGD particle; two deterministic starts (best final SVGD particle, identity), same F; the higher F is reported",
+  "units": "-"
+ },
+ "seed_selection": {
+  "alpha": {
+   "value": 0.05,
+   "class": "declared-research-assumption",
+   "provenance": "posterior expected FDR budget on UNCALIBRATED gamma (model-based statement only)",
+   "units": "-"
+  }
+ },
+ "compute": {
+  "tile": {
+   "value": 4096,
+   "class": "hardware-budget",
+   "provenance": "points per tile",
+   "units": "-"
+  }
+ },
+ "research_mode": "experimental: identical model; use for ablations (weights, a_eff, integration, M, seeds)"
+}

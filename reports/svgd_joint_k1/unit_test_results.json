@@ -1,0 +1,22 @@
+{
+ "returncode": 0,
+ "summary": "OK",
+ "tests": [
+  "test_a_eff_duplication_invariance (tests.test_svgd_k1_math.K1MathTests.test_a_eff_duplication_invariance) ... /home/samuelemara/Joint3DGS/RGBDekf/estimator/svgd_k1_observation.py:96: UserWarning: torch.searchsorted(): input value tensor is non-contiguous, this will lower the performance due to extra data copy when converting non-contiguous tensor to contiguous, please use contiguous input value tensor if possible. This message will only appear once per program. (Triggered internally at /pytorch/aten/src/ATen/native/BucketizationUtils.h:32.)",
+  "ok",
+  "test_enumeration_gradients_identity_and_no_evidence (tests.test_svgd_k1_math.K1MathTests.test_enumeration_gradients_identity_and_no_evidence) ... /home/samuelemara/Joint3DGS/RGBDekf/estimator/svgd_k1_joint_posterior.py:92: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.",
+  "ok",
+  "test_kde_potential_dense_oracle_and_certificate (tests.test_svgd_k1_math.K1MathTests.test_kde_potential_dense_oracle_and_certificate) ... ok",
+  "test_laplace_vs_qmc_on_kde_scene (tests.test_svgd_k1_math.K1MathTests.test_laplace_vs_qmc_on_kde_scene) ... ok",
+  "test_motion_prior_normalized_and_paid_once (tests.test_svgd_k1_math.K1MathTests.test_motion_prior_normalized_and_paid_once) ... ok",
+  "test_point_only_boundary_and_gt_leak (tests.test_svgd_k1_math.K1MathTests.test_point_only_boundary_and_gt_leak) ... ok",
+  "test_se3_exp_log_and_finite_differences (tests.test_svgd_k1_math.K1MathTests.test_se3_exp_log_and_finite_differences) ... ok",
+  "Gaussian toy where every frame factor is Gaussian in u: the joint integral is exact; Laplace-at-mean is exact for it; ... ok",
+  "test_svgd_direction_uses_score_and_repulsion_sign (tests.test_svgd_k1_math.K1MathTests.test_svgd_direction_uses_score_and_repulsion_sign) ... ok",
+  "test_calibration_reproducible_and_no_silent_floor (tests.test_svgd_k1_runner.K1RunnerTests.test_calibration_reproducible_and_no_silent_floor) ... ok",
+  "Permuting the camera loading order permutes every cloud and the reference catalogue; F at a fixed motion must not change. ... ok",
+  "test_k_not_one_rejected (tests.test_svgd_k1_runner.K1RunnerTests.test_k_not_one_rejected) ... ok",
+  "test_output_contract_and_identity_frame (tests.test_svgd_k1_runner.K1RunnerTests.test_output_contract_and_identity_frame) ... ok",
+  "Gate 2: duplicating every reference point (no new physical information) keeps n_eff and splits a_eff; the evidence gain ... ok"
+ ]
+}

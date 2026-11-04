@@ -95,6 +95,22 @@ class RigidityTests(unittest.TestCase):
                 if D[i, j] > 0: want.add(tuple(sorted((i, j))))
         self.assertEqual(set(map(tuple, e.tolist())), want)
 
+    def test_dropped_cross_covariance_bias_sign_undetermined(self):
+        """F7 / DEV-0007: Var(x_i - x_l) = Var(x_i) + Var(x_l) - 2 Cov(x_i, x_l). Dropping a POSITIVE cross-covariance inflates
+        Omega, dropping a NEGATIVE one deflates it: the structured approximation's bias sign is undetermined in general."""
+        X = torch.tensor(np.array([[[0., 0, 0], [.05, 0, 0]]]*3)); e = torch.tensor([[0, 1]]); T = 2
+        signs = {}
+        for rho in (+.8, -.8):
+            P = np.zeros((6*(T+1),)*2)
+            for t in range(T+1):
+                s = 6*t; P[s:s+6, s:s+6] = np.block([[np.eye(3), rho*np.eye(3)], [rho*np.eye(3), np.eye(3)]])*1e-6
+            exact = dense_edge_covariance(X, e[0], torch.tensor(P)).numpy()
+            Pb = torch.tensor(np.stack([[np.eye(3)*1e-6]*2]*(T+1)))
+            c, delta = edge_covariance_structured(X, e, Pb); approx = c[0].item()*np.ones((T, T))+np.diag(delta[0].numpy())
+            signs[rho] = float(np.linalg.slogdet(approx)[1]-np.linalg.slogdet(exact)[1])
+        self.assertLess(signs[.8]*signs[-.8], 0)                                                  # opposite signs
+        record('E23', test='bias_sign_undetermined', logdet_approx_minus_exact=signs, conclusion='bias sign undetermined (not conservative)')
+
 
 if __name__ == '__main__':
     unittest.main()

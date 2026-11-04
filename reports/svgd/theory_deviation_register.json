@@ -234,22 +234,22 @@
   "affected_outputs": "rigid_chi2, rigid_loglik",
   "error_or_bias": {
    "units": "m^2",
-   "measured": "dense vs structured identical when structure holds; MC agreement 3%",
-   "bound_or_limitation": "conservative (prior marginals broader than posterior)"
+   "measured": "dense vs structured identical when structure holds; MC agreement 3%; log det bias +/- with the sign of the dropped correlation",
+   "bound_or_limitation": "bias sign UNDETERMINED (corrected 2026-11-03 per audit F7: Var(x_i - x_l) = Var_i + Var_l - 2 Cov; dropping a negative covariance deflates Omega)"
   },
   "independent_oracle": {
-   "test": "tests/test_svgd_rigidity.RigidityTests.test_covariance_monte_carlo_and_structured_exact",
-   "result": "PASS",
-   "tolerance_basis": "MC 2e5 samples"
+   "test": "tests/test_svgd_rigidity.RigidityTests.test_dropped_cross_covariance_bias_sign_undetermined",
+   "result": "opposite log-det bias for rho = +/-0.8",
+   "tolerance_basis": "sign test"
   },
-  "correctness_risk": "understated rigidity evidence",
+  "correctness_risk": "over- OR under-stated rigidity evidence; no calibrated rho_ij while Omega is unverified",
   "alternatives_considered": "selected-inverse posterior covariance (earlier temporal-sparse work)",
   "ablation_command": "-",
   "authorization": {
    "source": "none",
    "decision": "NOT_AUTHORIZED (experimental mode only; excluded from theory-fidelity acceptance)"
   },
-  "conclusion": "CONTROLLED_APPROXIMATION"
+  "conclusion": "UNDETERMINED"
  },
  {
   "id": "DEV-0008",
@@ -358,6 +358,42 @@
    "decision": "NOT_AUTHORIZED (experimental mode only; excluded from theory-fidelity acceptance)"
   },
   "conclusion": "UNDETERMINED"
+ },
+ {
+  "id": "DEV-0011",
+  "status": "PROPOSED",
+  "classification": "OPTIMIZER_MODIFICATION (TF.5 solver-policy row; no probability-model change)",
+  "original_theory": {
+   "document": "CODEX_RGBDiekf_SVGD_Sequence_Moving_Support_CUDA_THEORY_PARITY_2026-11-03.md",
+   "equation": "B3",
+   "exact_expression": "x <- x + eta Phi (positions only)"
+  },
+  "actual_implementation": {
+   "file": "estimator/svgd_support_run.py",
+   "function": "_stages (velocity_lift = conditional_temporal_lift)",
+   "exact_expression_or_algorithm": "[x, v] <- [x + eta Phi, v + dV(eta Phi)], dV = E37"
+  },
+  "reason": "audit F2: a positions-only proposal raises E_time through inconsistent velocities and can be rejected although dE_obs < 0",
+  "mathematical_difference": "different proposal map; SAME accepted objective E",
+  "affected_outputs": "accepted transport only",
+  "error_or_bias": {
+   "units": "-",
+   "measured": "dE_time of both families logged per backtrack (STEIN_DIAGNOSTICS)",
+   "bound_or_limitation": "not the original SVGD map"
+  },
+  "independent_oracle": {
+   "test": "tests/test_svgd_temporal.TemporalTests.test_subblock_solve_and_velocity_lift_exact",
+   "result": "PASS vs dense autograd minimization",
+   "tolerance_basis": "1e-9 rel"
+  },
+  "correctness_risk": "none for the objective; changes which proposals are accepted",
+  "alternatives_considered": "positions-only (default, original)",
+  "ablation_command": "stein_numerics.step_policy.velocity_lift = 'conditional_temporal_lift' (strict needs velocity_lift_authorization = AUTHORIZED)",
+  "authorization": {
+   "source": "none",
+   "decision": "NOT_AUTHORIZED (experimental mode only; excluded from theory-fidelity acceptance)"
+  },
+  "conclusion": "EXACT_EQUIVALENT objective / NON_EQUIVALENT map"
  },
  {
   "id": "TC-0001",

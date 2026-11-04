@@ -4,8 +4,9 @@
     python -B tools/profile_svgd_support_cuda.py --sizes 1000 10000 100000          # synthetic clouds (N = M)
     python -B tools/profile_svgd_support_cuda.py --run RUN [--sizes ...]            # + that run's performance.json, real canonical cloud
 
-Per size: CUDA-event time and peak allocated/reserved bytes of target_score, stein_field, RFF mean/JVP/VJP and the exact
-temporal solve, plus max relative CPU-vs-CUDA discrepancy on the first 512 queries (CPU dense reference). Exact: every
+Per size: CUDA-event time and peak allocated/reserved bytes of target_score, stein_field, RFF mean/JVP/VJP, the exact
+temporal solve and velocity lift, Gamma covariance + Cholesky (D = 1024), feature-objective gradient, one Gauss-Newton
+apply and 10 PCG iterations; debug-page writing time is in each run's performance.json (debug_write_seconds); plus max relative CPU-vs-CUDA discrepancy on the first 512 queries (CPU dense reference). Exact: every
 operator sums all N x M / N x N pairs; --svgd-workspace-mib only bounds tile memory. Writes JSON to stdout or --out.
 """
 import argparse
@@ -19,8 +20,8 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 from estimator.svgd_target_score import target_score
 from estimator.svgd_particle_operator import stein_field
-from estimator.svgd_feature_measurement import RFFFeatures
-from estimator.svgd_temporal import TemporalPrior
+from estimator.svgd_feature_measurement import RFFFeatures, FeatureGaussian, FrameFeatureTerm, iid_sampling_gamma
+from estimator.svgd_temporal import TemporalPrior, pcg
 
 
 def timed(fn, *a, **k):
@@ -45,12 +46,19 @@ def profile(x, c, ws, frames=10):
     _, out['rff_mean'] = timed(f.mean, x, c); _, out['rff_jvp'] = timed(f.jvp, x, c, u); _, out['rff_vjp'] = timed(f.vjp, x, c, w)
     tp = TemporalPrior(np.arange(frames)/30., np.eye(3)*.1, x, LX, np.eye(3)*.01)
     _, out[f'temporal_solve_{frames}_frames'] = timed(tp.solve, torch.randn(N, frames, 6, dtype=torch.float64, device=dev))
+    Gm, out['gamma_covariance_D1024'] = timed(iid_sampling_gamma, f, y, d, x, c)
+    G, out['gamma_cholesky_D1024'] = timed(FeatureGaussian, Gm)
+    term = FrameFeatureTerm(f, y, d, G, c)
+    _, out['feature_objective_gradient'] = timed(term.grad, x)
+    _, out['gauss_newton_apply'] = timed(term.gn_apply, x, u)
+    _, out['pcg_10_iterations_one_frame'] = timed(pcg, lambda U: term.gn_apply(x, U)+U, -term.grad(x), lambda r: r, 0., 10)
+    _, out[f'velocity_lift_{frames}_frames'] = timed(tp.velocity_lift, torch.zeros(N, frames, 6, dtype=torch.float64, device=dev), torch.randn(N, frames, 3, dtype=torch.float64, device=dev)*1e-3)
     return out
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--run', type=Path); ap.add_argument('--sizes', type=int, nargs='*', default=[1000, 10000])
+    ap.add_argument('--run', type=Path); ap.add_argument('--sizes', type=int, nargs='*', default=[1000, 10000, 34000])
     ap.add_argument('--svgd-workspace-mib', type=float, default=512.); ap.add_argument('--out', type=Path)
     a = ap.parse_args()
     if not torch.cuda.is_available(): print(json.dumps({'status': 'CUDA_UNAVAILABLE'})); return 2

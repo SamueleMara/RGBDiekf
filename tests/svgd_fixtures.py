@@ -104,7 +104,8 @@ class SyntheticDataset:
 def runner_args(out, config, mode='experimental', **kw):
     a = SimpleNamespace(scene='/synthetic', output=out, config=config, svgd_theory_fidelity=mode, device='cpu', frame_limit=None, fps=None, dt_seconds=None,
                         timestamps_file=None, noise_config=None, sensor_noise='config', debug='none', display_cap=60000, debug_point_ids=None,
-                        svgd_workspace_mib=64., svgd_kernel_backend='torch', stop_after_step=None, dry_run=False)
+                        svgd_workspace_mib=64., svgd_kernel_backend='torch', stop_after_step=None, dry_run=False,
+                        save_stein_diagnostics=False)
     for k, v in kw.items(): setattr(a, k, v)
     return a
 

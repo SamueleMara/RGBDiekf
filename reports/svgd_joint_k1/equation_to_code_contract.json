@@ -1,0 +1,93 @@
+[
+ {
+  "spec": "spec 2",
+  "equation": "T_0 = I, T_t = T_{t-1} Exp(dt nu_t)",
+  "code": "estimator/svgd_k1_motion.py:se3_exp, compose",
+  "test": "test_svgd_k1_math.test_se3_exp_log_and_finite_differences",
+  "status": "EXACT"
+ },
+ {
+  "spec": "spec 2",
+  "equation": "nu random-walk prior paid once per body",
+  "code": "estimator/svgd_k1_motion.py:MotionPrior.log_prob",
+  "test": "test_svgd_k1_math.test_motion_prior_normalized_and_paid_once",
+  "status": "EXACT"
+ },
+ {
+  "spec": "spec 3.1",
+  "equation": "normalized observed XYZ-RGB KDE, Lambda = sensor + representation",
+  "code": "estimator/svgd_k1_observation.py:FrameKDE, representation_scales",
+  "test": "test_svgd_k1_math.test_kde_potential_dense_oracle_and_certificate",
+  "status": "EXACT within certificate"
+ },
+ {
+  "spec": "spec 3.2",
+  "equation": "b_0 frozen reference Gaussian; ell = rho + (1-rho) p/b",
+  "code": "estimator/svgd_k1_observation.py:Background, log_potential",
+  "test": "test_svgd_k1_math.test_kde_potential_dense_oracle_and_certificate",
+  "status": "EXACT"
+ },
+ {
+  "spec": "spec 3.2",
+  "equation": "rho_t by held-out spatial-block CV",
+  "code": "estimator/svgd_k1_observation.py:calibrate_rho",
+  "test": "test_svgd_k1_runner.test_calibration_reproducible_and_no_silent_floor",
+  "status": "DECLARED MODEL CHOICE"
+ },
+ {
+  "spec": "spec 8.4",
+  "equation": "certified spatial candidate grid",
+  "code": "estimator/svgd_k1_observation.py:Grid, choose_kappa (CSR pairs)",
+  "test": "test_svgd_k1_math.test_kde_potential_dense_oracle_and_certificate",
+  "status": "NUMERICAL_APPROX (certified bound)"
+ },
+ {
+  "spec": "spec 3.3",
+  "equation": "shared 6D anchor integral once",
+  "code": "estimator/svgd_k1_reference.py:laplace_at_mean, qmc_log_evidence",
+  "test": "test_svgd_k1_math.test_shared_anchor_integral_once_vs_per_frame",
+  "status": "EXACT on Gaussian toy"
+ },
+ {
+  "spec": "spec 3.3",
+  "equation": "Laplace at prior mean + CRN-QMC fallback",
+  "code": "estimator/svgd_k1_reference.py; estimator/svgd_k1_joint_posterior.py",
+  "test": "test_svgd_k1_math.test_laplace_vs_qmc_on_kde_scene",
+  "status": "NUMERICAL_APPROX (measured)"
+ },
+ {
+  "spec": "spec 3.3",
+  "equation": "a_eff = n_eff (1/rho_i)/sum(1/rho_k)",
+  "code": "estimator/svgd_k1_run.py:build_model; svgd_k1_observation.kernel_sum",
+  "test": "test_svgd_k1_math.test_a_eff_duplication_invariance",
+  "status": "DECLARED MODEL CHOICE"
+ },
+ {
+  "spec": "spec 4",
+  "equation": "F with exactly summed labels; gamma; dF/dnu; dF/dh",
+  "code": "estimator/svgd_k1_joint_posterior.py:JointPosterior.evaluate",
+  "test": "test_svgd_k1_math.test_enumeration_gradients_identity_and_no_evidence",
+  "status": "EXACT (2^N, FD)"
+ },
+ {
+  "spec": "spec 5",
+  "equation": "SVGD over motion hypotheses with grad F; repulsion sign",
+  "code": "estimator/svgd_k1_stein.py:svgd_direction",
+  "test": "test_svgd_k1_math.test_svgd_direction_uses_score_and_repulsion_sign",
+  "status": "EXACT"
+ },
+ {
+  "spec": "spec 1.1",
+  "equation": "point-only boundary; GT-leak sentinel",
+  "code": "scene/svgd_k1_cloud_adapter.py",
+  "test": "test_svgd_k1_math.test_point_only_boundary_and_gt_leak",
+  "status": "ENFORCED"
+ },
+ {
+  "spec": "spec 9 G2",
+  "equation": "camera/point order invariance; duplication bounded",
+  "code": "estimator/svgd_k1_run.py:build_model",
+  "test": "test_svgd_k1_runner.*",
+  "status": "TESTED"
+ }
+]

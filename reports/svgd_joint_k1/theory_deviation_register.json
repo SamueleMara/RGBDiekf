@@ -1,0 +1,49 @@
+[
+ {
+  "id": "K1-A01",
+  "classification": "NUMERICAL_APPROX",
+  "what": "Laplace at the PRIOR MEAN (second-order expansion), not at the integrand mode",
+  "measured": "B error median ~0.1 nat, max ~0.7 nat when reference sigma ~ KDE bandwidth (8192-node QMC, synthetic); exact for Gaussian factors",
+  "control": "reference.integration = crn_qmc (validated higher-accuracy route, S x cost)"
+ },
+ {
+  "id": "K1-A02",
+  "classification": "NUMERICAL_APPROX",
+  "what": "Laplace validity margin lambda_min(M) >= 0.5 -> CRN-QMC (64 nodes) for the remaining points",
+  "measured": "near-singular M produced corrections up to +590 nats on Blade before the margin; fallback counts logged per evaluation"
+ },
+ {
+  "id": "K1-A03",
+  "classification": "NUMERICAL_APPROX (certified)",
+  "what": "spatial candidate grid of radius kappa sqrt(lambda_max(LX)) with per-query bound on log ell",
+  "measured": "certificate tolerance 1e-6 nat per point-frame on the declared domain; out-of-domain queries counted"
+ },
+ {
+  "id": "K1-M01",
+  "classification": "DECLARED MODEL CHOICE",
+  "what": "rho_t from held-out spatial-block CV (block = 8 x KDE spacing, 4 folds, Beta(1,1))",
+  "measured": "per-frame folds and IQR in calibration_provenance.json"
+ },
+ {
+  "id": "K1-M02",
+  "classification": "DECLARED MODEL CHOICE",
+  "what": "a_eff composite-likelihood weights with H_X = s_0^2 I, H_C = Lambda_C(frame 0)",
+  "measured": "duplication invariance tested"
+ },
+ {
+  "id": "K1-M03",
+  "classification": "DECLARED ASSUMPTION (NOT CALIBRATED)",
+  "what": "rotation prior sd 2 rad/s, rotation random walk 1 rad^2/s^3; translation from the repository noise file"
+ },
+ {
+  "id": "K1-H01",
+  "classification": "HARDWARE BUDGET",
+  "what": "overnight schedule: 4 particles x 12 SVGD iterations, 12 MAP iterations from two starts; prefixes of 10/4/2 frames",
+  "measured": "~4 s per particle-frame at 34k points on the shared 8 GB RTX 4070; full sequences infeasible in one night"
+ },
+ {
+  "id": "K1-C01",
+  "classification": "CONTROL",
+  "what": "MAP of the same F from identity and from the best SVGD particle; MAP-gamma seeds reported as control only"
+ }
+]

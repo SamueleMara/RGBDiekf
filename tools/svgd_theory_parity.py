@@ -24,6 +24,18 @@ GATES = ('PASS_THEORY_EXACT', 'PASS_AUTHORIZED_APPROXIMATION', 'FAILED_THEORY_MI
          'BLOCKED_EXACT_RUNTIME', 'BLOCKED_THEORY_FIDELITY', 'NOT_TESTED')
 
 
+FAILURE_REVEALING = {'occluded_static_behind_blade', 'camera_duplication_bias', 'bias_sign_undetermined', 'textured_vs_flat_tangential_information', 'occam'}
+TOY_CRITERION = ('toy reporting criterion (declared, GT post hoc only): static drift median <= 0.5 mm (half the fixture 1 mm depth sigma); '
+                 'moving recovered-fraction median >= 0.9 with the same static criterion')
+
+
+def physical_outcome(g):
+    if 'static_drift_median_m' not in g: return g.get('status', 'NOT_RUN')
+    static_ok = g['static_drift_median_m'] <= 5e-4
+    if not g.get('moving_true_displacement_median_m'): return 'NO_FALSE_DRIFT' if static_ok else 'FALSE_DRIFT_FAILED'
+    return 'RECOVERED' if static_ok and (g.get('moving_recovered_fraction_median') or 0) >= .9 else 'PHYSICAL_MOTION_NOT_RECOVERED'
+
+
 def sha(p): return hashlib.sha256((REPO/p).read_bytes()).hexdigest() if (REPO/p).is_file() else None
 
 
@@ -70,7 +82,9 @@ def main():
     for eq in SC.EQUATIONS:
         st = [test_status(outcome, t) for t in eq['tests']]
         files = sorted({eq['function'].split(':')[0]} | {t.split('.')[0]+'.py' for t in eq['tests']})
-        rows.append({**eq, 'test_status': dict(zip(eq['tests'], st)), 'gate': gate(eq, st), 'measured': wit.get(eq['id'], []),
+        meas = [{**m, 'test_semantics': 'FAILURE_REVEALING: PASS = the failure mode was detected, NOT that recovery passed'} if m.get('test') in FAILURE_REVEALING else m
+                for m in wit.get(eq['id'], [])]
+        rows.append({**eq, 'test_status': dict(zip(eq['tests'], st)), 'gate': gate(eq, st), 'measured': meas,
                      'source_sha256': {f: sha(f) for f in files if sha(f)}, 'cuda': 'PASS' if any(m.get('test', '').startswith('cuda_parity') for m in wit.get(eq['id'], [])) else 'NOT_RUN',
                      'prohibited_substitution': SC.PROHIBITED.get(eq['id'], 'any change without a deviation record')})
     counts = {'exact_model_operators': sum(r['gate'] == 'PASS_THEORY_EXACT' for r in rows), 'verified_equivalent_optimizations': len(SC.EQUIVALENT_OPTIMIZATIONS),
@@ -85,8 +99,13 @@ def main():
            'spec_sha256': sha(SC.SPEC), 'contract_sha256': sha('estimator/svgd_contract.py'), 'label_mapping': SC.LABEL_MAPPING,
            'overall_theory_fidelity': overall, 'counts': counts, 'test_summary': summary, 'test_outcomes': outcome, 'equations': rows,
            'equivalent_optimizations': SC.EQUIVALENT_OPTIMIZATIONS, 'deviation_ids': [d['id'] for d in SC.DEVIATIONS],
-           'theory_conflicts': SC.THEORY_CONFLICTS, 'gate4_measurements': wit.get('GATE4', []),
-           'physical_motion': 'NOT_ESTABLISHED (see gate4_measurements; no real-scene acceptance run)',
+           'theory_conflicts': SC.THEORY_CONFLICTS, 'gate4_criterion': TOY_CRITERION,
+           'gate4_measurements': [{**g, 'physical_outcome': physical_outcome(g)} for g in wit.get('GATE4', [])],
+           'physical_motion': 'PHYSICAL_MOTION_NOT_RECOVERED (Gate-4 toys; no real-scene acceptance run)',
+           'scope_of_operator_parity': 'algebra and small fixtures only: operator parity is NOT end-to-end model fidelity, CUDA parity is NOT workload acceptance',
+           'end_to_end_model_fidelity': 'NOT_ESTABLISHED', 'workload_acceptance': 'NOT_ESTABLISHED (synthetic 1k/10k/34k operator sizes + a 2-frame Blade smoke only)',
+           'legacy_baseline': 'observation only (7 failures at d0b470b); see reports/svgd/preflight_audit_2026-11-03.md for the source-matched rerun',
+           'audit_b62c7cee_findings': {k: {'status': v[0], 'response': v[1]} for k, v in SC.AUDIT_FINDINGS.items()}, 'posthoc_diagnostics': wit.get('F6', []),
            'suitability_for_joint_recovery': 'NOT_SUITABLE: Stage-1 model-evidence gate BLOCKED'}
     (REPO/'reports/svgd').mkdir(parents=True, exist_ok=True)
     clean = lambda o: json.loads(json.dumps(o, default=lambda v: v.tolist() if hasattr(v, 'tolist') else str(v)))
@@ -101,9 +120,10 @@ def main():
 def write_register_md():
     L = ['# SVGD theory deviation register (append-only)', '',
          '| # | date | entry |', '|---|---|---|',
-         '| 0 | 2026-11-03 | `NO_DEVIATIONS_RECORDED` (initial entry at Gate TF0; **superseded** by entries 1-11 below) |']
+         f'| 0 | 2026-11-03 | `NO_DEVIATIONS_RECORDED` (initial entry at Gate TF0; **superseded** by entries 1-{len(SC.DEVIATIONS)+1} below) |']
     for n, d in enumerate(SC.DEVIATIONS, 1): L.append(f"| {n} | 2026-11-03 | **{d['id']}** {d['classification']} / {d['status']} / {d['conclusion']} |")
     L.append(f"| {len(SC.DEVIATIONS)+1} | 2026-11-03 | **TC-0001** THEORY_CONFLICT / OPEN_REQUIRES_USER_DECISION |")
+    L.append(f"| {len(SC.DEVIATIONS)+2} | 2026-11-03 | **DEV-0007 amended** (audit b62c7cee F7): 'conservative' withdrawn -> bias sign UNDETERMINED, conclusion UNDETERMINED |")
     L += ['', 'Authorization: none of the entries is authorized; each is reachable only with `--svgd-theory-fidelity experimental` and is excluded from',
           'theory-fidelity acceptance and from any advertised probability (spec TF.4).', '']
     for d in SC.DEVIATIONS:
@@ -160,6 +180,8 @@ def write_contract_md(rows, counts, overall, commit, summary):
     for n in SC.REQUIRED_PARAMETERS: L.append(f'| `{n}` | {desc(SC.lookup(strict, n))} | {desc(SC.lookup(exp, n))} |')
     L += ['', '## 4. Verified equivalent optimizations (not model deviations)', '']
     L += [f"- **{o['id']}** ({', '.join(o['equations'])}): {o['what']} — `{o['test']}`" for o in SC.EQUIVALENT_OPTIMIZATIONS]
+    L += ['', '## 5a. Audit b62c7cee findings', '', '| finding | status | response |', '|---|---|---|']
+    L += [f'| {k} | {v[0]} | {v[1]} |' for k, v in SC.AUDIT_FINDINGS.items()]
     L += ['', '## 5. THEORY_CONFLICT records', '']
     for c in SC.THEORY_CONFLICTS: L += [f"- **{c['id']}** ({c['status']}): theory — {c['theory']} spec — {c['spec']} Consequence — {c['consequence']} Implementation — {c['implementation']}"]
     L += ['', '## 6. Strict-mode stage blocking', '', 'Strict mode (default of `tools/run_svgd_support.py`) stops at the first stage whose parameters are not usable:', '']

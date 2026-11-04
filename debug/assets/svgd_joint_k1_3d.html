@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Joint K1 3D</title>
+<link rel="stylesheet" href="projective_theme.css">
+<style>#banners .b{padding:3px 6px;margin:3px 0;border-radius:4px;background:#21262d;font-size:11px}#banners .b.bad{border-left:3px solid var(--bad)}#banners .b.warn{border-left:3px solid var(--warn)}
+#hud b.o{color:var(--warn)}.ptab td{padding:1px 4px}#side select{max-width:100%}#mode{width:100%}</style>
+<script src="three.min.js"></script><script src="projective_common.js"></script></head>
+<body class="app"><div id="app">
+<div id="view"><div id="hud"></div>
+ <div id="bar"><button id="play">play</button><button id="first">|&lt;</button><button id="prev">&lt;</button><button id="next">&gt;</button>
+  <input id="frame" type="range" min="0" value="0" step="1"><span id="flabel"></span>
+  <label class="inline">speed × real time <select id="speed"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option></select></label></div></div>
+<div id="side" class="wide">
+ <h1>Joint K = 1 support + shared rigid motion — 3D</h1><div id="errors"></div><div id="banners"></div>
+ <h2>This frame</h2><div id="counts"></div>
+ <h2>Layers</h2><div id="toggles"></div>
+ <label>point size <input id="psize" type="range" min="0.3" max="3" step="0.1" value="1" style="flex:1"></label>
+ <h2>Reference cloud colour</h2><select id="mode"></select><div id="legend" style="margin-top:6px"></div>
+ <h2>Inferred moving subset (reference points transformed rigidly)</h2>
+ <label>subset <select id="subset" style="flex:1"></select></label>
+ <label>threshold <input id="thr" type="range" min="0" max="1" step="0.01" value="0.5" style="flex:1"><span id="thrv"></span></label>
+ <div class="note" id="snote"></div>
+ <div id="ptab"></div>
+ <h2>Inspect original ID</h2><input id="pid" type="text" size="9" placeholder="reference id"><div id="info" class="note">enter a displayed reference ID</div>
+</div></div>
+<script>
+const state = {ready: false, frame: 0, drawn_frame: null, frame_complete: false, selected: null}; window.__state = state;
+let M, V, ids, idx = new Map(), XYZ, RGB, GAM, MGAM = null, BB = null, BS = null, ID, MID = null, GTM = null, cache = {}, obj = {}, cur = null, want = null;
+const $ = id => document.getElementById(id), hexn = c => parseInt(c.slice(1), 16);
+const PAL = ['#e3b341', '#39c5cf', '#db61a2', '#a371f7', '#56d364', '#f2cc60', '#79c0ff', '#ff9bce', '#d2a8ff', '#ffa657'];
+const COL = {ref: '#565e69', obs: '#c9d1d9', map: '#f0883e', seeds: '#f85149', mapseeds: '#ff7b72', gt: '#3fb950', moving: '#f0883e', stat: '#58a6ff'};
+const show = {ref: true, obs: true, map: true, particles: true, trails: true, seeds: true, mapseeds: false, gtmov: false, obsrgb: true};
+const obsKey = k => `k1_obs_f${String(k).padStart(4, '0')}`, obsFrames = () => new Set(M.observed.frames.map(o => o.k));
+const obsData = k => !obsFrames().has(k) ? Promise.resolve(null) : (cache[k] || (cache[k] = PD.load(obsKey(k)).then(F => { F._x = PD.f32(F.xyz); F._c = PD.u8(F.rgb); return F; })));
+const sz = f => V.state.radius*f*(+$('psize').value);
+function put(name, o) { if (obj[name]) { V.scene.remove(obj[name]); obj[name].traverse(x => { x.geometry && x.geometry.dispose(); x.material && x.material.dispose(); }); } obj[name] = o || null; if (o) V.scene.add(o); }
+function squares(pos, col, size, op) { const p = PD.points(pos, col, size, op); p.material.map = null; p.material.alphaTest = 0; p.material.needsUpdate = true; return p; }
+// --- rigid transform of displayed reference points: X_t = R_t x + t_t (pose of the ONE moving body; frame 0 = identity)
+function apply(T, sel) { const out = new Float32Array(3*sel.length);
+  for (let q = 0; q < sel.length; q++) { const j = sel[q], x = XYZ[3*j], y = XYZ[3*j+1], z = XYZ[3*j+2];
+    for (let r = 0; r < 3; r++) out[3*q+r] = T[r][0]*x+T[r][1]*y+T[r][2]*z+T[r][3]; }
+  return out; }
+function subsetIdx() {        // indices into the displayed arrays
+  const m = $('subset').value, thr = +$('thr').value, n = ids.length, out = []; $('thrv').textContent = thr.toFixed(2);
+  if (m === 'seeds') return M.seeds.display.slice();
+  if (m === 'map_seeds') return M.map_seeds ? M.map_seeds.display.slice() : [];
+  if (m === 'gamma') { for (let j = 0; j < n; j++) if (GAM[j] >= thr) out.push(j); return out; }
+  if (m === 'map_gamma') { for (let j = 0; j < n; j++) if (MGAM[j] >= thr) out.push(j); return out; }
+  if (m === 'gt') { for (let j = 0; j < n; j++) if (GTM[j]) out.push(j); return out; }
+  for (let j = 0; j < n; j++) out.push(j); return out;
+}
+function colours() {
+  const mode = $('mode').value, L = M.layers[mode], n = ids.length, out = new Float32Array(3*n), Lg = $('legend'), nc = PD.hex3(M.noinfo_colour); let vals = null, noinfo = null;
+  if (mode === 'rgb') { for (let j = 0; j < n; j++) out.set([RGB[3*j]/255, RGB[3*j+1]/255, RGB[3*j+2]/255], 3*j); PD.legend(Lg, [['#888', L.name]]); }
+  else if (mode === 'gt') { const a = PD.hex3(COL.moving), b = PD.hex3(COL.stat); for (let j = 0; j < n; j++) out.set(GTM[j] ? a : b, 3*j);
+    PD.legend(Lg, [[COL.moving, `moving — POST-HOC (${M.gt.n_moving_full} of N ${M.N})`], [COL.stat, `static — POST-HOC (${M.N-M.gt.n_moving_full})`]]); }
+  else { vals = {gamma: GAM, map_gamma: MGAM, B: BB, B_std: BS}[mode]; noinfo = L.noinfo === 'identifiability_status' ? ID : L.noinfo === 'map_identifiability' ? MID : null;
+    const div = L.kind === 'diverging';
+    for (let j = 0; j < n; j++) { const v = vals[j];
+      out.set(noinfo && !noinfo[j] ? nc : !Number.isFinite(v) ? nc : div ? PD.diverging(v/Math.max(L.hi, 1e-300)) : PD.viridis((v-L.lo)/Math.max(L.hi-L.lo, 1e-300)), 3*j); }
+    PD.colorbar(Lg, div ? (t => PD.diverging(2*t-1)) : PD.viridis, L.lo_label, L.hi_label);
+    if (noinfo || L.noinfo_label) Lg.insertAdjacentHTML('beforeend', `<div class="legend" id="noinfo"><span><span class="sw" id="noinfo_sw" style="background:${M.noinfo_colour}"></span>${L.noinfo_label || 'no information'}</span></div>`); }
+  Lg.insertAdjacentHTML('afterbegin', `<div id="ltitle"><b>${L.title || L.name}</b>${L.title ? `<div class="note">${L.name}</div>` : ''}</div>`);
+  const sw = $('noinfo_sw');
+  state.legend = {mode, name: L.name, title: L.title || null, lo_label: L.lo_label || null, hi_label: L.hi_label || null, noinfo_label: sw ? $('noinfo').textContent : null,
+    noinfo_bg: sw ? getComputedStyle(sw).backgroundColor : null, text: Lg.textContent};
+  state.layer_values = vals; return out;
+}
+function drawFrame(k, O) {
+  const n = ids.length, col = colours(), sel = subsetIdx(), t = M.times_s[k];
+  put('ref', show.ref ? PD.points(XYZ, col, sz(.012), .9) : null);
+  if (O && O.complete) { const cobs = new Float32Array(O._c.length); for (let i = 0; i < O._c.length; i++) cobs[i] = O._c[i]/255;
+    put('obs', show.obs ? squares(O._x, show.obsrgb ? cobs : COL.obs, sz(.009), .85) : null); } else put('obs', null);
+  // MAP and particle transforms of the selected subset at frame k
+  const tr = {subset: sel, ids: sel.map(j => ids[j]), map: null, particles: [], gt: null};
+  if (M.map_pose) { tr.map = apply(M.map_pose[k], sel); put('map', show.map && sel.length ? squares(tr.map, COL.map, sz(.016)) : null); } else put('map', null);
+  const pg = new THREE.Group(); M.pose_particles.forEach((P, m) => { const X = apply(P[k], sel); tr.particles.push(X); if (sel.length) pg.add(PD.points(X, PAL[m % PAL.length], sz(.011), .8)); });
+  put('particles', show.particles ? pg : null);
+  if (M.gt.available) { const gs = []; for (let j = 0; j < n; j++) if (GTM[j]) gs.push(j); tr.gt = apply(M.gt.poses[k], gs); tr.gt_ids = gs.map(j => ids[j]);
+    put('gtmov', show.gtmov && gs.length ? squares(tr.gt, COL.gt, sz(.013), .9) : null); } else put('gtmov', null);
+  // centroid trails (all frames) of the subset under each particle / MAP: shows the particle spread of the ONE motion
+  const cen = [0, 0, 0]; sel.forEach(j => { for (let r = 0; r < 3; r++) cen[r] += XYZ[3*j+r]/sel.length; });
+  const trail = T => { const s = []; for (let q = 1; q <= k; q++) { const a = T[q-1], b = T[q], p = r => a[r][0]*cen[0]+a[r][1]*cen[1]+a[r][2]*cen[2]+a[r][3], w = r => b[r][0]*cen[0]+b[r][1]*cen[1]+b[r][2]*cen[2]+b[r][3];
+    s.push(p(0), p(1), p(2), w(0), w(1), w(2)); } return s; };
+  const tg = new THREE.Group(); if (sel.length && k > 0) { M.pose_particles.forEach((P, m) => tg.add(PD.lines(trail(P), hexn(PAL[m % PAL.length]), .9))); if (M.map_pose) tg.add(PD.lines(trail(M.map_pose), hexn(COL.map), 1)); }
+  put('trails', show.trails ? tg : null);
+  const sd = M.seeds.display, ms = M.map_seeds ? M.map_seeds.display : [], at = a => { const o = new Float32Array(3*a.length); a.forEach((j, q) => o.set([XYZ[3*j], XYZ[3*j+1], XYZ[3*j+2]], 3*q)); return o; };
+  put('seeds', show.seeds && sd.length ? PD.points(at(sd), COL.seeds, sz(.022)) : null); put('mapseeds', show.mapseeds && ms.length ? PD.points(at(ms), COL.mapseeds, sz(.02)) : null);
+  // spread of the particle transforms (display subset): max over points of the distance between particle and particle-mean positions
+  let spread = 0; if (sel.length && tr.particles.length > 1) for (let q = 0; q < sel.length; q++) { const mu = [0, 0, 0]; tr.particles.forEach(X => { for (let r = 0; r < 3; r++) mu[r] += X[3*q+r]/tr.particles.length; });
+    tr.particles.forEach(X => spread = Math.max(spread, Math.hypot(X[3*q]-mu[0], X[3*q+1]-mu[1], X[3*q+2]-mu[2]))); }
+  const ob = M.observed.frames.find(o => o.k === k), mm = v => (1e3*v).toFixed(3)+' mm';
+  $('hud').innerHTML = `frame ${k} · t = <span id="tsec">${t.toFixed(4)}</span> s · <b class="o">${M.probability_semantics}</b>` + (M.sequence_scope === 'PREFIX_DIAGNOSTIC' ? ' · <b class="o">PREFIX_DIAGNOSTIC</b>' : '') +
+    (show.gtmov && M.gt.available ? ` · <b class="o">${M.gt.label}</b>` : '') + (ob ? '' : ' · observed cloud not exported at this frame (level light)');
+  $('flabel').textContent = `t ${t.toFixed(4)} s · frame ${k+1}/${M.K}`;
+  PD.rows($('counts'), [['N_full (reference catalogue)', M.N], ['N_display (same IDs every frame)', n], ['M_t observed (this frame)', ob ? ob.M_t : '–'], ['M_display observed', ob ? ob.M_display : '–'],
+    ['observed sha256 matches run', ob ? String(ob.matches_run_cloud) : '–'], ['informative points full / displayed', `${M.counts.informative_points_full} / ${M.counts.informative_points_display}`],
+    ['SVGD seeds full / displayed', `${M.seeds.n_full} / ${M.seeds.display.length}`], ['MAP seeds full / displayed (control)', M.map_seeds ? `${M.map_seeds.n_full} / ${M.map_seeds.display.length}` : '–'],
+    ['moving subset drawn (displayed IDs)', sel.length], ['SVGD particles', M.M_particles], ['max particle spread of subset at t', sel.length && tr.particles.length > 1 ? mm(spread) : '–'],
+    ...(M.gt.available ? [['GT moving full / displayed — POST-HOC', `${M.gt.n_moving_full} / ${M.gt.n_moving_display}`]] : [['GT', M.gt.status]])]);
+  $('snote').textContent = `Each SVGD particle is one hypothesis of the ONE rigid motion (colour per particle); MAP control in orange. Points = displayed reference IDs of the subset, transformed by the pose at frame ${k}. Trails: subset centroid over frames 0..${k}.`;
+  $('ptab').innerHTML = '<table class="ptab"><tr><th></th><th>pose</th><th>F</th><th>|t_k| (mm)</th><th>angle_k (deg)</th></tr>' +
+    M.pose_particles.map((P, m) => `<tr><td><span class="sw" style="background:${PAL[m % PAL.length]}"></span></td><td>particle ${m}</td><td>${M.particle_F ? M.particle_F[m].toFixed(2) : '–'}</td><td>${(1e3*Math.hypot(P[k][0][3], P[k][1][3], P[k][2][3])).toFixed(3)}</td><td>${ang(P[k]).toFixed(4)}</td></tr>`).join('') +
+    (M.map_pose ? `<tr><td><span class="sw" style="background:${COL.map}"></span></td><td>MAP (control)</td><td>${M.status.F_map !== null && M.status.F_map !== undefined ? (+M.status.F_map).toFixed(2) : '–'}</td><td>${(1e3*Math.hypot(M.map_pose[k][0][3], M.map_pose[k][1][3], M.map_pose[k][2][3])).toFixed(3)}</td><td>${ang(M.map_pose[k]).toFixed(4)}</td></tr>` : '') +
+    (M.gt.available ? `<tr><td><span class="sw" style="background:${COL.gt}"></span></td><td>GT POST-HOC</td><td>–</td><td>${(1e3*Math.hypot(M.gt.poses[k][0][3], M.gt.poses[k][1][3], M.gt.poses[k][2][3])).toFixed(3)}</td><td>${ang(M.gt.poses[k]).toFixed(4)}</td></tr>` : '') + '</table>';
+  state.frame = k; state.drawn_frame = k; state.frame_complete = !obsFrames().has(k) || !!(O && O.complete); state.time_s = t; state.layer_colors = col; state.transformed = tr;
+  state.observed = O && show.obs ? O._x : null; state.observed_rgb = O && show.obs ? O._c : null; state.observed_M_t = O ? O.M_t : null; state.observed_M_display = O ? O.M_display : null;
+  state.particle_spread_m = spread; info(k); history.replaceState(null, '', `#frame=${k}` + (state.selected !== null ? `&id=${state.selected}` : ''));
+}
+const ang = T => 180/Math.PI*Math.acos(Math.max(-1, Math.min(1, (T[0][0]+T[1][1]+T[2][2]-1)/2)));
+function info(k) {
+  const id = state.selected, el = $('info'); if (id === null) return; const j = idx.get(id), f = v => v === null || v === undefined ? '–' : Number.isFinite(v) ? (+v).toPrecision(7) : 'NaN';
+  if (j === undefined) { el.textContent = `reference ID ${id} is not in the displayed subset (N_display ${ids.length} of ${M.N})`; state.selected_info = {id, displayed: false}; return; }
+  const x = [XYZ[3*j], XYZ[3*j+1], XYZ[3*j+2]], g = a => a ? a[j] : null;
+  const rows = [['reference ID', id], ['x_ref (m)', x.map(f).join(', ')], [`gamma (${M.gamma_label})`, f(GAM[j])], ['identifiability', ID[j] ? '1 informative' : '0 no information'],
+    ['B (nats)', f(g(BB))], ['B particle std', f(g(BS))], ['map_gamma (control)', f(g(MGAM))], ['SVGD seed', M.seeds.display.includes(j) ? 'yes' : 'no']];
+  if (M.map_pose) rows.push([`MAP pose @ frame ${k} (m)`, Array.from(apply(M.map_pose[k], [j])).map(f).join(', ')]);
+  if (GTM) rows.push(['membership — POST-HOC', GTM[j] ? 'moving' : 'static']);
+  PD.rows(el, rows); state.selected_info = {id, displayed: true, frame: k, gamma: GAM[j], identifiability: ID[j], B: g(BB), map_gamma: g(MGAM), xyz: x};
+}
+async function go(k) { want = k; const O = await obsData(k); if (want !== k) return; cur = {k, O}; drawFrame(k, O); if (k+1 < M.K) obsData(k+1); }
+const redraw = () => cur && drawFrame(cur.k, cur.O);
+(async () => {
+  const gl = document.createElement('canvas'); if (!(gl.getContext('webgl2') || gl.getContext('webgl'))) { state.error = 'NO_WEBGL'; state.webgl = false; $('errors').textContent = 'NO_WEBGL: this browser has no WebGL; the 3D view cannot be drawn'; return; }
+  state.webgl = true; M = await PD.load('k1_meta');
+  ids = Array.from(PD.i32(M.display_ids)); ids.forEach((id, j) => idx.set(id, j)); XYZ = PD.f32(M.xyz); RGB = PD.u8(M.rgb); GAM = PD.f32(M.gamma); ID = PD.u8(M.identifiability);
+  if (M.map_gamma) MGAM = PD.f32(M.map_gamma); if (M.B) BB = PD.f32(M.B); if (M.B_std) BS = PD.f32(M.B_std); if (M.map_identifiability) MID = PD.u8(M.map_identifiability); if (M.gt_moving) GTM = PD.u8(M.gt_moving);
+  Object.assign(state, {display_ids: ids, ref_xyz: XYZ, gamma: GAM, identifiability: ID, map_gamma: MGAM, B: BB, B_std: BS, gt_moving: GTM, meta: {N: M.N, N_display: ids.length, K: M.K, M: M.M_particles}});
+  $('banners').innerHTML = M.banners.map(b => `<div class="b ${b.level}"><b>${b.code}</b> ${b.text}</div>`).join('');
+  const mode = $('mode'); Object.entries(M.layers).forEach(([k, L]) => mode.add(new Option(L.name, k))); mode.value = 'gamma';
+  const sub = $('subset'), SO = [['seeds', `SVGD moving seeds (${M.seeds.n_full})`], ...(M.map_seeds ? [['map_seeds', `MAP seeds, control (${M.map_seeds.n_full})`]] : []), ['gamma', 'gamma_provisional ≥ threshold'],
+    ...(MGAM ? [['map_gamma', 'map_gamma ≥ threshold (control)']] : []), ...(GTM ? [['gt', 'GT moving — POST-HOC']] : []), ['all', 'all displayed points']];
+  SO.forEach(([v, t]) => sub.add(new Option(t, v))); sub.value = M.seeds.n_full ? 'seeds' : 'gamma';
+  const TOG = [['ref', 'reference cloud (frame-0 positions, discs)', COL.ref], ['obs', 'observed masked cloud of this frame (squares)', COL.obs], ['obsrgb', 'observed in measured RGB (else uniform)', COL.obs],
+    ['map', 'moving subset × MAP pose (control)', COL.map], ['particles', 'moving subset × each SVGD particle pose', PAL[0]], ['trails', 'subset-centroid trails per particle / MAP', PAL[1]],
+    ['seeds', 'SVGD moving seeds (reference positions)', COL.seeds], ['mapseeds', 'MAP seeds, control (reference positions)', COL.mapseeds],
+    ...(M.gt.available ? [['gtmov', `GT moving × GT pose — ${M.gt.label}`, COL.gt]] : [])];
+  const tg = $('toggles'); TOG.forEach(([key, text, col]) => tg.insertAdjacentHTML('beforeend', `<label><input type="checkbox" data-k="${key}" ${show[key] ? 'checked' : ''}><span class="sw" style="background:${col}"></span>${text}</label>`));
+  if (!M.gt.available) tg.insertAdjacentHTML('beforeend', `<div class="note">GT layers: ${M.gt.status}</div>`);
+  tg.querySelectorAll('input').forEach(e => e.onchange = () => { show[e.dataset.k] = e.checked; redraw(); });
+  V = PD.viewer($('view')); V.fit(XYZ);
+  const sl = $('frame'); sl.max = M.K-1; sl.oninput = () => go(+sl.value);
+  const step = d => { sl.value = Math.max(0, Math.min(M.K-1, +sl.value+d)); sl.oninput(); };
+  $('first').onclick = () => { sl.value = 0; sl.oninput(); }; $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
+  ['mode', 'subset', 'thr', 'psize'].forEach(e => { $(e).onchange = redraw; $(e).oninput = redraw; });
+  $('pid').onchange = e => { state.selected = e.target.value === '' ? null : +e.target.value; redraw(); };
+  let playing = false, t0w = 0, t0s = 0;                                  // play follows the TRUE timestamps (real time × speed)
+  const tick = () => { if (!playing) return; const T = M.times_s, ts = t0s+(performance.now()-t0w)/1000*(+$('speed').value);
+    if (ts > T[M.K-1]) { t0w = performance.now(); t0s = T[0]; }
+    let i = 0; for (let q = 0; q < M.K; q++) if (T[q] <= ts) i = q;
+    if (i !== want) { sl.value = i; go(i); } requestAnimationFrame(tick); };
+  $('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'pause' : 'play'; if (playing) { t0w = performance.now(); t0s = M.times_s[state.frame]; tick(); } };
+  const fromHash = () => { const f = PD.param('frame', null), i = PD.param('id', null); if (i !== null && i !== '') state.selected = +i; $('pid').value = state.selected ?? '';
+    const k = Math.max(0, Math.min(M.K-1, f === null ? 0 : +f)); sl.value = k; return go(k); };
+  window.addEventListener('hashchange', fromHash);
+  await fromHash(); state.ready = true;
+})().catch(e => { state.error = String(e); window.__errors.push(String(e)); $('errors').textContent = 'ERROR: '+e; });
+</script></body></html>

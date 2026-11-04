@@ -8,35 +8,65 @@
    "N": 1000,
    "M": 1000,
    "target_score": {
-    "seconds": 0.11941683197021484,
+    "seconds": 0.19808154296875,
     "peak_allocated_bytes": 33455104,
     "peak_reserved_bytes": 44040192,
-    "cpu_cuda_max_rel": 7.976336912142322e-15
+    "cpu_cuda_max_rel": 8.574144143415162e-15
    },
    "stein_field": {
-    "seconds": 0.013010944366455078,
+    "seconds": 0.05113446426391602,
     "peak_allocated_bytes": 33263104,
     "peak_reserved_bytes": 44040192
    },
    "rff_mean": {
-    "seconds": 0.0014039039611816405,
+    "seconds": 0.003004415988922119,
     "peak_allocated_bytes": 33533440,
     "peak_reserved_bytes": 44040192
    },
    "rff_jvp": {
-    "seconds": 0.0018523839712142945,
+    "seconds": 0.0033669118881225588,
     "peak_allocated_bytes": 41733632,
     "peak_reserved_bytes": 65011712
    },
    "rff_vjp": {
-    "seconds": 0.0013506560325622558,
+    "seconds": 0.0008734719753265381,
     "peak_allocated_bytes": 33557504,
     "peak_reserved_bytes": 65011712
    },
    "temporal_solve_10_frames": {
-    "seconds": 0.008451071739196778,
-    "peak_allocated_bytes": 14465536,
+    "seconds": 0.10130841827392578,
+    "peak_allocated_bytes": 14466048,
     "peak_reserved_bytes": 69206016
+   },
+   "gamma_covariance_D1024": {
+    "seconds": 0.040019966125488284,
+    "peak_allocated_bytes": 51529728,
+    "peak_reserved_bytes": 69206016
+   },
+   "gamma_cholesky_D1024": {
+    "seconds": 0.10233586883544922,
+    "peak_allocated_bytes": 78981632,
+    "peak_reserved_bytes": 104857600
+   },
+   "feature_objective_gradient": {
+    "seconds": 0.004078591823577881,
+    "peak_allocated_bytes": 59565568,
+    "peak_reserved_bytes": 104857600
+   },
+   "gauss_newton_apply": {
+    "seconds": 0.0020398080348968508,
+    "peak_allocated_bytes": 67269120,
+    "peak_reserved_bytes": 104857600
+   },
+   "pcg_10_iterations_one_frame": {
+    "seconds": 0.07824998474121093,
+    "peak_allocated_bytes": 67389440,
+    "peak_reserved_bytes": 104857600
+   },
+   "velocity_lift_10_frames": {
+    "seconds": 0.07409356689453125,
+    "peak_allocated_bytes": 37335040,
+    "peak_reserved_bytes": 104857600
    }
   },
   {
@@ -44,35 +74,65 @@
    "N": 10000,
    "M": 10000,
    "target_score": {
-    "seconds": 0.28581991577148436,
+    "seconds": 0.6757509155273438,
     "peak_allocated_bytes": 464651776,
     "peak_reserved_bytes": 480247808,
-    "cpu_cuda_max_rel": 1.142309822764381e-14
+    "cpu_cuda_max_rel": 3.049221450119717e-14
    },
    "stein_field": {
-    "seconds": 0.14675558471679687,
+    "seconds": 0.3795916748046875,
     "peak_allocated_bytes": 550216704,
     "peak_reserved_bytes": 1017118720
    },
    "rff_mean": {
-    "seconds": 0.012602368354797363,
+    "seconds": 0.017648639678955077,
     "peak_allocated_bytes": 213535232,
     "peak_reserved_bytes": 1017118720
    },
    "rff_jvp": {
-    "seconds": 0.007897088050842285,
+    "seconds": 0.01050931167602539,
     "peak_allocated_bytes": 280652288,
     "peak_reserved_bytes": 1017118720
    },
    "rff_vjp": {
-    "seconds": 0.008762368202209473,
+    "seconds": 0.01863987159729004,
     "peak_allocated_bytes": 213775360,
     "peak_reserved_bytes": 1017118720
    },
    "temporal_solve_10_frames": {
-    "seconds": 0.024399871826171874,
-    "peak_allocated_bytes": 68997632,
+    "seconds": 0.07651942443847656,
+    "peak_allocated_bytes": 68998144,
     "peak_reserved_bytes": 1021313024
+   },
+   "gamma_covariance_D1024": {
+    "seconds": 0.39048703002929686,
+    "peak_allocated_bytes": 238481920,
+    "peak_reserved_bytes": 1021313024
+   },
+   "gamma_cholesky_D1024": {
+    "seconds": 0.10456348419189453,
+    "peak_allocated_bytes": 88711680,
+    "peak_reserved_bytes": 1021313024
+   },
+   "feature_objective_gradient": {
+    "seconds": 0.03190169525146484,
+    "peak_allocated_bytes": 247127040,
+    "peak_reserved_bytes": 1021313024
+   },
+   "gauss_newton_apply": {
+    "seconds": 0.039972862243652346,
+    "peak_allocated_bytes": 309427712,
+    "peak_reserved_bytes": 1021313024
+   },
+   "pcg_10_iterations_one_frame": {
+    "seconds": 0.320795654296875,
+    "peak_allocated_bytes": 310628352,
+    "peak_reserved_bytes": 1021313024
+   },
+   "velocity_lift_10_frames": {
+    "seconds": 0.08690892791748046,
+    "peak_allocated_bytes": 70204416,
+    "peak_reserved_bytes": 1027604480
    }
   }
  ]

@@ -125,6 +125,42 @@ class RunnerTests(unittest.TestCase):
                 record('GATE4', scenario=name, **evaluate(out, d), convergence=st['gates']['TEMPORAL_REFINEMENT']['convergence'])
         record('GATE4', scenario='e_two_moving_parts / f_intermittent / g_variable_cameras', status='NOT_RUN (fixture has one moving plate)')
 
+    def test_stein_decomposition_diagnostics(self):
+        """F2/F3: the logged directional derivatives equal finite differences of the SAME objective along P; both proposal
+        families are evaluated; the lift option runs with a monotone accepted objective."""
+        with tempfile.TemporaryDirectory() as t:
+            d = SyntheticDataset(K=3, motion='translate', speed=.15)
+            code, out = run_case(t, d, stop_after_step='STEIN_PROPOSAL', save_stein_diagnostics=True)
+            st = json.loads((out/'svgd_support/status.json').read_text()); sd = st['gates']['STEIN_DIAGNOSTICS'][0]
+            self.assertIn('dEobs_dP', sd); self.assertTrue(sd['backtracks'])
+            for b in sd['backtracks']: self.assertIn('dE_time', b['temporal_lift'])
+            z = np.load(out/'svgd_support/stein_diagnostics.npz')
+            self.assertAlmostEqual(sd['dEobs_dP'], float((z['grad_Eobs_x']*z['Phi']).sum()), delta=1e-9*abs(sd['dEobs_dP'])+1e-12)
+            # FD of E_obs along P with the identical model, rebuilt through a stepped run is costly; use the first backtrack:
+            eta, b0 = sd['backtracks'][0]['eta_m2'], sd['backtracks'][0]['positions_only']
+            self.assertTrue(np.isfinite(b0['dE_obs']) and np.isfinite(b0['dE_time']))
+            self.assertGreaterEqual(b0['dE_time'], 0)                                              # stationary init: positions-only step cannot lower E_time
+            self.assertLessEqual(sd['backtracks'][0]['temporal_lift']['dE_time'], b0['dE_time']+1e-12)   # lift minimizes E_time given dX
+            record('E38', test='stein_decomposition', dEobs_dP=sd['dEobs_dP'], dEtime_dP=sd['dEtime_dP'], cos=sd['cos_phi_vs_neg_grad_Eobs'],
+                   first_backtrack=sd['backtracks'][0])
+            # post-hoc audit in a separate step with fixture GT (evaluation only)
+            can = np.load(out/'svgd_support/canonical.npz')
+            mv = np.array([d.observation(0, c).gt_moving.ravel()[p] for _, c, p in can['source']])
+            Xgt = np.stack([can['xyz0']@d.pose(k)[0].T+d.pose(k)[1] for k in range(3)]); Xgt[:, ~mv] = can['xyz0'][~mv]
+            from tools.audit_svgd_stein_rejection import audit
+            rep = audit(out, mv, Xgt, 'cpu')
+            for r in rep['per_frame']: self.assertLess(r['split_reconstruction_rel_error'], 1e-10)
+            record('F6', test='posthoc_cross_support_mass_synthetic', static_mass_from_moving=rep['per_frame'][0]['static_receivers_mass_fraction_from_moving'],
+                   static_dominated=rep['per_frame'][0]['static_points_dominated_by_moving_sources_fraction'], semantics='POST_HOC_GT_DIAGNOSTIC')
+        with tempfile.TemporaryDirectory() as t:
+            Path(t).mkdir(exist_ok=True)
+            cfg = small_config(str(Path(t)/'cfg.json'), EXP, **{'features.D': 64, 'convergence': {'max_outer': 2, 'pcg_max_iter': 15}})
+            c = json.loads(Path(cfg).read_text()); c['stein_numerics']['step_policy']['value']['velocity_lift'] = 'conditional_temporal_lift'; Path(cfg).write_text(json.dumps(c))
+            code = R.run(runner_args(Path(t)/'run', cfg), data=SyntheticDataset(K=3, motion='translate', speed=.15))
+            E = accepted_objective(Path(t)/'run'); self.assertTrue(all(b <= a for a, b in zip(E, E[1:])))
+            code_s = R.run(runner_args(Path(t)/'strict', cfg, mode='strict'), data=SyntheticDataset(K=2))
+            self.assertEqual(code_s, R.EXIT['BLOCKED'])
+
 
 if __name__ == '__main__':
     unittest.main()

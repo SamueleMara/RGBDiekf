@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SVGD falsification numerical</title>
+<link rel="stylesheet" href="projective_theme.css">
+<style>body{padding:12px 20px}.grid{display:flex;flex-wrap:wrap;gap:12px}.grid canvas{border:1px solid var(--line);display:block}.cap{font-size:11px;color:var(--dim);max-width:540px}
+#cls{font-size:18px;padding:8px 12px;margin:8px 0;border-left:5px solid var(--warn);background:#21262d}#diag{max-height:520px;overflow:auto;background:#0d1117;border:1px solid var(--line);padding:8px;color:var(--fg)}
+.cols{display:flex;gap:24px;flex-wrap:wrap}.cols>div{min-width:340px;flex:1}.k{color:var(--warn)}</style>
+<script src="projective_common.js"></script></head>
+<body><h1>SVGD Stage-1 falsification audit — numerical (post hoc)</h1><div id="errors"></div>
+<div id="cls"></div><div class="note">GT and I(α) are POST-HOC ORACLE paths; arms A–D are OFFLINE COUNTERFACTUAL proposals on the identical objective. Nothing here is inference.
+Energies are negative log-likelihoods in nats. Constant normalizers (below) cancel in every difference plotted.</div>
+<h2>diagnosis.md</h2><details open><summary>audit diagnosis (verbatim)</summary><pre id="diag"></pre></details>
+<div class="cols"><div><h2>Gates F1 / F2</h2><div id="f12"></div></div><div><h2>Constant normalizers (cancel in differences)</h2><div id="norms"></div></div></div>
+<h2>F1 / F2 — energy along the post-hoc path I(α) = X0 + α (X_GT − X0)</h2><div class="grid" id="g_alpha"></div>
+<label class="inline">per-frame curve <select id="aframe"></select></label>
+<h2>F1 — per-frame ΔE_obs,t (GT − S) vs true displacement</h2><div class="grid" id="g_frame"></div>
+<h2>F3 — Stein cosines vs true displacement (moving members, post hoc)</h2><div class="grid" id="g_cos"></div>
+<h2>F4 — offline line-search energy decomposition vs log10 η</h2>
+<label class="inline">y scale <select id="ys"><option value="symlog" selected>symlog10(1 + |ΔE|/c), c = 1e-12 |E0_total| (meaningful-decrease floor)</option><option value="linear">linear ΔE (nats)</option></select></label>
+<div class="grid" id="g_ls"></div><div id="f4"></div>
+<h2>F3 — FD closure (log-log)</h2><div class="grid" id="g_fd"></div>
+<h2>F3 — moving vs static distributions and cross-support mass</h2><div class="grid" id="g_dist"></div>
+<h2>Reconstruction checks (F0)</h2><div id="checks"></div>
+<h2>Covariance provenance</h2><details><summary>covariance_provenance.json</summary><pre id="cov"></pre></details>
+<script>
+const state = {ready: false, charts: 0, series: {}}; window.__state = state; const $ = id => document.getElementById(id);
+let N, M = {};
+const fin = v => typeof v === 'number' && Number.isFinite(v), lg = v => fin(v) && v > 0 ? Math.log10(v) : NaN;
+const fmt = v => v === null || v === undefined ? '–' : typeof v === 'number' ? (Math.abs(v) > 1e4 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(4) : +v.toPrecision(6)) : String(v);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const PALC = ['#58a6ff', '#3fb950', '#f0883e', '#a371f7', '#e3b341', '#39c5cf', '#db61a2', '#f85149', '#8b949e', '#56d364'];
+function table(rows, head) { return '<table>' + (head ? '<tr>'+head.map(h => `<th>${h}</th>`).join('')+'</tr>' : '') + rows.map(r => '<tr>'+r.map(v => `<td>${v ?? '–'}</td>`).join('')+'</tr>').join('') + '</table>'; }
+// chart = PD.chart + optional point markers (same axis mapping as PD.chart) + caption with axis units; series kept in __state.series[id]
+function chart(host, id, series, opt) {
+  let box = document.getElementById('c_'+id); if (!box) { box = document.createElement('div'); box.id = 'c_'+id; $(host).appendChild(box); state.charts++; }
+  box.innerHTML = ''; const c = document.createElement('canvas'); c.width = opt.w || 540; c.height = opt.h || 230; box.appendChild(c);
+  const S = series.map(s => ({...s, x: s.x.map(Number), y: s.y.map(v => fin(v) ? v : NaN)}));
+  PD.chart(c, S, opt); state.series[id] = {s: S.map(s => ({label: s.label, x: s.x, y: s.y, x_raw: s.x_raw, y_raw: s.y_raw})), markers: 0, frames: opt.frames || null};
+  const pts = S.flatMap(s => (s.mark || []).map((m, i) => m ? {x: s.x[i], y: s.y[i], fill: m === 2, color: s.color} : null).filter(Boolean)).filter(p => fin(p.x) && fin(p.y));
+  if (pts.length) { const ctx = c.getContext('2d'), W = c.width, H = c.height, m = 46, xs = S.flatMap(s => s.x), ys = S.flatMap(s => s.y).filter(Number.isFinite);
+    let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys); if (y1 === y0) { y1 += 1e-9; y0 -= 1e-9; } if (x1 === x0) x1 += 1;
+    const X = x => m+(x-x0)/(x1-x0)*(W-m-8), Y = y => H-20-(y-y0)/(y1-y0)*(H-40);
+    for (const p of pts) { ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 3.5, 0, 2*Math.PI); ctx.strokeStyle = p.color; ctx.lineWidth = 1.4; ctx.stroke(); if (p.fill) { ctx.fillStyle = p.color; ctx.fill(); } } }
+  state.series[id].markers = pts.length;
+  box.insertAdjacentHTML('beforeend', `<div class="cap">${opt.cap || ''}</div>`); return c;
+}
+const E = () => N.energy_oracle, isAll = r => r.frame === 'ALL';
+const row = (cand, k) => E().find(r => r.candidate === cand && (k === 'ALL' ? isAll(r) : r.frame === k));
+function drawAlpha() {
+  const S = row('S', 'ALL'), I = E().filter(r => r.kind === 'interpolation_posthoc' && isAll(r)).sort((a, b) => a.alpha-b.alpha), G = row('GT', 'ALL'), x = I.map(r => r.alpha);
+  const ser = (key, color, label, dash) => ({x, y: I.map(r => r[key]-S[key]), color, label, dash, mark: I.map(r => r.alpha === 1 ? 2 : 1)});
+  chart('g_alpha', 'alpha_sum', [ser('E_obs', '#58a6ff', 'ΣE_obs(I(α)) − ΣE_obs(S)'), ser('E_total_star', '#e6edf3', 'E_total*(I(α)) − E_total*(S)'), ser('E_time_star', '#f0883e', 'E_time*(I(α)) − E_time*(S)', [3, 3])],
+    {title: 'summed over frames vs α (α = 1 is GT, filled marker)', cap: `x: α (dimensionless; 0 = stationary S, 1 = post-hoc GT) · y: ΔE (nats). GT row: ΔE_obs ${fmt(G.E_obs-S.E_obs)}, ΔE_total* ${fmt(G.E_total_star-S.E_total_star)}. E_total* = ΣE_obs + min_V E_time + log normalizer (velocities lifted exactly).`});
+  drawAlphaFrame();
+}
+function drawAlphaFrame() {
+  const v = $('aframe').value, ks = v === 'all' ? [...Array(N.times_s.length).keys()] : [+v];
+  const ser = ks.map((k, i) => { const S = row('S', k), I = E().filter(r => r.kind === 'interpolation_posthoc' && r.frame === k).sort((a, b) => a.alpha-b.alpha);
+    return {x: I.map(r => r.alpha), y: I.map(r => r.E_obs_t-S.E_obs_t), color: PALC[k % PALC.length], label: `t${k} (${N.times_s[k].toFixed(3)} s)`, mark: I.map(() => 1)}; });
+  chart('g_alpha', 'alpha_frame', ser, {title: `per frame E_obs,t(I(α)) − E_obs,t(S) — ${v === 'all' ? 'all frames' : 'frame '+v}`, cap: 'x: α · y: ΔE_obs,t (nats). Frame 0 is in-sample (canonical = frame-0 samples): no motion information.'});
+}
+function drawFrame() {
+  const K = N.times_s.length, ks = [...Array(K).keys()], d = ks.map(k => row('GT', k).E_obs_t-row('S', k).E_obs_t), disp = ks.map(k => row('GT', k).gt_disp_median_moving_m);
+  const o = ks.slice().sort((a, b) => disp[a]-disp[b] || a-b);
+  chart('g_frame', 'dEobs_vs_disp', [{x: o.map(k => 1e3*disp[k]), y: o.map(k => d[k]), color: '#58a6ff', label: 'ΔE_obs,t(GT − S)', mark: o.map(k => d[k] < 0 ? 2 : 1)}],
+    {frames: o, title: 'ΔE_obs,t (GT − S) vs median true displacement of moving members', cap: 'x: median |X_GT,t − X0| over moving members (mm) · y: ΔE_obs,t (nats); filled = GT preferred (ΔE < 0). Sorted by displacement.'});
+  chart('g_frame', 'dEobs_vs_t', [{x: ks.map(k => N.times_s[k]), y: d, color: '#58a6ff', label: 'ΔE_obs,t(GT − S)', mark: d.map(v => v < 0 ? 2 : 1)},
+    {x: ks.map(k => N.times_s[k]), y: (N.summary.gate_F1_F2 || {}).dE_obs_GT_minus_S_t || [], color: '#8b949e', label: 'falsification_summary.json (same)', dash: [2, 3]}],
+    {title: 'ΔE_obs,t (GT − S) vs t', cap: 'x: true timestamp t (s) · y: ΔE_obs,t (nats). Grey dashed: the value stored in falsification_summary.json (must coincide).'});
+}
+function drawCos() {
+  const P = N.stein_per_frame, cum = P.map(r => (row('GT', r.frame) || {}).gt_disp_median_moving_m), inc = P.map(r => N.gt_incremental_disp_median_moving_m[r.frame]);
+  const band = (key, xs, color, lab) => { const o = P.map((_, i) => i).sort((a, b) => xs[a]-xs[b] || a-b), q = (i, s) => (P[i][key] || {})[s];
+    return [{x: o.map(i => 1e3*xs[i]), y: o.map(i => q(i, 'median')), color, label: lab+' median', mark: o.map(() => 1)}, {x: o.map(i => 1e3*xs[i]), y: o.map(i => q(i, 'p10')), color, label: 'p10', dash: [3, 3]},
+      {x: o.map(i => 1e3*xs[i]), y: o.map(i => q(i, 'p90')), color, label: 'p90', dash: [1, 3]}]; };
+  chart('g_cos', 'cos_cumulative', band('cos_phi_cumulative_gt_moving', cum, '#3fb950', 'cos(Φ_t, X_GT,t − X0)'), {title: 'Stein vs cumulative true motion', cap: 'x: median cumulative displacement |X_GT,t − X0| (mm) · y: cosine (−1..1), moving members, p10/median/p90'});
+  chart('g_cos', 'cos_incremental', band('cos_phi_incremental_gt_moving', inc, '#a371f7', 'cos(Φ_t, X_GT,t − X_GT,t−1)'), {title: 'Stein vs incremental true motion', cap: 'x: median incremental displacement |X_GT,t − X_GT,t−1| (mm) · y: cosine, moving members'});
+  const t = P.map(r => N.times_s[r.frame]), q = (key, s) => P.map(r => (r[key] || {})[s]);
+  chart('g_cos', 'cos_grad', [{x: t, y: q('cos_phi_neg_grad_Eobs_moving', 'median'), color: '#f0883e', label: 'moving median'}, {x: t, y: q('cos_phi_neg_grad_Eobs_moving', 'p10'), color: '#f0883e', label: 'p10', dash: [3, 3]},
+    {x: t, y: q('cos_phi_neg_grad_Eobs_static', 'median'), color: '#58a6ff', label: 'static median'}, {x: t, y: q('cos_phi_neg_grad_Eobs_static', 'p10'), color: '#58a6ff', label: 'p10', dash: [3, 3]}],
+    {title: 'cos(Φ_t, −∇_x E_obs,t) at S0', cap: 'x: t (s) · y: cosine; does the Stein field follow the likelihood descent direction?'});
+}
+function drawLS() {
+  const sym = $('ys').value === 'symlog', E0 = (N.summary.gate_F4 || {}).E0_total, c = 1e-12*Math.abs(E0 || 1), tr = v => !fin(v) ? NaN : sym ? Math.sign(v)*Math.log10(1+Math.abs(v)/c) : v;
+  state.ls_transform = {mode: sym ? 'symlog' : 'linear', c};
+  const R = N.line_search, keys = [...new Set(R.map(r => `${r.arm}|${r.search}`))];
+  for (const key of keys) { const [arm, search] = key.split('|'), rr = R.filter(r => r.arm === arm && r.search === search).sort((a, b) => a.eta_m2-b.eta_m2);
+    const x = rr.map(r => Math.log10(r.eta_m2)), mk = rr.map(r => r.accepted_significant === true ? 2 : r.accepted === true ? 1 : 0);
+    const s = (f, color, label, dash) => ({x, y: rr.map(r => tr(r[f])), y_raw: rr.map(r => r[f]), x_raw: rr.map(r => r.eta_m2), color, label, dash, mark: f === 'dE_total' ? mk : null});
+    chart('g_ls', `ls_${arm}_${search}`, [s('dE_total', '#e6edf3', 'ΔE_total'), s('dE_obs', '#58a6ff', 'ΔE_obs'), s('dE_anchor', '#f0883e', 'E_anchor', [3, 3]), s('dE_process', '#a371f7', 'E_process', [1, 3])],
+      {title: `arm ${arm} (${search} search)`, w: 520, cap: `${((N.summary.gate_F4 || {}).arm_definitions || {})[arm] || ''}. x: log10 η (η in m²) · y: ${sym ? `symlog10(1+|ΔE|/c), c = ${c.toExponential(2)} nats` : 'ΔE (nats)'}. Markers on ΔE_total: open = accepted (E decreased), filled = accepted beyond 1e-12|E0|. E_anchor / E_process are the time-prior parts at the trial state (both 0 at S0).`}); }
+  const F4 = N.summary.gate_F4 || {}, D = F4.directional_derivatives || {}, FM = F4.first_meaningful_acceptance || {}, FA = F4.first_accepted || {};
+  $('f4').innerHTML = `<p class="note">A/B reconstruction of the logged line search: max rel. error ${fmt(F4.A_B_reconstruction_max_rel_error)} (valid ${F4.audit_valid}). ${esc(F4.meaningful_definition || '')}</p>` +
+    table(Object.keys(D).map(a => [a, fmt(D[a].analytic_dE_total), fmt(D[a].analytic_dE_obs), fmt(D[a].quadratic_E_time_coefficient), fmt(D[a].fd_E_total),
+      FA[a] ? fmt(FA[a].eta_m2) : 'none', FM[a] ? fmt(FM[a].eta_m2) : '<span class="bad">none</span>', FM[a] ? fmt(FM[a].dE_total) : '–', FM[a] ? fmt(1e3*(FM[a].disp_moving_median_m || 0))+' mm' : '–']),
+      ['arm', '⟨∇E,P⟩ (nats)', '⟨∇E_obs,P⟩', '½PᵀLP (nats)', 'FD rel err', 'first accepted η (m²)', 'first meaningful η (m²)', 'ΔE_total there', 'moving disp median']);
+}
+function drawFD() {
+  const F = N.fd_closure || {};
+  for (const [key, lab] of [['fd_E_obs', '⟨∇E_obs, Φ⟩'], ['fd_E_total', '⟨∇E_total, P⟩']]) { const rows = (F[key] || {}).rows || [];
+    chart('g_fd', key, [{x: rows.map(r => Math.log10(r.h)), y: rows.map(r => lg(r.rel_error)), x_raw: rows.map(r => r.h), y_raw: rows.map(r => r.rel_error), color: '#e3b341', label: 'log10 rel. error', mark: rows.map(() => 1)}],
+      {title: `FD closure ${lab}: best ${fmt((F[key] || {}).best_rel_error)}`, w: 420, cap: `x: log10 h (h in m², η units) · y: log10 |FD − analytic| / |analytic|; analytic ${fmt(rows.length ? rows[0].analytic : null)} nats`}); }
+}
+function drawDist() {
+  const P = N.stein_per_frame, t = P.map(r => N.times_s[r.frame]), q = (key, s) => P.map(r => (r[key] || {})[s]);
+  const pair = (km, ks, lab) => [{x: t, y: q(km, 'median'), color: '#f0883e', label: 'moving median'}, {x: t, y: q(km, 'p90'), color: '#f0883e', label: 'p90', dash: [3, 3]},
+    {x: t, y: q(ks, 'median'), color: '#58a6ff', label: 'static median'}, {x: t, y: q(ks, 'p90'), color: '#58a6ff', label: 'p90', dash: [3, 3]}];
+  chart('g_dist', 'norm_phi', pair('norm_phi_moving', 'norm_phi_static'), {title: '|Φ_t| moving vs static', w: 420, cap: 'x: t (s) · y: |Φ| (1/m; Δx = η Φ with η in m²)'});
+  chart('g_dist', 'norm_grad', pair('norm_grad_Eobs_moving', 'norm_grad_Eobs_static'), {title: '|∇_x E_obs,t| moving vs static', w: 420, cap: 'x: t (s) · y: |∇E_obs| (nats / m)'});
+  chart('g_dist', 'cross_mass', [{x: t, y: q('moving_mass_from_static', 'median'), color: '#f0883e', label: 'moving: mass from static (median)'}, {x: t, y: q('moving_mass_from_static', 'p90'), color: '#f0883e', label: 'p90', dash: [3, 3]},
+    {x: t, y: q('static_mass_from_moving', 'median'), color: '#58a6ff', label: 'static: mass from moving (median)'}, {x: t, y: q('static_mass_from_moving', 'p90'), color: '#58a6ff', label: 'p90', dash: [3, 3]}],
+    {title: 'cross-support kernel mass fraction', w: 420, cap: 'x: t (s) · y: fraction of the Stein kernel mass coming from the other post-hoc support class (0..1)'});
+  chart('g_dist', 'static_dominated', [{x: t, y: P.map(r => r.static_dominated_by_moving_fraction), color: '#f85149', label: 'static particles whose Φ is dominated by moving sources', mark: P.map(() => 1)}],
+    {title: 'static dominated by moving (fraction)', w: 420, cap: 'x: t (s) · y: fraction of static members with |Φ from moving| > |Φ from static|'});
+}
+(async () => {
+  N = await PD.load('falsification_numeric'); try { M = await PD.load('falsification_meta'); } catch (e) { M = {}; }
+  const S = N.summary, F12 = S.gate_F1_F2 || {};
+  $('cls').innerHTML = `classification <b id="clsv">${esc(S.classification)}</b>`;
+  $('diag').textContent = N.diagnosis_md || 'diagnosis.md not written';
+  PD.rows($('f12'), [['ΣΔE_obs (GT − S) (nats)', fmt(F12.dE_obs_GT_minus_S)], ['ΔE_time* (GT − S)', fmt(F12.dE_time_star_GT_minus_S)], ['ΔE_total* (GT − S)', fmt(F12.dE_total_star_GT_minus_S)],
+    ['frame-0 ΔE_obs exactly zero', String(F12.frame0_dE_obs_exact_zero)], ['every frame t ≥ 1 prefers GT', String(F12.every_frame_prefers_GT)],
+    ['reconstruction valid (F0)', String(N.preflight.reconstruction_valid)], ['GT verification', (N.gt_verification || {}).status], ['N / K / cameras', `${N.preflight.N} / ${N.preflight.K} / ${N.preflight.cameras}`]]);
+  const Sa = row('S', 'ALL'), cst = [...Array(N.times_s.length).keys()].map(k => { const r = row('S', k); return r.E_obs_t-r.E_obs_quadratic_t; });
+  state.normalizers = {E_obs_t_const: cst, temporal_log_normalizer: Sa.E_total_star-Sa.E_obs-Sa.E_time_star};
+  PD.rows($('norms'), [...cst.map((v, k) => [`frame ${k}: ½ log det Γ + ½ D log 2π`, fmt(v)]), ['E_total* − ΣE_obs − E_time* (temporal log normalizer)', fmt(state.normalizers.temporal_log_normalizer)]]);
+  const af = $('aframe'); af.add(new Option('all frames', 'all')); N.times_s.forEach((t, k) => af.add(new Option(`frame ${k} (t ${t.toFixed(4)} s)`, k))); af.onchange = drawAlphaFrame;
+  $('ys').onchange = drawLS;
+  drawAlpha(); drawFrame(); drawCos(); drawLS(); drawFD(); drawDist();
+  $('checks').innerHTML = table((N.reconstruction_checks || []).map(c => [c.check, c.ok ? '<span class="good">ok</span>' : '<span class="bad">FAIL</span>', esc(JSON.stringify(c.detail)).slice(0, 160)]), ['check', 'ok', 'detail']);
+  $('cov').textContent = JSON.stringify(N.covariance_provenance, null, 1);
+  state.classification = S.classification; state.ready = true;
+})().catch(e => { state.error = String(e); window.__errors.push(String(e)); $('errors').textContent = 'ERROR: '+e; });
+</script></body></html>

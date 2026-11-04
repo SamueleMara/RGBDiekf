@@ -40,6 +40,8 @@ def parse(argv=None):
     ap.add_argument('--svgd-workspace-mib', type=float, default=512., help='operational memory budget of one operator tile (never a bandwidth)')
     ap.add_argument('--svgd-kernel-backend', choices=['torch', 'triton'], default='torch')
     ap.add_argument('--stop-after-step', choices=STAGES)
+    ap.add_argument('--save-stein-diagnostics', action='store_true',
+                    help='save outer-1 Phi / score / gradients / velocity lift to svgd_support/stein_diagnostics.npz for tools/audit_svgd_stein_rejection.py')
     ap.add_argument('--dry-run', action='store_true', help='validate config and inventory only; nothing is written')
     a = ap.parse_args(argv)
     if a.output is None and not a.dry_run: a.output = RESULTS_ROOT/f"svgd_{a.scene.resolve().name}_{time.strftime('%Y%m%d_%H%M%S')}"

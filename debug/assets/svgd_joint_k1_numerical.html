@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Joint K1 numerical</title>
+<link rel="stylesheet" href="projective_theme.css">
+<style>body{padding:12px 20px}.grid{display:flex;flex-wrap:wrap;gap:12px}.grid canvas{border:1px solid var(--line);display:block;max-width:100%}.cap{font-size:11px;color:var(--dim);max-width:540px}
+#banners .b{padding:4px 8px;margin:3px 0;border-radius:4px;background:#21262d}#banners .b.bad{border-left:4px solid var(--bad)}#banners .b.warn{border-left:4px solid var(--warn)}
+.cols{display:flex;gap:24px;flex-wrap:wrap}.cols>div{min-width:340px;flex:1}#ocls{font-size:16px;padding:6px 10px;border-left:4px solid var(--warn);background:#21262d;margin:6px 0}</style>
+<script src="projective_common.js"></script></head>
+<body><h1>Joint K = 1 support + shared rigid motion — numerical</h1><div id="errors"></div><div id="banners"></div>
+<div class="note" id="sem"></div>
+<div class="cols"><div><h2>Status</h2><div id="status"></div></div><div><h2>Counts</h2><div id="counts"></div></div></div>
+<h2>SVGD and MAP objective (F = conditional Gibbs log-posterior, nats)</h2><div class="grid" id="g_F"></div>
+<h2>SVGD diagnostics</h2><div class="grid" id="g_svgd"></div>
+<h2>Support: γ and log-evidence ratio B (full N)</h2>
+<label class="inline">y scale <select id="ys"><option value="log" selected>log10(1 + count)</option><option value="linear">count</option></select></label>
+<div class="grid" id="g_hist"></div>
+<h2>Calibration per frame</h2><div class="grid" id="g_cal"></div>
+<h2>Pose trajectory of the ONE moving body (MAP and every SVGD particle)</h2><div class="grid" id="g_pose"></div>
+<h2>Post-hoc oracle (GT, never inference)</h2><div id="oracle"></div>
+<div class="cols"><div><h2>Calibration provenance</h2><div id="calib"></div></div><div><h2>Observed clouds (rebuilt for display)</h2><div id="obs"></div><h2>Performance</h2><div id="perf"></div></div></div>
+<script>
+const state = {ready: false, charts: 0, series: {}}; window.__state = state; const $ = id => document.getElementById(id);
+let N, M;
+const fin = v => typeof v === 'number' && Number.isFinite(v), num = v => fin(v) ? v : NaN;
+const fmt = v => v === null || v === undefined ? '–' : typeof v === 'number' ? (Math.abs(v) > 1e5 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(4) : +v.toPrecision(7)) : typeof v === 'object' ? esc(JSON.stringify(v)) : esc(String(v));
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const PAL = ['#e3b341', '#39c5cf', '#db61a2', '#a371f7', '#56d364', '#f2cc60', '#79c0ff', '#ff9bce', '#d2a8ff', '#ffa657'];
+function table(rows, head) { return '<table>' + (head ? '<tr>'+head.map(h => `<th>${h}</th>`).join('')+'</tr>' : '') + rows.map(r => '<tr>'+r.map(v => `<td>${v ?? '–'}</td>`).join('')+'</tr>').join('') + '</table>'; }
+function box(host, id) { let b = document.getElementById('c_'+id); if (!b) { b = document.createElement('div'); b.id = 'c_'+id; $(host).appendChild(b); state.charts++; } b.innerHTML = ''; return b; }
+function chart(host, id, series, opt) {    // PD.chart + caption; series kept in __state.series[id]
+  const b = box(host, id), c = document.createElement('canvas'); c.width = opt.w || 540; c.height = opt.h || 220; b.appendChild(c);
+  const S = series.filter(s => s && s.x.length).map(s => ({...s, x: s.x.map(Number), y: s.y.map(num)}));
+  PD.chart(c, S.length ? S : [{x: [0], y: [NaN]}], opt); state.series[id] = S.map(s => ({label: s.label, x: s.x, y: s.y}));
+  b.insertAdjacentHTML('beforeend', `<div class="cap">${opt.cap || ''}</div>`); return c;
+}
+function bars(host, id, edges, sets, opt) {   // histogram: sets [{counts, color, label}] side by side in each bin
+  const b = box(host, id), c = document.createElement('canvas'); c.width = 540; c.height = 220; b.appendChild(c);
+  const ctx = c.getContext('2d'), W = c.width, H = c.height, m = 46, lg = $('ys').value === 'log', tf = v => lg ? Math.log10(1+v) : v;
+  ctx.fillStyle = '#161b22'; ctx.fillRect(0, 0, W, H); ctx.font = '11px ui-monospace,monospace'; ctx.fillStyle = '#8b949e'; ctx.fillText(opt.title, m, 12);
+  const S = sets.filter(s => s && s.counts), ymax = Math.max(1e-9, ...S.flatMap(s => s.counts.map(tf))), nb = edges.length-1, bw = (W-m-8)/nb;
+  ctx.strokeStyle = '#2a313a'; ctx.strokeRect(m, 20, W-m-8, H-40);
+  S.forEach((s, si) => { ctx.fillStyle = s.color; s.counts.forEach((v, i) => { const h = tf(v)/ymax*(H-40); ctx.fillRect(m+i*bw+si*bw/S.length, H-20-h, Math.max(1, bw/S.length-1), h); });
+    ctx.fillText(`${s.label} (n=${s.counts.reduce((a, q) => a+q, 0)})`, m+6+Math.floor(si/2)*((W-m)/2), 32+12*(si % 2)); });
+  ctx.fillStyle = '#8b949e'; ctx.fillText((lg ? 'log10(1+n) ' : '')+(lg ? ymax.toFixed(2) : String(ymax)), 2, 28); ctx.fillText(fmt(edges[0]), m, H-6); ctx.fillText(fmt(edges[nb]), W-60, H-6);
+  state.series[id] = {edges, sets: S.map(s => ({label: s.label, counts: s.counts}))};
+  b.insertAdjacentHTML('beforeend', `<div class="cap">${opt.cap || ''}</div>`);
+}
+const col = (rows, k) => rows.map(r => r[k] === undefined || r[k] === null ? NaN : r[k]);
+function drawF() {
+  const sv = N.svgd, it = col(sv, 'iteration'), F0 = N.F_identity, st = N.status, flat = (v, lab, c, d) => fin(v) ? {x: [it[0] ?? 0, it[it.length-1] ?? 1], y: [v, v], color: c, label: lab, dash: d} : null;
+  chart('g_F', 'svgd_F', [{x: it, y: col(sv, 'F_mean'), color: '#58a6ff', label: 'F mean (particles)'}, {x: it, y: col(sv, 'F_max'), color: '#e6edf3', label: 'F max'},
+    {x: it, y: sv.map(r => r.F_mean+r.F_std), color: '#58a6ff', label: 'F mean ± std', dash: [2, 3]}, {x: it, y: sv.map(r => r.F_mean-r.F_std), color: '#58a6ff', dash: [2, 3]},
+    flat(F0, 'F identity', '#f85149', [6, 4]), flat(st.F_map, 'F MAP (final, best start)', '#f0883e', [6, 4])],
+    {title: 'SVGD: F over particles vs iteration', cap: 'x: SVGD iteration (last row = final particles, no step) · y: F (nats). Red dashed: F at identity motion (π optimum not applied: same h0 as SVGD start); orange dashed: final MAP control F.'});
+  const starts = [...new Set(N.map.map(r => r.start))], ser = [];
+  starts.forEach((s, i) => { const R = N.map.filter(r => r.start === s), x = R.map((r, q) => r.iteration === 'final' ? q : r.iteration);
+    ser.push({x, y: R.map(r => r.F), color: PAL[i % PAL.length], label: `MAP from ${s}`}); });
+  const xm = Math.max(1, ...ser.flatMap(s => s.x));
+  if (fin(F0)) ser.push({x: [0, xm], y: [F0, F0], color: '#f85149', label: 'F identity', dash: [6, 4]});
+  if (fin(st.F_svgd_best)) ser.push({x: [0, xm], y: [st.F_svgd_best, st.F_svgd_best], color: '#e6edf3', label: 'F SVGD best', dash: [6, 4]});
+  chart('g_F', 'map_F', ser, {title: 'MAP control (Adam on the same F) per start', cap: 'x: MAP iteration (last point = final evaluation) · y: F (nats).'});
+  const gs = starts.map((s, i) => { const R = N.map.filter(r => r.start === s && r.iteration !== 'final'); return {x: R.map(r => r.iteration), y: R.map(r => fin(r.grad_norm) && r.grad_norm > 0 ? Math.log10(r.grad_norm) : NaN), color: PAL[i % PAL.length], label: `log10 |grad| from ${s}`}; });
+  chart('g_F', 'map_grad', gs, {title: 'MAP gradient norm (whitened coordinates)', cap: 'x: MAP iteration · y: log10 ‖∇F‖.'});
+  if (N.particle_F) chart('g_F', 'particle_F', [{x: N.particle_F.map((_, i) => i), y: N.particle_F, color: '#e3b341', label: 'final F per particle'}, ...(fin(F0) ? [{x: [0, Math.max(1, N.particle_F.length-1)], y: [F0, F0], color: '#f85149', label: 'F identity', dash: [6, 4]}] : [])],
+    {title: 'final F per SVGD particle', cap: 'x: particle index (colours match the 3D page) · y: F (nats).'});
+}
+function drawSVGD() {
+  const sv = N.svgd, it = col(sv, 'iteration'), L = (k, c, lab) => ({x: it, y: col(sv, k), color: c, label: lab || k});
+  const lg = k => ({x: it, y: sv.map(r => fin(r[k]) && r[k] > 0 ? Math.log10(r[k]) : NaN)});
+  chart('g_svgd', 'pi', [L('pi_mean', '#3fb950', 'π mean = mean sigmoid(h)')], {title: 'π (prior moving fraction) over particles', cap: 'x: iteration · y: π (dimensionless).'});
+  chart('g_svgd', 'diversity', [L('particle_diversity', '#a371f7', 'mean pairwise distance (whitened)')], {title: 'particle diversity', cap: 'x: iteration · y: mean pdist of the whitened particle vectors (after the step).'});
+  chart('g_svgd', 'bandwidth', [L('kernel_bandwidth', '#39c5cf', 'kernel bandwidth'), L('mean_kernel_mass', '#db61a2', 'mean kernel mass')], {title: 'SVGD kernel', cap: 'x: iteration · y: bandwidth (whitened units²) and mean kernel row mass (dimensionless).'});
+  chart('g_svgd', 'score', [{...lg('score_norm_mean'), color: '#f0883e', label: 'log10 mean |score|'}, {...lg('attraction_norm'), color: '#58a6ff', label: 'log10 |attraction|'}, {...lg('repulsion_norm'), color: '#a371f7', label: 'log10 |repulsion|'}],
+    {title: 'score / Stein terms', cap: 'x: iteration · y: log10 norm (whitened coordinates).'});
+  chart('g_svgd', 'gamma_trace', [L('gamma_mean', '#e3b341', 'mean γ'), L('gamma_particle_std_mean', '#8b949e', 'mean particle std of γ')], {title: 'support γ over iterations', cap: 'x: iteration · y: γ (UNCALIBRATED).'});
+  chart('g_svgd', 'cert', [{...lg('certificate_max'), color: '#f85149', label: 'log10 certificate max (nats)'}, L('qmc_fallback_max', '#8b949e', 'QMC fallback points (max)')], {title: 'numerical certificate', cap: 'x: iteration · y: log10 of the max summed truncation certificate, and QMC fallback count.'});
+  chart('g_svgd', 'seconds', [L('seconds', '#e6edf3', 'seconds / iteration')], {title: 'wall time per SVGD iteration', cap: 'x: iteration · y: s.'});
+}
+function drawHist() {
+  const H = N.hist, g = H.gamma;
+  bars('g_hist', 'gamma_hist', g.edges, [{counts: g.informative, color: '#58a6ff', label: 'informative'}, {counts: g.no_information, color: M.noinfo_colour, label: 'no information'}],
+    {title: `gamma_provisional — ${M.gamma_label}`, cap: 'x: γ in [0, 1] (40 bins) · y: points (all N). Pink: identifiability_status = 0.'});
+  if (g.gt_moving_POSTHOC) bars('g_hist', 'gamma_gt', g.edges, [{counts: g.gt_moving_POSTHOC, color: '#f0883e', label: 'GT moving POST-HOC'}, {counts: g.gt_static_POSTHOC, color: '#58a6ff', label: 'GT static POST-HOC'}],
+    {title: `gamma_provisional by GT class — POST-HOC`, cap: 'x: γ · y: points. GT from the post-hoc oracle, never inference.'});
+  if (H.map_gamma) bars('g_hist', 'map_gamma_hist', H.map_gamma.edges, H.map_gamma.gt_moving_POSTHOC ? [{counts: H.map_gamma.gt_moving_POSTHOC, color: '#f0883e', label: 'GT moving POST-HOC'}, {counts: H.map_gamma.gt_static_POSTHOC, color: '#58a6ff', label: 'GT static POST-HOC'}]
+    : [{counts: H.map_gamma.all, color: '#f0883e', label: 'all'}], {title: `map_gamma (control) — ${M.gamma_label}`, cap: 'x: γ at the MAP pose · y: points.'});
+  if (H.B) { bars('g_hist', 'B_hist', H.B.edges, [{counts: H.B.informative, color: '#58a6ff', label: 'informative'}, {counts: H.B.no_information, color: M.noinfo_colour, label: 'no information'}],
+    {title: 'log evidence ratio B = log L^M − log L^S (nats)', cap: `x: B (nats) · y: points. ${H.B.note}.`});
+    if (H.B.gt_moving_POSTHOC) bars('g_hist', 'B_gt', H.B.edges, [{counts: H.B.gt_moving_POSTHOC, color: '#f0883e', label: 'GT moving POST-HOC'}, {counts: H.B.gt_static_POSTHOC, color: '#58a6ff', label: 'GT static POST-HOC'}],
+      {title: 'B by GT class — POST-HOC', cap: 'x: B (nats) · y: points.'}); }
+}
+function drawCal() {
+  const R = N.rho, x = R.map(r => r.frame), nf = Math.max(0, ...R.map(r => r.folds.length)), fs = [];
+  for (let f = 0; f < nf; f++) fs.push({x, y: R.map(r => r.folds[f] ?? NaN), color: '#8b949e', label: f === 0 ? 'fold ρ' : undefined, dash: [2, 3]});
+  chart('g_cal', 'rho', [{x, y: R.map(r => r.rho), color: '#3fb950', label: 'ρ_t (held-out)'}, {x, y: R.map(r => r.rho-r.dispersion_iqr/2), color: '#3fb950', dash: [5, 3], label: 'ρ ± IQR/2'},
+    {x, y: R.map(r => r.rho+r.dispersion_iqr/2), color: '#3fb950', dash: [5, 3]}, ...fs], {title: 'ρ per frame with fold dispersion', cap: 'x: frame index t ≥ 1 · y: ρ (dimensionless; held-out sampling/model-mismatch weight, NOT visibility). Grey dashed: each CV fold.'});
+  const fx = (N.kappa || []).map((_, i) => i+1);
+  chart('g_cal', 'kappa', [{x: fx, y: N.kappa || [], color: '#a371f7', label: 'κ_t'}], {title: 'certified kernel radius factor κ per frame', cap: 'x: frame t · y: κ (dimensionless).'});
+  chart('g_cal', 'grid', [{x: fx, y: (N.grid_radius_m || []).map(v => 1e3*v), color: '#39c5cf', label: 'grid radius (mm)'}, {x: (N.representation_spacing_m || []).map((_, i) => i), y: (N.representation_spacing_m || []).map(v => 1e3*v), color: '#e3b341', label: 'representation spacing (mm)'}],
+    {title: 'grid radius and representation spacing', cap: 'x: frame · y: mm.'});
+}
+function drawPose() {
+  const P = N.pose, x = N.times_s, mk = (key, sc) => { const s = P.particles.map((p, m) => ({x, y: p[key].map(v => sc*v), color: PAL[m % PAL.length], label: `particle ${m}`}));
+    if (P.map) s.push({x, y: P.map[key].map(v => sc*v), color: '#f0883e', label: 'MAP (control)'}); if (P.gt_POSTHOC) s.push({x, y: P.gt_POSTHOC[key].map(v => sc*v), color: '#3fb950', label: 'GT POST-HOC', dash: [6, 4]}); return s; };
+  chart('g_pose', 'pose_t', mk('translation_norm_m', 1e3), {title: '|t_k| of the moving-body pose (frame 0 = identity)', cap: 'x: true timestamp (s) · y: translation norm (mm). Spread across particles = posterior uncertainty of the ONE motion.'});
+  chart('g_pose', 'pose_r', mk('rotation_deg', 1), {title: 'rotation angle of the moving-body pose', cap: 'x: true timestamp (s) · y: angle (deg).'});
+}
+function drawOracle() {
+  const O = N.oracle, el = $('oracle');
+  if (!O) { el.innerHTML = `<div class="note">no post-hoc oracle folder (RUN/posthoc/k1_oracle[_N]); GT layers absent. GT status: ${esc(N.gt_status)}</div>`; state.oracle = null; return; }
+  const flat = (o, p = '') => Object.entries(o).flatMap(([k, v]) => v && typeof v === 'object' && !Array.isArray(v) ? flat(v, p+k+'.') : [[p+k, v]]);
+  const rows = flat(O).filter(([k]) => k !== 'status');
+  el.innerHTML = `<div id="ocls">oracle status <b>${esc(O.status)}</b> <span class="note">(${esc(N.oracle_folder)}; folders ${esc(N.oracle_folders.join(', '))}) — POST-HOC, GT never used by inference</span></div>` +
+    table(rows.map(([k, v]) => [esc(k), fmt(v)]), ['field', 'value']);
+  state.oracle = {status: O.status, rows: rows.length};
+}
+function drawTables() {
+  const st = N.status; PD.rows($('status'), Object.entries(st).filter(([k]) => k !== 'gates').map(([k, v]) => [k, fmt(v)]));
+  PD.rows($('counts'), Object.entries(N.counts).map(([k, v]) => [k, fmt(v)]).concat(Object.entries(N.quantiles).map(([k, v]) => [`${k} q[0,.01,.5,.99,1]`, v ? v.map(q => (+q).toPrecision(4)).join(', ') : '–'])));
+  PD.rows($('calib'), Object.entries(N.calibration).map(([k, v]) => [k, fmt(v)]));
+  $('obs').innerHTML = table(N.observed.map(o => [o.k, fmt(N.times_s[o.k]), o.M_t, o.M_display, String(o.matches_run_cloud)]), ['frame', 't (s)', 'M_t', 'M_display', 'sha256 = run']);
+  PD.rows($('perf'), Object.entries(N.performance || {}).map(([k, v]) => [k, fmt(v)]));
+}
+(async () => {
+  N = await PD.load('k1_numeric'); M = await PD.load('k1_meta');
+  $('banners').innerHTML = N.banners.map(b => `<div class="b ${b.level}"><b>${esc(b.code)}</b> ${esc(b.text)}</div>`).join('');
+  $('sem').textContent = `${N.semantics || ''}. γ = ${M.gamma_label} (${N.probability_semantics}); every histogram is over the full N = ${N.counts.N}, independent of the 3D display subset.`;
+  state.banners = N.banners.map(b => b.code);
+  drawTables(); drawF(); drawSVGD(); drawHist(); drawCal(); drawPose(); drawOracle();
+  $('ys').onchange = drawHist;
+  state.ready = true;
+})().catch(e => { state.error = String(e); window.__errors.push(String(e)); $('errors').textContent = 'ERROR: '+e; });
+</script></body></html>

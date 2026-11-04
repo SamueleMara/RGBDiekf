@@ -201,7 +201,8 @@ def run(a, data=None):
     if a.debug != 'none' and (sv/'canonical.npz').is_file():
         try:
             from debug.svgd_support_debug import write_debug
-            write_debug(out, a.debug, data, display_cap=a.display_cap)
+            t_dbg = time.perf_counter(); write_debug(out, a.debug, data, display_cap=a.display_cap)
+            perf['debug_write_seconds'] = time.perf_counter()-t_dbg; L.json(sv/'performance.json', perf)
         except Exception as e:                      # the numerical run stays valid; the viewer failure is recorded, not hidden
             status['debug'] = f'DEBUG_NOT_WRITTEN: {type(e).__name__}: {e}'; L.json(sv/'status.json', status); print('[svgd]', status['debug'], flush=True)
     L.close(sv/'artifact_ledger.json'); progress(stage='DONE', exit_code=code)
@@ -282,6 +283,10 @@ def _stages(a, cfg, mode, contract, data, dev, dt, out, sv, L, timed, progress, 
     probs = config_problems(cfg, mode, 'STEIN_PROPOSAL')
     if probs: raise Blocked('BLOCKED_MODEL_UNSPECIFIED', 'STEIN_PROPOSAL', probs)
     st_cfg = cfg['stein']; num = value(cfg, 'stein_numerics.step_policy'); conv = cfg['stein_numerics']['convergence']['value']
+    if num.get('velocity_lift', 'none') not in ('none', 'conditional_temporal_lift'):
+        raise Blocked('BLOCKED_MODEL_UNSPECIFIED', 'STEIN_PROPOSAL', [('stein_numerics.step_policy.velocity_lift', num.get('velocity_lift'))])
+    if num.get('velocity_lift') == 'conditional_temporal_lift' and mode == 'strict' and num.get('velocity_lift_authorization') != 'AUTHORIZED':
+        raise Blocked('BLOCKED_MODEL_UNSPECIFIED', 'STEIN_PROPOSAL', [('stein_numerics.step_policy.velocity_lift', 'UNAUTHORIZED_DEVIATION DEV-0011 (optimizer modification of B3)')])
     for key, want in (('features.feature_method', 'rff_declared_finite_map'), ('features.Gamma_model', None), ('observations.visibility_model', 'all_canonical_points_comparable'),
                       ('observations.unexplained_support_model', 'none'), ('stein.H_X', None), ('motion_prior.process_model', None)):
         v = value(cfg, key)
@@ -318,12 +323,12 @@ def _stages(a, cfg, mode, contract, data, dev, dt, out, sv, L, timed, progress, 
         status['stage_reached'] = 'STEIN_PROPOSAL'; E_begin = E['total']; S_begin = S.clone(); it_trace = {i: {'outer': outer, 'frames': []} for i in trace_ids}
         stein_rel = 0.
         if stein_on:
-            Phi = torch.zeros(N, K, 3, dtype=dt, device=dev); mass_med, lam_max = [], 0.
+            Phi = torch.zeros(N, K, 3, dtype=dt, device=dev); score_all = torch.zeros_like(Phi); mass_med, lam_max = [], 0.
             for k in range(K):
                 progress(stage='STEIN_PROPOSAL', outer=outer, frame=k+1, frames=K)
                 X = S[:, k, :3]; r = score(k, X)
                 sf = timed('stein_field', stein_field, X, c0, r.grad_xyz, H_x, H_c, workspace_bytes=ws, **kw)
-                Phi[:, k] = sf.total; mass_med.append(sf.kernel_mass)
+                Phi[:, k] = sf.total; score_all[:, k] = r.grad_xyz; mass_med.append(sf.kernel_mass)
                 lam_max = max(lam_max, obs[k]['lam_x_max'])
                 y, d, lx, lc, cam = frame_tensors(k)
                 rt = target_score(X[tid], c0[tid], y, d, lx, lc, query_color_cov=Sigma_a, obs_camera=cam, cameras=C, workspace_bytes=ws)
@@ -335,15 +340,47 @@ def _stages(a, cfg, mode, contract, data, dev, dt, out, sv, L, timed, progress, 
                 timeline.append({'outer': outer, 'step': 'stein_field', 'frame': k, 'score_norm_median': float(torch.linalg.norm(r.grad_xyz, dim=1).median()),
                                  'attraction_norm_median': float(torch.linalg.norm(sf.attraction, dim=1).median()),
                                  'repulsion_norm_median': float(torch.linalg.norm(sf.repulsion, dim=1).median()), 'kernel_mass_median': float(sf.kernel_mass.median())})
-            eta = initial_step(lam_max, N, torch.cat(mass_med))
+            # F2/F3 decomposition against the SAME common objective (diagnostic only; nothing here enters E)
+            lift_on = num.get('velocity_lift', 'none') == 'conditional_temporal_lift'
+            G_time = temporal.grad(S); G_obs = obj.grad(S)-G_time                         # E_obs acts on positions only
+            P = torch.zeros_like(S); P[:, :, :3] = Phi
+            dV1 = temporal.velocity_lift(S, Phi)-temporal.velocity_lift(S, torch.zeros_like(Phi))   # linear part of the lift per unit eta
+            PL = P.clone(); PL[:, :, 3:] = dV1
+            dot = lambda u, w: float((u*w).sum()); cos = lambda u, w: dot(u, w)/max(math.sqrt(dot(u, u)*dot(w, w)), 1e-300)
+            sd = {'outer': outer, 'dEobs_dP': dot(G_obs, P), 'dEtime_dP': dot(G_time, P), 'dEtotal_dP': dot(G_obs+G_time, P),
+                  'dEtotal_dP_lift_linear': dot(G_obs+G_time, PL), 'cos_phi_vs_neg_grad_Eobs': cos(Phi, -G_obs[:, :, :3]),
+                  'cos_P_vs_neg_grad_Etotal': cos(P, -(G_obs+G_time)), 'cos_P_lift_vs_neg_grad_Etotal': cos(PL, -(G_obs+G_time)),
+                  'cos_phi_vs_neg_grad_Eobs_per_frame': [cos(Phi[:, k], -G_obs[:, k, :3]) for k in range(K)],
+                  'consistency_residual_initial_median_m': float(temporal.consistency_residual(S).median()) if K > 1 else 0.,
+                  'velocity_lift_used': lift_on, 'semantics': 'Phi is a KDE-score proposal; E is the RFF feature likelihood + temporal prior: '
+                                                             'their gradients need not agree (restricted physical-particle Stein is a heuristic proposal)'}
+            if a.save_stein_diagnostics and outer == 1:
+                L.npz(sv/'stein_diagnostics.npz', X=S[:, :, :3].cpu().numpy(), Phi=Phi.cpu().numpy(), score=score_all.cpu().numpy(), grad_Eobs_x=G_obs[:, :, :3].cpu().numpy(),
+                      grad_Etime=G_time.cpu().numpy(), velocity_lift_per_eta=dV1.cpu().numpy(), H_x=H_x.cpu().numpy(), H_c=H_c.cpu().numpy(), rgb0=c0.cpu().numpy(),
+                      kernel_color=np.array(kw['kernel_color']), attraction_enabled=np.array(kw['attraction']), repulsion_enabled=np.array(kw['repulsion']),
+                      semantics=np.array('INTERNAL DIAGNOSTIC of outer iteration 1 (pre-step state); no GT inside'))
+            eta = initial_step(lam_max, N, torch.cat(mass_med)); sd['eta0_m2'] = eta; sd['backtracks'] = []
             for b in range(int(num['max_backtracks'])+1):
-                Sc = S.clone(); Sc[:, :, :3] += eta*Phi; Ec = timed('objective', obj.value, Sc)
-                ok = Ec['total'] < E['total']
+                cand = {}
+                for fam in ('positions_only', 'temporal_lift'):
+                    Sc = S.clone(); Sc[:, :, :3] += eta*Phi
+                    if fam == 'temporal_lift': Sc[:, :, 3:] += temporal.velocity_lift(S, eta*Phi)
+                    cand[fam] = (Sc, timed('objective', obj.value, Sc))
+                use = 'temporal_lift' if lift_on else 'positions_only'
+                Sc, Ec = cand[use]; ok = Ec['total'] < E['total']; El = cand['temporal_lift'][1]; Ep = cand['positions_only'][1]
+                cres = float(temporal.consistency_residual(Sc).median()) if K > 1 else 0.
                 timeline.append({'outer': outer, 'step': 'stein_accept', 'eta_m2': eta, 'backtrack': b, 'accepted': ok, 'E_total': Ec['total'], 'E_obs': Ec['E_obs'], 'E_time': Ec['E_time'],
-                                 'step_norm_median_m': float(torch.linalg.norm(eta*Phi, dim=-1).median())})
+                                 'step_norm_median_m': float(torch.linalg.norm(eta*Phi, dim=-1).median()), 'proposal_family': use,
+                                 'dE_obs': Ec['E_obs']-E['E_obs'], 'dE_time': Ec['E_time']-E['E_time'], 'consistency_residual_median_m': cres,
+                                 'positions_only_dE_total': Ep['total']-E['total'], 'temporal_lift_dE_total': El['total']-E['total'],
+                                 'temporal_lift_dE_time': El['E_time']-E['E_time']})
+                sd['backtracks'].append({'eta_m2': eta, 'positions_only': {'dE_obs': Ep['E_obs']-E['E_obs'], 'dE_time': Ep['E_time']-E['E_time']},
+                                         'temporal_lift': {'dE_obs': El['E_obs']-E['E_obs'], 'dE_time': El['E_time']-E['E_time']}, 'accepted': ok})
                 if ok: stein_rel = (E['total']-Ec['total'])/max(1., abs(E['total'])); S, E = Sc, Ec; break
                 eta *= float(num['backtracking_factor'])
-            print(f'[svgd] outer {outer} Stein proposal {"ACCEPTED" if stein_rel > 0 else "REJECTED (no descent of the common objective)"}  E {E["total"]:.8g}', flush=True)
+            status['gates'].setdefault('STEIN_DIAGNOSTICS', []).append(sd)
+            print(f'[svgd] outer {outer} Stein proposal ({"temporal lift" if lift_on else "positions only"}) {"ACCEPTED" if stein_rel > 0 else "REJECTED (no descent of the common objective)"}'
+                  f'  E {E["total"]:.8g}  <grad E_obs,P> {sd["dEobs_dP"]:.3e} <grad E_time,P> {sd["dEtime_dP"]:.3e} cos(Phi,-grad E_obs) {sd["cos_phi_vs_neg_grad_Eobs"]:.3f}', flush=True)
         if stop == 'STEIN_PROPOSAL': _record_traces(traces, it_trace, S_begin, S, trace_ids); convergence = 'STOPPED_AFTER_STEIN_PROPOSAL'; break
         status['stage_reached'] = 'TEMPORAL_REFINEMENT'; progress(stage='TEMPORAL_REFINEMENT', outer=outer)
         G = obj.grad(S)

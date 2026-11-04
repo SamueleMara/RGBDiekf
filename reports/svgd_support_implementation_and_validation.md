@@ -128,3 +128,65 @@ frames, ≈ 5 h at the 8-iteration cap; 32 GB hardware not available. Near-full 
 ## 7. Commands (user-launched; see the chat reply)
 
 Strict and experimental 3-frame pilots, QA, profile and the parity audit are listed in the reply that accompanied this report.
+
+## 8. Response to audit `RGBDiekf_SVGD_Commit_b62c7cee_Technical_Audit_2026-11-03.md` (same day, uncommitted on top of b62c7ce)
+
+Scope rule followed: diagnose before any model change (audit order item 2); every model law the audit asks for (items 1, 3–6) is written as a
+**proposal awaiting approval** in `docs/SVGD_THEORY_AMENDMENT_PROPOSAL_2026-11-03.md` (decisions D1–D7), not implemented as inference.
+Statuses are machine-readable in `estimator/svgd_contract.AUDIT_FINDINGS` and `reports/svgd/theory_parity_summary.json` (`audit_b62c7cee_findings`).
+
+| finding | status | what changed |
+|---|---|---|
+| F1 rigidity never constrains transport | BLOCKED_AWAITING_THEORY_APPROVAL | proposal A4 (support labels incl. unknown U, SE(3) random-walk nuisance, CRP partition prior, variational ELBO coupling); runner unchanged |
+| F2 positions-only Stein proposal | DIAGNOSED + optional fix | per-backtrack ΔE_obs/ΔE_time for both families, consistency residual, ⟨∇E_obs,P⟩, ⟨∇E_time,P⟩ (E38); exact conditional velocity lift E37 = DEV-0011, opt-in (`velocity_lift`), strict refuses it unless authorized |
+| F3 Stein vs likelihood descent | DIAGNOSED | cos(Φ, −∇E_obs) per frame and stacked, cos(P, −∇E_total), lifted variant (STEIN_DIAGNOSTICS gate) |
+| F4 visibility / B_t | BLOCKED_AWAITING_THEORY_APPROVAL | proposals A2 (normalized ray-ordering visibility with occlusion / free-space / off-foreground events, camera-stratified features) and A3 (Beta–Gaussian unexplained mixture) |
+| F5 Γ uncalibrated | BLOCKED_AWAITING_THEORY_APPROVAL | proposal A5 (traceable decomposition + held-out χ² coverage) |
+| F6 object-scale H_X | DIAGNOSED | `tools/audit_svgd_stein_rejection.py` (separate process, GT post hoc): exact moving/static source split of K and Φ (`source_mask`, parts add to 1e-12); proposal A6 |
+| F7 Ω "conservative" | CORRECTED | DEV-0007 now "bias sign UNDETERMINED", conclusion UNDETERMINED; oracle: dropping ρ = +0.8 vs −0.8 cross-covariance gives opposite log-det bias |
+| F8 no production posterior | BLOCKED_AWAITING_THEORY_APPROVAL | proposal A7; `support_posterior` still BLOCKED, no p_dynamic / seeds |
+| F9 runtime/QA gates | PARTIAL | profile adds Γ covariance + Cholesky, objective gradient, GN apply, PCG, velocity lift, 34k default size; runner records `debug_write_seconds`; 34k/near-full and real-scene QA commands handed over |
+
+Labelling fixes (audit "important distinctions"): the parity summary now states `scope_of_operator_parity` (algebra + small fixtures, not end-to-end),
+`end_to_end_model_fidelity = NOT_ESTABLISHED`, `workload_acceptance = NOT_ESTABLISHED`; failure-revealing tests (occlusion, camera duplication,
+bias sign, flat-plane information, Occam) carry `test_semantics: FAILURE_REVEALING: PASS = the failure mode was detected`; each Gate-4 scenario has a
+`physical_outcome` under a declared toy criterion (static drift ≤ 0.5 mm; recovered ≥ 0.9): (a) NO_FALSE_DRIFT, (b) FALSE_DRIFT_FAILED,
+(c) and (d) PHYSICAL_MOTION_NOT_RECOVERED. Trajectory fractions are not seed precision/recall (audit note): no seed metrics exist until A7.
+
+Measured on the synthetic translation fixture (3 frames, outer 1, experimental): ⟨∇E_obs, P⟩ = −2.6e5 (Φ is an E_obs descent direction,
+cos(Φ, −∇E_obs) = 0.49), ⟨∇E_time, P⟩ = 0 at the stationary state, yet at η₀ the positions-only proposal has ΔE_time = +6.5e6 (second order: inconsistent
+velocities) and ΔE_obs = +1.8e3 (overshoot); the exact velocity lift reduces ΔE_time to +5.0e4 (130×). Post hoc, 21 % of static points have a Stein
+field dominated by GT-moving sources (median static-receiver kernel mass from moving sources 0.15 %, p90 21 %). The Blade decomposition is a
+user-launched diagnostic (commands in the chat reply); it has not been run.
+
+Tests: 71 svgd tests (was 67) pass; new oracles: velocity lift vs dense autograd minimization (1.7e-16 rel), source-mask split, bias-sign oracle,
+runner decomposition consistency + post-hoc audit on the synthetic oracle. CUDA profile 1k/10k re-measured while another job held the GPU at 100 %
+(contended; e.g. target score 0.68 s at 10k vs 0.29 s uncontended earlier): `reports/svgd/cuda_profile_1k_10k.json`.
+
+## 9. Blade Stein-rejection diagnosis (user-launched 2026-11-03 18:08/18:09, `svgd_blade_stein_audit_{none,conditional_temporal_lift}_*`)
+
+Blade, 2 frames, 8 cameras, N = 34 369 (3 218 GT-moving, post hoc), experimental config. Both runs identical up to the proposal family.
+
+- **No proposal accepted, with or without the velocity lift**: 21 backtracks, η from 3.0e-4 down to 2.8e-10 m²; ΔE_obs < 0 from the second backtrack on, but ΔE_time dominates at
+  every step (η₀: ΔE_obs +135, ΔE_time +2.73e9; smallest: −4.3e-5 vs +2.5e-3). ⟨∇E_total, P⟩ = −1.5e5 < 0, so only a step ~26 further halvings smaller (sub-nm) would pass:
+  the backtracking cap, not the sign, ends the search.
+- **Cause = frame-0 anchor, not velocities (F2 is not the Blade mechanism)**: exact offline split at η₀: anchor ½|ηΦ₀|²_{Σ⁰⁻¹} = 2.725e9, process 0→1 = 3.3e6; the
+  lift can only change velocities (2.728e9 → 2.725e9). 100 % of the anchor cost lies along the smallest eigen-direction of Σ⁰: the ray depth, σ = 69 nm, because the
+  measured depth noise of this noiseless render is the float32 quantization floor (variance 4.7e-15 m², quantum 2.4e-7 m); lateral σ ≈ 2.0 mm. Stein moves frame-0
+  particles by a median 34 µm although the frame-0 feature residual is identically zero (canonical = frame-0 samples, ∇E_obs,0 = 0, cos = 0 at frame 0).
+- **F3**: cos(Φ, −∇E_obs) = 0.05 overall (frame 1: static 0.001, moving 0.134), but post hoc cos(Φ, true displacement) = **0.999** on GT-moving points at frame 1: the Stein
+  direction is physically right on the blade while the RFF feature gradient (B = H = 118 mm, DEV-0005) is nearly orthogonal to it.
+- **F6**: moving receivers take a median 21.8 % of their kernel mass from static sources; 15.6 % of static points have a frame-1 Stein field dominated by moving sources.
+- Browser QA on the real scene: PASS, 47/47 checks, both runs. Run cost: target score 2.9 s/eval, Stein 1.6 s/frame, peak 0.69 GB allocated / 1.0 GB reserved, debug 0.3 s.
+- CUDA profile (uncontended, `svgd_cuda_profile_20261103_1809.json`): 34k — score 2.83 s, Stein 1.58 s, Γ covariance 0.71 s, Cholesky 0.05 s, 10 PCG 0.58 s;
+  100k — score 24.2 s, Stein 13.6 s, Γ 2.1 s, 10 PCG 1.7 s; peak ≤ 0.58 GB allocated / 1.09 GB reserved; CPU vs CUDA ≤ 7e-14.
+
+### 9b. 10-frame Blade runs (user-launched 18:14 positions-only / 18:16 lift; stop after STEIN_PROPOSAL)
+
+- Every proposal rejected in both runs (21 backtracks, η 3.0e-4 → 2.9e-10 m²). At η₀ the exact E_time split is anchor 2.817e9 vs process 1.04e7 over all 9 intervals
+  (99.6 % anchor); the lift lowers ΔE_time by 0.25 % only (2.827e9 → 2.820e9). ⟨∇E_obs, P⟩ = −2.26e6, ⟨∇E_time, P⟩ = 0: same mechanism as 2 frames.
+- Prismatic blade, 14.16 mm per frame (GT post hoc), KDE spacing s_t ≈ 2.6 mm. Because nothing is accepted every frame is proposed from the stationary state, and the
+  Stein direction on GT-moving points degrades with the true displacement: cos(Φ, true) median 0.999 (14 mm), 0.876, 0.720, 0.786, −0.182 (71 mm), −0.099, 0.597,
+  0.426, 0.325 (127 mm); p10 negative from frame 2. Large displacements leave the KDE basin (PDF 13.1 control 3).
+- cos(Φ, −∇E_obs) ≤ 0.062 in every frame (F3); moving receivers take 21.8 % of kernel mass from static sources in every frame and the static fraction dominated by
+  moving sources rises 15.6 % → 17.5 % (F6). QA PASS 56/56 both runs. Cost 123 s: target 2.9 s × 20, Stein 1.6 s × 10, peak 0.79 GB.

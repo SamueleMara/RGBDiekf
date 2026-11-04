@@ -168,7 +168,28 @@ def svgd_status(out):
     return f"{out}\nrunning: {st} outer {o}/{cap} frame {i}/{n}  {100*frac:.0f}%  elapsed {fmt(el)}  left <= {fmt(left)} (outer cap)"
 
 
+def k1_batch_status(out):
+    """tools/run_svgd_joint_k1_batch.py folder: per-job state, current job stage/iteration and its time per iteration."""
+    b = json.loads((Path(out)/'batch_status.json').read_text()); jobs = b['jobs']; n = jobs[-1]['of'] if jobs else 0
+    busy = lambda j: j['state'] == 'RUNNING' or j.get('oracle') == 'RUNNING'
+    done = [j for j in jobs if not busy(j)]; L = [f"{out}", f"{'finished' if b.get('finished') else 'running'}: {len(done)}/{n} jobs done, started {b['started']}"]
+    for j in jobs:
+        if j.get('oracle') == 'RUNNING': extra = f" oracle RUNNING for {fmt(time.time()-j['oracle_started'])}"
+        else: extra = f" oracle {j.get('oracle_status', j.get('oracle', ''))}" if j.get('oracle') else ''
+        sec = j.get('seconds', j.get('run_seconds') or 0)
+        L.append(f"  [{j['index']:2d}] {j['name']:<36} {j['state']:<18} {fmt(sec)}{extra}")
+    cur = b.get('current'); cj = next((j for j in jobs if j['name'] == cur), None)
+    if cj and cj.get('oracle') == 'RUNNING':
+        L.append(f"  current {cur}: post-hoc GT oracle running ({fmt(time.time()-cj['oracle_started'])})")
+    elif cur and (Path(out)/cur/'progress.json').is_file():
+        p = json.loads((Path(out)/cur/'progress.json').read_text())
+        L.append(f"  current {cur}: {p.get('stage')} it {p.get('iteration', '-')}/{p.get('iterations', '-')} particle {p.get('particle', '-')}/{p.get('particles', '-')}"
+                 f" elapsed {fmt(p['elapsed_s'])} sec/iteration {p.get('sec_per_iteration') and round(p['sec_per_iteration'], 1)}")
+    return '\n'.join(L)
+
+
 def status(out, log=None):
+    if (Path(out)/'batch_status.json').is_file(): return k1_batch_status(out)
     if (Path(out)/'progress.json').is_file() and (Path(out)/'run_manifest.json').is_file() and \
             json.loads((Path(out)/'run_manifest.json').read_text()).get('run_kind') == 'svgd_support_stage1':
         return svgd_status(out)
